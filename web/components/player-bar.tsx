@@ -659,7 +659,12 @@ export function PlayerBar({
         <div
           className={
             expanded
-              ? "video-stage relative inline-block max-h-full max-w-4xl"
+              // w-fit is load-bearing: a flex item is blockified, so without it
+              // this stretches to the row's width while the image inside stays
+              // its own size — and the screen offsets, measured against this
+              // box, drift off the artwork again. leading-none removes the
+              // baseline gap an image otherwise leaves beneath it.
+              ? "video-stage relative w-fit max-h-full max-w-4xl leading-none"
               : "size-full"
           }
         >
