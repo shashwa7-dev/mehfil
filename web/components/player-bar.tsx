@@ -14,10 +14,13 @@ import {
   SkipBack,
   SkipForward,
   Sparkles,
+  ListVideo,
   Volume2,
   VolumeX,
 } from "lucide-react";
 import { artwork, type Song } from "@/lib/catalogue";
+import { useCatalogue } from "@/lib/queries";
+import { QueuePanel } from "@/components/queue-panel";
 
 type YTPlayer = {
   playVideo(): void;
@@ -230,27 +233,41 @@ export function PlayerBar({
   const [loading, setLoading] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const [queueOpen, setQueueOpen] = useState(false);
+  const { data: catalogue } = useCatalogue();
   const barSwipe = useSwipe((d) => d === "up" && setExpanded(true));
   const stageSwipe = useSwipe((d) => d === "down" && setExpanded(false));
-  // The video layer portals to <body>, which only exists after mount.
+  // The video layer portals to <body>, which only exists after mount. The
+  // extra render this costs is the point: there is no way to know we are on
+  // the client during the first one.
   const [mounted, setMounted] = useState(false);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- mount detection
   useEffect(() => setMounted(true), []);
   const [elapsed, setElapsed] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(0.8);
   const [muted, setMuted] = useState(false);
 
-  // Keep the latest callbacks without re-creating the player each render.
+  /**
+   * Latest values for the YouTube callbacks.
+   *
+   * Those callbacks are created once, when the player is constructed, and
+   * close over that render's scope — so they need a ref to read anything
+   * current. The refs are filled in an effect rather than during render:
+   * writing to a ref while rendering is not safe under concurrent rendering,
+   * where a render can be started and thrown away.
+   */
   const endedRef = useRef(onEnded);
-  endedRef.current = onEnded;
   const playingRef = useRef(onPlayingChange);
-  playingRef.current = onPlayingChange;
   const unplayableRef = useRef(onUnplayable);
-  unplayableRef.current = onUnplayable;
-  // The song the player was last told to load, read inside YT callbacks which
-  // close over their creation-time scope and would otherwise see a stale song.
   const songRef = useRef<Song | null>(song);
-  songRef.current = song;
+
+  useEffect(() => {
+    endedRef.current = onEnded;
+    playingRef.current = onPlayingChange;
+    unplayableRef.current = onUnplayable;
+    songRef.current = song;
+  });
 
   // Attempts spent on the song currently loaded, reset whenever it changes.
   const attemptsRef = useRef(0);
@@ -272,32 +289,38 @@ export function PlayerBar({
    * succeed on a second try, give up immediately on the ones that cannot.
    */
   const handleFailure = useRef<(reason: string, retryable: boolean) => void>(() => {});
-  handleFailure.current = (reason, retryable) => {
-    const failed = songRef.current;
-    if (!failed) return;
 
-    if (retryable && attemptsRef.current < MAX_ATTEMPTS) {
-      const delay = RETRY_BACKOFF_MS[attemptsRef.current - 1] ?? 1800;
-      attemptsRef.current += 1;
-      setRetrying(attemptsRef.current);
-      setFailure(`${reason} — retrying`);
-      retryTimerRef.current = window.setTimeout(() => {
-        // The song may have changed while the retry was pending.
-        if (songRef.current?.id !== failed.id) return;
-        setFailure(null);
-        setLoading(true);
-        playerRef.current?.loadVideoById(failed.video);
-      }, delay);
-      return;
-    }
+  // Assigned in an effect, not during render: everything it touches is a ref
+  // or a setter, so it never needs to be current *within* a render — only by
+  // the time a player callback fires, which is always after one.
+  useEffect(() => {
+    handleFailure.current = (reason, retryable) => {
+      const failed = songRef.current;
+      if (!failed) return;
 
-    setLoading(false);
-    setPlaying(false);
-    setRetrying(0);
-    playingRef.current(false);
-    setFailure(reason);
-    unplayableRef.current(failed.id, reason);
-  };
+      if (retryable && attemptsRef.current < MAX_ATTEMPTS) {
+        const delay = RETRY_BACKOFF_MS[attemptsRef.current - 1] ?? 1800;
+        attemptsRef.current += 1;
+        setRetrying(attemptsRef.current);
+        setFailure(`${reason} — retrying`);
+        retryTimerRef.current = window.setTimeout(() => {
+          // The song may have changed while the retry was pending.
+          if (songRef.current?.id !== failed.id) return;
+          setFailure(null);
+          setLoading(true);
+          playerRef.current?.loadVideoById(failed.video);
+        }, delay);
+        return;
+      }
+
+      setLoading(false);
+      setPlaying(false);
+      setRetrying(0);
+      playingRef.current(false);
+      setFailure(reason);
+      unplayableRef.current(failed.id, reason);
+    };
+  });
 
   useEffect(() => {
     // hostRef lives inside the portal, so there is nothing to attach to until
@@ -576,35 +599,58 @@ export function PlayerBar({
       )}
 
       {expanded && (
-        <div className="relative z-10 flex shrink-0 items-center justify-between px-5 py-4">
-          <span className="text-[11px] uppercase tracking-widest text-muted-foreground">
+        // Constrained to the same column as the video and the controls below
+        // it. Spanning the window pushed these to the far edges of a wide
+        // screen, so they read as browser chrome rather than part of the view.
+        <div className="relative z-10 mx-auto flex w-full max-w-4xl shrink-0 items-center gap-3 px-4 py-4 sm:px-0">
+          {/* Collapse leads, as the way out of a full-screen view. A chevron
+              alone was easy to miss against the picture behind it. */}
+          <button
+            onClick={() => setExpanded(false)}
+            title="Collapse"
+            className="grid size-9 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-foreground/80 backdrop-blur transition hover:bg-white/[0.14] hover:text-foreground"
+          >
+            <ChevronDown className="size-5" />
+          </button>
+
+          <span className="flex-1 truncate text-center text-[11px] uppercase tracking-widest text-muted-foreground">
             Now playing
           </span>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={onToggleAmbient}
-              title={ambient ? "Ambient mode on" : "Ambient mode off"}
-              className={`rounded-full p-2 transition hover:bg-white/10 ${
-                ambient ? "text-primary" : "text-muted-foreground hover:text-foreground"
+
+          {/* Labelled and visibly two-state. As a bare icon that only changed
+              colour, there was nothing to say it was a toggle, what it
+              controlled, or which way it was set. */}
+          <button
+            onClick={onToggleAmbient}
+            role="switch"
+            aria-checked={ambient}
+            title={ambient ? "Turn ambient off" : "Turn ambient on"}
+            className={`flex shrink-0 items-center gap-1.5 rounded-full border py-1.5 pl-2 pr-3 text-[11px] font-medium backdrop-blur transition ${
+              ambient
+                ? "border-primary/40 bg-primary/20 text-primary"
+                : "border-white/10 bg-white/[0.06] text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Sparkles
+              className={`size-3.5 transition-transform ${ambient ? "scale-110" : ""}`}
+            />
+            <span className="hidden sm:inline">Ambient</span>
+            <span
+              className={`ml-0.5 size-1.5 rounded-full transition-colors ${
+                ambient ? "bg-primary" : "bg-white/25"
               }`}
-            >
-              <Sparkles className="size-4" />
-            </button>
-            <button
-              onClick={() => setExpanded(false)}
-              title="Collapse"
-              className="rounded-full p-2 text-muted-foreground transition hover:bg-white/10 hover:text-foreground"
-            >
-              <ChevronDown className="size-5" />
-            </button>
-          </div>
+            />
+          </button>
         </div>
       )}
 
       <div
         className={
           expanded
-            ? "flex min-h-0 flex-1 items-center justify-center md:px-5 md:py-2"
+            // Padding from the smallest size up, not only from md. The cabinet
+            // ran edge to edge on a phone, so its sides were cut off by the
+            // viewport rather than sitting within it.
+            ? "flex min-h-0 flex-1 items-center justify-center md:px-10 md:py-4"
             : "size-full"
         }
       >
@@ -613,14 +659,60 @@ export function PlayerBar({
             shrinks the video rather than pushing it into the text below.
             clip-path rather than overflow-hidden, because border-radius alone
             does not reliably clip a nested iframe in WebKit. */}
+        {/* From md the picture sits in a CRT cabinet. The set is a background
+            layer and the video is placed over its screen, because the screen in
+            the artwork is opaque — putting the video behind would hide it.
+            Percentages come from measuring the screen rectangle in the image,
+            so the two stay registered at any size.
+            Below md the video still covers the whole display: a cabinet around
+            a phone-sized picture would leave almost nothing to watch. */}
+        {/* The cabinet is sized by its own artwork rather than by a box the
+            artwork is fitted into. With object-contain the image letterboxes
+            inside whatever box it is given, so the moment a height or width
+            limit changed the box's aspect, the image no longer filled it — and
+            the screen percentages, which are measured against the box, pointed
+            somewhere the screen was not. That is what put the picture outside
+            the cabinet. Letting the image define the box makes the two
+            impossible to disagree. */}
+        {/* Height-driven: the cabinet takes the row's full height and derives
+            its width from the artwork's ratio, shrinking only when width is
+            the tighter constraint. Sizing it by the image's own width instead
+            left it small on a large screen with the spare height showing
+            underneath. */}
         <div
           className={
             expanded
-              ? "video-stage absolute inset-0 bg-black md:relative md:inset-auto md:aspect-video md:h-full md:max-w-4xl md:rounded-xl md:[clip-path:inset(0_round_0.75rem)]"
+              ? "video-stage absolute inset-0 bg-black md:relative md:inset-auto md:aspect-[768/484] md:h-full md:max-w-full md:bg-transparent md:leading-none"
               : "size-full"
           }
         >
-          <div ref={hostRef} className="size-full" />
+          {/* Stretched to the box rather than fitted inside it. object-contain
+              letterboxes when the two ratios differ, and the screen offsets
+              below are measured against the box — so any letterboxing puts
+              them off the artwork, which is what threw the picture outside the
+              cabinet before. Filling guarantees they agree; the ratio is
+              already pinned above, so there is nothing to distort.
+              Always mounted and hidden with CSS, because the player replaces
+              the host node below with an iframe and inserting or removing a
+              sibling beside it breaks reconciliation. */}
+          <img
+            src="/tv.png"
+            alt=""
+            aria-hidden
+            className={`pointer-events-none absolute inset-0 z-10 size-full ${
+              expanded ? "hidden md:block" : "hidden"
+            }`}
+          />
+          {/* The screen opening. Positioning and clipping live here, not on the
+              host below: the player replaces that node with an iframe and the
+              replacement keeps none of its classes, so anything set there is
+              destroyed the moment playback attaches — which is what let the
+              picture escape and fill the whole cabinet.
+              overflow-hidden is the backstop. Whatever size the iframe ends up,
+              it cannot paint outside the opening. */}
+          <div className="size-full overflow-hidden md:absolute md:left-[10.03%] md:top-[10.74%] md:h-[73.14%] md:w-[61.85%]">
+            <div ref={hostRef} className="size-full" />
+          </div>
         </div>
       </div>
 
@@ -663,8 +755,26 @@ export function PlayerBar({
       {mounted && createPortal(videoLayer, document.body)}
 
       {song && (
-        <footer className="z-50 shrink-0 border-t bg-card/80 backdrop-blur">
-      <div className="grid grid-cols-[1fr_auto] items-center gap-4 px-4 py-2.5 md:grid-cols-3 md:px-5 md:py-3">
+        // Sits inside the content column, so it needs no manual offset —
+        // the frame's flex layout already keeps it clear of the rail.
+        <footer className="relative z-50 shrink-0 overflow-hidden border-t bg-card/80 backdrop-blur lg:rounded-lg lg:border">
+      {/* Ambient wash from the current track, so the bar picks up its colour.
+          A child rather than a background image on the footer: it has to paint
+          over the footer's own surface, and the veil above it is what keeps
+          the controls legible against bright artwork. */}
+      {ambient && song && (
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <img
+            key={song.video}
+            src={artwork(song.video, "hq")}
+            alt=""
+            className="size-full object-cover opacity-40 blur-3xl saturate-[1.6] transition-opacity duration-700"
+          />
+          <div className="absolute inset-0 bg-card/70" />
+        </div>
+      )}
+
+      <div className="relative grid grid-cols-[1fr_auto] items-center gap-4 px-4 py-2.5 md:grid-cols-3 md:px-5 md:py-3">
         {/* Now playing. The video host is rendered unconditionally: the player
             is constructed against it on mount, so gating it behind `song`
             would mean the player is never created at all. */}
@@ -714,6 +824,13 @@ export function PlayerBar({
               unverified
             </span>
           )}
+          <button
+            onClick={() => setQueueOpen(true)}
+            className={iconButton}
+            title="Queue"
+          >
+            <ListVideo className="size-4" />
+          </button>
           <button onClick={() => setMuted((m) => !m)} className={iconButton} title="Mute">
             {muted || volume === 0 ? (
               <VolumeX className="size-4" />
@@ -731,6 +848,13 @@ export function PlayerBar({
           />
           </div>
         </div>
+          {catalogue && (
+            <QueuePanel
+              catalogue={catalogue}
+              open={queueOpen}
+              onClose={() => setQueueOpen(false)}
+            />
+          )}
         </footer>
       )}
     </>

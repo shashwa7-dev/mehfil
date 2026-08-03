@@ -29,9 +29,16 @@ export type RawSong = {
   dr: number[]; // director
 };
 
+/** What a station is named after, so its poster can be chosen sensibly. */
+export type StationMeta = {
+  kind: "singer" | "composer" | "lyricist" | "actor" | "director" | "mood" | "genre" | "format";
+  person: string | null;
+};
+
 export type Catalogue = {
   facets: Record<FacetKey, string[]>;
   songs: RawSong[];
+  stationMeta?: Record<string, StationMeta>;
 };
 
 export type Song = {
@@ -169,6 +176,39 @@ export function facetCards(
     .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
 
   return limit ? cards.slice(0, limit) : cards;
+}
+
+/**
+ * Facet values whose name matches a query — the people and collections behind
+ * the songs, so searching "gulzar" offers his page rather than only the tracks
+ * that happen to credit him.
+ *
+ * Takes prebuilt cards so the per-facet scan happens once for a catalogue
+ * rather than once per keystroke.
+ */
+export function searchFacetCards(
+  cardsByFacet: Record<string, FacetCard[]>,
+  query: string,
+  perFacet = 4
+): { facet: string; card: FacetCard }[] {
+  const needle = query.trim().toLowerCase();
+  if (needle.length < 2) return [];
+
+  const results: { facet: string; card: FacetCard; rank: number }[] = [];
+  for (const [facet, cards] of Object.entries(cardsByFacet)) {
+    const hits = [];
+    for (const card of cards) {
+      const label = card.label.toLowerCase();
+      const at = label.indexOf(needle);
+      if (at < 0) continue;
+      // A name starting with the query beats one merely containing it, and a
+      // bigger collection beats a smaller one.
+      hits.push({ facet, card, rank: (at === 0 ? 0 : 1) * 1e6 - card.count });
+      if (hits.length >= perFacet) break;
+    }
+    results.push(...hits);
+  }
+  return results.sort((a, b) => a.rank - b.rank).map(({ facet, card }) => ({ facet, card }));
 }
 
 /** Facet values present in the current result set, ordered by frequency. */

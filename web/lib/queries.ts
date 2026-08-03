@@ -28,6 +28,22 @@ export function usePhotoManifest() {
   });
 }
 
+export type StationPosterManifest = Record<
+  string,
+  { file: string; title: string; license: string; source: string; creator: string }
+>;
+
+/** Photographic posters for the handful of stations that have a good one. */
+export function useStationPosters() {
+  return useQuery<StationPosterManifest>({
+    queryKey: ["stationPosters"],
+    queryFn: async () => {
+      const response = await fetch("/stations/manifest.json");
+      return response.ok ? response.json() : {};
+    },
+  });
+}
+
 /**
  * Progressive reveal over an already-loaded array.
  *

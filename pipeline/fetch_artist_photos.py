@@ -32,6 +32,8 @@ UA = {"User-Agent": "CarvaanPersonalProject/1.0 (personal, local use)"}
 API = "https://www.wikidata.org/w/api.php"
 COMMONS = "https://commons.wikimedia.org/w/api.php"
 THUMB_WIDTH = 400
+# Passes over the still-unresolved names within a single invocation.
+MAX_PASSES = 4
 
 HUMAN = "Q5"
 # Musical occupations. A name match that is not one of these is the wrong person.
@@ -54,17 +56,19 @@ MUSIC_ROLES = {
 WEAK_ROLES = {"Q33999", "Q10800557", "Q2526255", "Q3282637", "Q214917"}
 
 
-def get_json(url, retries=3):
+def get_json(url, retries=5):
+    """Fetch JSON, backing off on failure. None means every attempt failed."""
     for attempt in range(retries):
         try:
             with urllib.request.urlopen(
-                urllib.request.Request(url, headers=UA), timeout=25
+                urllib.request.Request(url, headers=UA), timeout=30
             ) as response:
                 return json.load(response)
         except Exception:
             if attempt == retries - 1:
                 return None
-            time.sleep(1.5 * (attempt + 1))
+            # Wikimedia throttles bursts; widen the gap each time.
+            time.sleep(2.0 * (attempt + 1))
     return None
 
 
@@ -230,52 +234,73 @@ def main(db_path, out_dir):
     ):
         people.setdefault(row["person"], row["n"])
 
-    todo = [n for n in people if n not in manifest]
-    print(f"{len(people)} people, {len(manifest)} already done, {len(todo)} to fetch\n")
+    def save():
+        with open(manifest_path, "w", encoding="utf-8") as fh:
+            json.dump(manifest, fh, ensure_ascii=False, indent=1)
 
-    hit = miss = 0
-    for i, name in enumerate(todo, start=1):
+    def attempt(name):
+        """One person. Returns True if resolved either way, False to retry."""
         slug = slugify(name)
         path = os.path.join(out_dir, f"{slug}.jpg")
 
         try:
             result = find_person(name)
         except LookupFailed:
-            # Leave absent from the manifest so the next run retries.
-            miss += 1
-            continue
+            return False
 
-        if result:
-            qid, filename = result
-            meta = image_meta(filename)
-            if meta and meta["url"] and download(meta["url"], path):
-                manifest[name] = {
-                    "file": f"{slug}.jpg",
-                    "qid": qid,
-                    "license": meta["license"],
-                    "author": meta["author"],
-                    "source": meta["descriptionurl"],
-                }
-                hit += 1
-            else:
-                manifest[name] = None
-                miss += 1
-        else:
-            manifest[name] = None
-            miss += 1
+        if not result:
+            manifest[name] = None  # verified: no suitable entity
+            return True
 
-        # Persist as we go so an interrupt never re-fetches what is already done.
-        if i % 10 == 0 or i == len(todo):
-            with open(manifest_path, "w", encoding="utf-8") as fh:
-                json.dump(manifest, fh, ensure_ascii=False, indent=1)
-            print(f"  {i}/{len(todo)}  photos={hit}  none={miss}", flush=True)
-        time.sleep(0.15)  # be polite to the Wikimedia APIs
+        qid, filename = result
+        meta = image_meta(filename)
+        # A failed lookup or download is a network problem, not proof the
+        # person has no photo. Recording null here is what previously turned
+        # a transient blip into a permanent gap.
+        if meta is None:
+            return False
+        if not meta["url"] or not download(meta["url"], path):
+            return False
 
-    with open(manifest_path, "w", encoding="utf-8") as fh:
-        json.dump(manifest, fh, ensure_ascii=False, indent=1)
+        manifest[name] = {
+            "file": f"{slug}.jpg",
+            "qid": qid,
+            "license": meta["license"],
+            "author": meta["author"],
+            "source": meta["descriptionurl"],
+        }
+        return True
 
+    # Several passes, because a run that leaves failures for "next time" only
+    # converges if something re-runs it. The first pass previously dropped 177
+    # of 396 people and nothing ever came back for them.
+    print(f"{len(people)} people, {len(manifest)} already recorded\n")
+    for attempt_no in range(1, MAX_PASSES + 1):
+        pending = [n for n in people if n not in manifest]
+        if not pending:
+            break
+        print(f"pass {attempt_no}: {len(pending)} to fetch")
+
+        for i, name in enumerate(pending, start=1):
+            attempt(name)
+            if i % 10 == 0 or i == len(pending):
+                save()
+                have = sum(1 for v in manifest.values() if v)
+                print(f"  {i}/{len(pending)}  photos={have}", flush=True)
+            time.sleep(0.15)  # be polite to the Wikimedia APIs
+
+        save()
+        if len([n for n in people if n not in manifest]) == len(pending):
+            print("  no progress this pass, stopping")
+            break
+        time.sleep(3)  # let any throttling subside before the next pass
+
+    save()
     have = sum(1 for v in manifest.values() if v)
-    print(f"\nportraits: {have} / {len(manifest)} people")
+    unresolved = [n for n in people if n not in manifest]
+    print(f"\nportraits   : {have} / {len(people)} people")
+    print(f"verified none: {sum(1 for v in manifest.values() if v is None)}")
+    print(f"unresolved  : {len(unresolved)} (network failures, retry to finish)")
     print(f"-> {out_dir}")
 
 

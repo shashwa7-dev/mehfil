@@ -209,16 +209,19 @@
 }
 
 /* ---------------------------------------------------------------------------
-   Full-bleed video on small screens.
+   The picture inside the cabinet.
 
-   A 16:9 iframe cannot letterbox gracefully into a portrait phone, so below md
-   it is scaled to cover: sized from whichever axis is the constraint and
-   centred, with the overflow clipped by the stage. The iframe is created by
-   the YouTube API rather than by us, so it has to be reached as a descendant.
-
-   pointer-events are disabled so tapping the picture never surfaces YouTube's
-   own overlay — the app's controls are the only ones.
+   The iframe is created by the YouTube API rather than by us, so it has to be
+   reached as a descendant. pointer-events are disabled so tapping the screen
+   never surfaces YouTube's own overlay — the app's controls are the only ones.
 --------------------------------------------------------------------------- */
+.video-stage iframe {
+  pointer-events: none;
+}
+
+/* Below md there is no cabinet, so the picture covers the display: sized from
+   whichever axis constrains it and centred, with the overflow clipped by the
+   stage. A 16:9 frame cannot letterbox gracefully into a portrait phone. */
 @media (max-width: 767px) {
   .video-stage {
     overflow: hidden;
@@ -229,27 +232,19 @@
     left: 50%;
     transform: translate(-50%, -50%);
     width: 100vw;
-    height: 56.25vw;        /* 16:9 derived from width */
-    min-width: 177.7778vh;  /* 16:9 derived from height */
+    height: 56.25vw;
+    min-width: 177.7778vh;
     min-height: 100%;
-    pointer-events: none;
   }
 }
 
-/* ---------------------------------------------------------------------------
-   Horizontal strips (the browse tabs). A visible scrollbar under a row of
-   pills is noise, especially on mobile where it overlaps the content, so it is
-   hidden and the affordance is carried by fading both edges instead: content
-   dissolving at the boundary reads as "there is more this way".
-
-   The fade is applied to the scroller itself, so it stays fixed to the
-   viewport edges while the content moves underneath.
---------------------------------------------------------------------------- */
+/* Horizontal strips: scrollbar hidden, edges faded to signal there is more. */
 @layer utilities {
   .no-scrollbar {
     scrollbar-width: none;
     -ms-overflow-style: none;
   }
+
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }

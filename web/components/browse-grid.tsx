@@ -11,14 +11,20 @@ import {
   type Catalogue,
   type FacetCard,
 } from "@/lib/catalogue";
-import { flattenPages, usePagedItems, usePhotoManifest } from "@/lib/queries";
+import { StationPoster } from "@/components/station-poster";
+import {
+  flattenPages,
+  usePagedItems,
+  usePhotoManifest,
+  useStationPosters,
+} from "@/lib/queries";
 
-const TABS: { facet: string; label: string; round?: boolean }[] = [
+const TABS: { facet: string; label: string }[] = [
   { facet: "stations", label: "Stations" },
-  { facet: "artists", label: "Singers", round: true },
-  { facet: "composer", label: "Composers", round: true },
-  { facet: "lyricist", label: "Lyricists", round: true },
-  { facet: "actor", label: "On screen", round: true },
+  { facet: "artists", label: "Singers" },
+  { facet: "composer", label: "Composers" },
+  { facet: "lyricist", label: "Lyricists" },
+  { facet: "actor", label: "On screen" },
   { facet: "films", label: "Films" },
 ];
 
@@ -35,12 +41,14 @@ export function BrowseGrid({
 }) {
   const [tab, setTab] = useState(TABS[0]);
   const { data: photos } = usePhotoManifest();
+  const { data: posters } = useStationPosters();
 
   const cards = useMemo(() => facetCards(catalogue, tab.facet), [catalogue, tab]);
   const paged = usePagedItems(cards, tab.facet);
   const loaded = useMemo(() => flattenPages<FacetCard>(paged.data?.pages), [paged.data]);
 
   const isPerson = PERSON_FACETS.has(tab.facet);
+  const isStation = tab.facet === "stations";
 
   return (
     <div>
@@ -68,7 +76,10 @@ export function BrowseGrid({
           data={loaded}
           // Columns come from CSS rather than measurement, so the layout stays
           // responsive without tracking container width by hand.
-          listClassName="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+          // Column count keeps climbing with width rather than stopping at
+          // five, so cards stay a readable size instead of stretching on a
+          // wide screen. Gutters widen with them.
+          listClassName="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7"
           endReached={() => {
             if (paged.hasNextPage && !paged.isFetchingNextPage) paged.fetchNextPage();
           }}
@@ -85,34 +96,63 @@ export function BrowseGrid({
               }}
               role="button"
               tabIndex={0}
-              className="group relative h-full cursor-pointer rounded-lg bg-white/[0.04] p-3 outline-none transition hover:bg-white/[0.09] focus-visible:bg-white/[0.09]"
+              className="group relative aspect-square cursor-pointer overflow-hidden rounded-xl bg-white/[0.04] outline-none ring-white/10 transition hover:ring-1 focus-visible:ring-1"
             >
-              <div className="relative mb-3">
-                <img
-                  src={
-                    (isPerson && portrait(card.label, photos ?? null)) || artwork(card.video)
-                  }
-                  alt=""
-                  loading="lazy"
-                  className={`aspect-square w-full object-cover shadow-lg ${
-                    tab.round ? "rounded-full object-top" : "rounded-md"
-                  }`}
-                />
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onPlay(tab.facet, card.index);
-                  }}
-                  title={`Play ${card.label}`}
-                  className="absolute bottom-2 right-2 grid size-10 translate-y-2 place-items-center rounded-full bg-primary text-primary-foreground opacity-0 shadow-xl transition-all group-hover:translate-y-0 group-hover:opacity-100 focus-visible:translate-y-0 focus-visible:opacity-100"
-                >
-                  <Play className="size-4 translate-x-px fill-current" />
-                </button>
+              {/* Image fills the card; the label sits on it rather than under
+                  it, which is what makes the grid read as posters. */}
+              <div className="absolute inset-0 transition-transform duration-500 group-hover:scale-[1.04]">
+                {isStation ? (
+                  <StationPoster
+                    name={card.label}
+                    meta={catalogue.stationMeta?.[card.label]}
+                    photos={photos ?? null}
+                    poster={posters?.[card.label]?.file}
+                    video={card.video}
+                  />
+                ) : (
+                  <img
+                    src={
+                      (isPerson && portrait(card.label, photos ?? null)) || artwork(card.video)
+                    }
+                    alt=""
+                    loading="lazy"
+                    className={`size-full object-cover ${isPerson ? "object-top" : ""}`}
+                  />
+                )}
               </div>
-              <div className="truncate text-sm font-medium">{card.label}</div>
-              <div className="text-xs text-muted-foreground">
-                {card.count.toLocaleString()} songs
+
+              {/* Scrim rather than a flat overlay. Explicit stops instead of
+                  a two-colour gradient: near-solid under the text, then a long
+                  slow ramp, so the label always has contrast without the whole
+                  picture being dimmed. Bright or busy artwork is what a gentler
+                  fade fails on. */}
+              <div
+                aria-hidden
+                className="absolute inset-x-0 bottom-0 h-4/5 bg-[linear-gradient(to_top,rgba(0,0,0,0.98)_0%,rgba(0,0,0,0.92)_18%,rgba(0,0,0,0.6)_45%,rgba(0,0,0,0.25)_72%,transparent_100%)]"
+              />
+
+              <div className="absolute inset-x-0 bottom-0 p-3">
+                <div className="truncate text-sm font-semibold text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.8)]">
+                  {card.label}
+                </div>
+                <div className="text-xs text-white/75 [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">
+                  {card.count.toLocaleString()} songs
+                </div>
               </div>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onPlay(tab.facet, card.index);
+                }}
+                title={`Play ${card.label}`}
+                // Bottom-right, sliding up on hover. Sitting above the label
+                // rather than over the artwork's focal point, which on a
+                // portrait is the face.
+                className="absolute bottom-14 right-2.5 grid size-11 translate-y-2 place-items-center rounded-full bg-primary text-primary-foreground opacity-0 shadow-xl transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 focus-visible:translate-y-0 focus-visible:opacity-100"
+              >
+                <Play className="size-4 translate-x-px fill-current" />
+              </button>
             </div>
           )}
         />
