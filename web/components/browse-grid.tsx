@@ -76,7 +76,10 @@ export function BrowseGrid({
           data={loaded}
           // Columns come from CSS rather than measurement, so the layout stays
           // responsive without tracking container width by hand.
-          listClassName="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+          // Column count keeps climbing with width rather than stopping at
+          // five, so cards stay a readable size instead of stretching on a
+          // wide screen. Gutters widen with them.
+          listClassName="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7"
           endReached={() => {
             if (paged.hasNextPage && !paged.isFetchingNextPage) paged.fetchNextPage();
           }}
@@ -143,7 +146,10 @@ export function BrowseGrid({
                   onPlay(tab.facet, card.index);
                 }}
                 title={`Play ${card.label}`}
-                className="absolute right-2.5 top-2.5 grid size-10 -translate-y-1 place-items-center rounded-full bg-primary text-primary-foreground opacity-0 shadow-xl transition-all group-hover:translate-y-0 group-hover:opacity-100 focus-visible:translate-y-0 focus-visible:opacity-100"
+                // Bottom-right, sliding up on hover. Sitting above the label
+                // rather than over the artwork's focal point, which on a
+                // portrait is the face.
+                className="absolute bottom-14 right-2.5 grid size-11 translate-y-2 place-items-center rounded-full bg-primary text-primary-foreground opacity-0 shadow-xl transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 focus-visible:translate-y-0 focus-visible:opacity-100"
               >
                 <Play className="size-4 translate-x-px fill-current" />
               </button>
