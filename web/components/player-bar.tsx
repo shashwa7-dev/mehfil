@@ -652,7 +652,7 @@ export function PlayerBar({
               // with h-full derives width from the available height, so on a
               // tall window the square grows wider than the column. Clamping
               // width makes the height give way instead.
-              ? "video-stage absolute inset-0 bg-black md:relative md:inset-auto md:aspect-square md:h-full md:max-h-full md:w-auto md:max-w-full md:bg-transparent"
+              ? "video-stage absolute inset-0 bg-black md:relative md:inset-auto md:aspect-[768/484] md:h-auto md:max-h-full md:w-full md:max-w-4xl md:bg-transparent"
               : "size-full"
           }
         >
@@ -665,13 +665,13 @@ export function PlayerBar({
             src="/tv.png"
             alt=""
             aria-hidden
-            className={`pointer-events-none absolute inset-0 size-full object-contain ${
+            className={`pointer-events-none absolute inset-0 z-10 size-full object-contain ${
               expanded ? "hidden md:block" : "hidden"
             }`}
           />
           <div
             ref={hostRef}
-            className="size-full md:absolute md:left-[15%] md:top-[16.4%] md:h-[51.1%] md:w-[75.6%]"
+            className="size-full md:absolute md:left-[10.03%] md:top-[10.74%] md:h-[73.14%] md:w-[61.85%]"
           />
 
         </div>
