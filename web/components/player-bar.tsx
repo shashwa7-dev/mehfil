@@ -663,11 +663,9 @@ export function PlayerBar({
       {mounted && createPortal(videoLayer, document.body)}
 
       {song && (
-        // Offset to line up with the content panel rather than running under
-        // the sidebar. 19rem = the shell's p-2 (0.5) + rail w-72 (18) + gap-2
-        // (0.5). The bar cannot simply live inside AppShell — that remounts on
-        // navigation and would stop playback — so it is aligned, not nested.
-        <footer className="z-50 shrink-0 border-t bg-card/80 backdrop-blur lg:mb-2 lg:ml-[19rem] lg:mr-2 lg:rounded-lg lg:border">
+        // Sits inside the content column, so it needs no manual offset —
+        // the frame's flex layout already keeps it clear of the rail.
+        <footer className="z-50 shrink-0 border-t bg-card/80 backdrop-blur lg:rounded-lg lg:border">
       <div className="grid grid-cols-[1fr_auto] items-center gap-4 px-4 py-2.5 md:grid-cols-3 md:px-5 md:py-3">
         {/* Now playing. The video host is rendered unconditionally: the player
             is constructed against it on mount, so gating it behind `song`

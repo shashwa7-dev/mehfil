@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Play, Shuffle, X } from "lucide-react";
-import { AppShell } from "@/components/app-shell";
 import { CatalogueGate } from "@/components/catalogue-gate";
 import { FacetPanel } from "@/components/facet-panel";
+import { useFrame } from "@/components/app-frame";
 import { usePlayer } from "@/components/player-provider";
 import { SongList } from "@/components/song-list";
 import { filterSongs, type Catalogue } from "@/lib/catalogue";
@@ -12,8 +13,7 @@ import { useCatalogue } from "@/lib/queries";
 
 export default function SongsPage() {
   const { data: catalogue, isLoading, isError, error } = useCatalogue();
-  const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null);
-  const [query, setQuery] = useState("");
+  const { scrollEl, filterSlot, query } = useFrame();
   const [selected, setSelected] = useState<Record<string, Set<number>>>({});
   const { currentId, playing, play, playFirst, playRandom, setQueue } = usePlayer();
 
@@ -67,21 +67,21 @@ export default function SongsPage() {
   return (
     <CatalogueGate isLoading={isLoading} isError={isError} error={error}>
       {catalogue && (
-        <AppShell
-          catalogue={catalogue}
-          query={query}
-          onQueryChange={setQuery}
-          onScrollElement={setScrollEl}
-          filters={
-            <FacetPanel
-              catalogue={catalogue}
-              results={results}
-              selected={selected}
-              onToggle={toggle}
-              onClear={() => setSelected({})}
-            />
-          }
-        >
+        <>
+          {/* The rail belongs to the layout, so the panel is portalled into the
+              slot it exposes rather than passed up through props. */}
+          {filterSlot &&
+            createPortal(
+              <FacetPanel
+                catalogue={catalogue}
+                results={results}
+                selected={selected}
+                onToggle={toggle}
+                onClear={() => setSelected({})}
+              />,
+              filterSlot
+            )}
+
           <div className="flex flex-wrap items-end justify-between gap-3 pb-4 pt-2">
             <div className="min-w-0">
               <h2 className="truncate text-2xl">
@@ -147,7 +147,7 @@ export default function SongsPage() {
               onPlay={play}
             />
           )}
-        </AppShell>
+        </>
       )}
     </CatalogueGate>
   );
