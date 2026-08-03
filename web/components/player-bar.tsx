@@ -665,8 +665,24 @@ export function PlayerBar({
       {song && (
         // Sits inside the content column, so it needs no manual offset —
         // the frame's flex layout already keeps it clear of the rail.
-        <footer className="z-50 shrink-0 border-t bg-card/80 backdrop-blur lg:rounded-lg lg:border">
-      <div className="grid grid-cols-[1fr_auto] items-center gap-4 px-4 py-2.5 md:grid-cols-3 md:px-5 md:py-3">
+        <footer className="relative z-50 shrink-0 overflow-hidden border-t bg-card/80 backdrop-blur lg:rounded-lg lg:border">
+      {/* Ambient wash from the current track, so the bar picks up its colour.
+          A child rather than a background image on the footer: it has to paint
+          over the footer's own surface, and the veil above it is what keeps
+          the controls legible against bright artwork. */}
+      {ambient && song && (
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <img
+            key={song.video}
+            src={artwork(song.video, "hq")}
+            alt=""
+            className="size-full object-cover opacity-40 blur-3xl saturate-[1.6] transition-opacity duration-700"
+          />
+          <div className="absolute inset-0 bg-card/70" />
+        </div>
+      )}
+
+      <div className="relative grid grid-cols-[1fr_auto] items-center gap-4 px-4 py-2.5 md:grid-cols-3 md:px-5 md:py-3">
         {/* Now playing. The video host is rendered unconditionally: the player
             is constructed against it on mount, so gating it behind `song`
             would mean the player is never created at all. */}
