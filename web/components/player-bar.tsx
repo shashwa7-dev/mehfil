@@ -648,7 +648,11 @@ export function PlayerBar({
         <div
           className={
             expanded
-              ? "video-stage absolute inset-0 bg-black md:relative md:inset-auto md:aspect-square md:h-full md:max-h-[72vh] md:w-auto md:bg-transparent"
+              // max-w-full is what stops the cabinet overflowing: aspect-square
+              // with h-full derives width from the available height, so on a
+              // tall window the square grows wider than the column. Clamping
+              // width makes the height give way instead.
+              ? "video-stage absolute inset-0 bg-black md:relative md:inset-auto md:aspect-square md:h-full md:max-h-full md:w-auto md:max-w-full md:bg-transparent"
               : "size-full"
           }
         >
@@ -669,6 +673,7 @@ export function PlayerBar({
             ref={hostRef}
             className="size-full md:absolute md:left-[15%] md:top-[16.4%] md:h-[51.1%] md:w-[75.6%]"
           />
+
         </div>
       </div>
 
