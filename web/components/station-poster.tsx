@@ -47,16 +47,33 @@ export function StationPoster({
   name,
   meta,
   photos,
+  poster,
   video,
   rounded = "rounded-md",
 }: {
   name: string;
   meta: StationMeta | undefined;
   photos: PhotoManifest | null;
+  /** Curated photographic poster, where one exists for this station. */
+  poster?: string;
   /** Song still, used only when a named person has no portrait yet. */
   video: string;
   rounded?: string;
 }) {
+  // A photo beats a drawn tile, but only these were worth keeping: keyword
+  // search over openly-licensed images returns plenty that match the word and
+  // not the meaning, so the rest were dropped rather than shipped.
+  if (poster) {
+    return (
+      <img
+        src={`/stations/${poster}`}
+        alt=""
+        loading="lazy"
+        className={`aspect-square w-full object-cover shadow-lg ${rounded}`}
+      />
+    );
+  }
+
   // Stations named after someone show that person. Falling back to a song
   // still is a last resort — it is an arbitrary frame from one of their
   // tracks, which is what made these posters look accidental.

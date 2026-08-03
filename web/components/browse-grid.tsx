@@ -12,7 +12,12 @@ import {
   type FacetCard,
 } from "@/lib/catalogue";
 import { StationPoster } from "@/components/station-poster";
-import { flattenPages, usePagedItems, usePhotoManifest } from "@/lib/queries";
+import {
+  flattenPages,
+  usePagedItems,
+  usePhotoManifest,
+  useStationPosters,
+} from "@/lib/queries";
 
 const TABS: { facet: string; label: string; round?: boolean }[] = [
   { facet: "stations", label: "Stations" },
@@ -36,6 +41,7 @@ export function BrowseGrid({
 }) {
   const [tab, setTab] = useState(TABS[0]);
   const { data: photos } = usePhotoManifest();
+  const { data: posters } = useStationPosters();
 
   const cards = useMemo(() => facetCards(catalogue, tab.facet), [catalogue, tab]);
   const paged = usePagedItems(cards, tab.facet);
@@ -95,6 +101,7 @@ export function BrowseGrid({
                     name={card.label}
                     meta={catalogue.stationMeta?.[card.label]}
                     photos={photos ?? null}
+                    poster={posters?.[card.label]?.file}
                     video={card.video}
                   />
                 ) : (
