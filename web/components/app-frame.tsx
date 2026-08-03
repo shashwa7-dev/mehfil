@@ -148,7 +148,7 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
           >
             {/* Gutter must match the content below exactly, or the search box
                 sits on a different edge from everything it sits above. */}
-            <div className="sticky top-0 z-20 flex items-center gap-2 bg-background/70 px-4 pb-4 pt-3 backdrop-blur sm:px-6 lg:px-8">
+            <div className="sticky top-0 z-20 flex items-center gap-2 bg-background/70 px-4 pb-2 pt-3 backdrop-blur sm:px-6 lg:px-8">
               <Link href="/" className="flex shrink-0 items-center gap-2 lg:hidden">
                 <img src="/logo.png" alt="" width={32} height={32} className="size-8 rounded-lg" />
               </Link>

@@ -84,7 +84,7 @@ export default function SongsPage() {
 
           <div className="flex flex-wrap items-end justify-between gap-3 pb-4">
             <div className="min-w-0">
-              <h2 className="truncate text-2xl">
+              <h2 className="truncate pt-1 text-2xl leading-tight">
                 {query.trim() ? `Results for “${query}”` : "All songs"}
               </h2>
               <p className="text-xs text-muted-foreground">
