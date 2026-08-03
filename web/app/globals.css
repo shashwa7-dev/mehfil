@@ -8,8 +8,9 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-heading: var(--font-display);
+  --font-display: var(--font-display);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -129,9 +130,9 @@
   }
 }
 /* ---------------------------------------------------------------------------
-   Carvaan theme. Dark, elevated surfaces in the shape of a modern player, but
-   warm rather than clinical: a brass/gold accent to match the device's
-   golden-era catalogue instead of the usual streaming green.
+   Mehfil theme. Dark, elevated surfaces in the shape of a modern player, but
+   warm rather than clinical: a brass/gold accent to match the golden-era
+   catalogue instead of the usual streaming green.
 --------------------------------------------------------------------------- */
 .dark {
   --background: oklch(0.16 0.006 60);
@@ -178,4 +179,32 @@
   }
   .scroll-slim::-webkit-scrollbar-thumb:hover { background: oklch(1 0 0 / 28%); }
   .scroll-slim::-webkit-scrollbar-track { background: transparent; }
+}
+
+/* ---------------------------------------------------------------------------
+   Typography. Fraunces carries the display voice; Inter does the interface
+   work. The two want different treatment: a serif at heading sizes needs
+   tighter tracking and optical sizing, while dense UI text needs stable
+   figures and open spacing to stay legible at 12px.
+--------------------------------------------------------------------------- */
+@layer base {
+  .font-display,
+  h1, h2 {
+    font-family: var(--font-display), Georgia, serif;
+    font-optical-sizing: auto;
+    font-variation-settings: "SOFT" 28, "WONK" 1;
+    letter-spacing: -0.02em;
+    font-weight: 600;
+  }
+
+  /* Timecodes, counts and indices must not reflow as their digits change. */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+
+  body {
+    font-feature-settings: "cv05" 1, "cv11" 1; /* single-storey g, open 1 */
+    text-rendering: optimizeLegibility;
+  }
 }
