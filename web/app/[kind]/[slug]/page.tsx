@@ -1,94 +1,49 @@
-"use client";
-
-import { use, useEffect, useMemo } from "react";
-import { notFound } from "next/navigation";
-import { CatalogueGate } from "@/components/catalogue-gate";
-import { useFrame } from "@/components/app-frame";
-import { CollectionHeader } from "@/components/collection-header";
-import { usePlayer } from "@/components/player-provider";
-import { SongList } from "@/components/song-list";
-import { filterSongs, type Catalogue } from "@/lib/catalogue";
-import { useCatalogue, usePhotoManifest, useStationPosters } from "@/lib/queries";
-import { FACET_BY_KIND, resolveSlug } from "@/lib/routes";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { CollectionView } from "@/components/collection-view";
+import { KIND_BY_FACET, slugify } from "@/lib/routes";
 
 /**
- * One route for every collection — station, singer, composer, lyricist,
- * actor, film. Six near-identical route files would drift; the kind is just
- * another parameter.
+ * Server shell for the collection routes.
+ *
+ * Exists purely so `generateStaticParams` can prerender every collection.
+ * Without it these routes render per request, which Turbopack's dev server
+ * cannot do for this dependency graph — it throws "require is not defined"
+ * and every station, artist and film 500s locally.
+ *
+ * Prerendering is also the honest fit: the pages are client-rendered from a
+ * cached catalogue, so a server render produces nothing a static shell does
+ * not already give.
  */
-export default function CollectionPage({
+export function generateStaticParams() {
+  // The exported catalogue is the source of truth for what exists.
+  const catalogue = JSON.parse(
+    readFileSync(join(process.cwd(), "public", "catalogue.json"), "utf-8")
+  ) as { facets: Record<string, string[]> };
+
+  const params: { kind: string; slug: string }[] = [];
+  const seen = new Set<string>();
+
+  for (const [facet, kind] of Object.entries(KIND_BY_FACET)) {
+    for (const label of catalogue.facets[facet] ?? []) {
+      const slug = slugify(label);
+      // Slugs are lossy, so two labels can collapse to one route. The view
+      // resolves to the first match either way; a duplicate param would just
+      // fail the build.
+      const key = `${kind}/${slug}`;
+      if (!slug || seen.has(key)) continue;
+      seen.add(key);
+      params.push({ kind, slug });
+    }
+  }
+  return params;
+}
+
+export default async function CollectionPage({
   params,
 }: {
   params: Promise<{ kind: string; slug: string }>;
 }) {
-  // Route params are a promise in this version of Next.
-  const { kind, slug } = use(params);
-  const { data: catalogue, isLoading, isError, error } = useCatalogue();
-  const { data: photos } = usePhotoManifest();
-  const { data: posters } = useStationPosters();
-  const { scrollEl } = useFrame();
-  const { currentId, playing, play, playFirst, playRandom, setQueue } = usePlayer();
-
-  const facet = FACET_BY_KIND[kind];
-
-  const resolved = useMemo(() => {
-    if (!catalogue || !facet) return null;
-    const labels = catalogue.facets[facet as keyof Catalogue["facets"]];
-    if (!labels) return null;
-    const index = resolveSlug(labels, slug);
-    return index < 0 ? null : { index, label: labels[index] };
-  }, [catalogue, facet, slug]);
-
-  const results = useMemo(() => {
-    if (!catalogue || !resolved) return [];
-    return filterSongs(catalogue, { [facet]: new Set([resolved.index]) }, "");
-  }, [catalogue, facet, resolved]);
-
-  useEffect(() => setQueue(results), [results, setQueue]);
-
-  useEffect(() => {
-    scrollEl?.scrollTo({ top: 0 });
-  }, [slug, scrollEl]);
-
-  // An unknown kind is a bad URL; an unknown slug only after the catalogue has
-  // loaded, since before that we simply cannot tell.
-  if (!facet) notFound();
-  if (catalogue && !resolved) notFound();
-
-  return (
-    <CatalogueGate isLoading={isLoading} isError={isError} error={error}>
-      {catalogue && resolved && (
-        <>
-          <CollectionHeader
-            kind={kind}
-            label={resolved.label}
-            facet={facet}
-            catalogue={catalogue}
-            photos={photos ?? null}
-            posters={posters ?? null}
-            songCount={results.length}
-            sampleVideo={results[0]?.v ?? ""}
-            onPlay={() => playFirst(results)}
-            onShuffle={() => playRandom(results)}
-          />
-
-          {results.length === 0 ? (
-            <p className="py-20 text-center text-sm text-muted-foreground">
-              Nothing playable here yet.
-            </p>
-          ) : (
-            <SongList
-              catalogue={catalogue}
-              songs={results}
-              filterKey={`${kind}/${slug}`}
-              currentId={currentId}
-              playing={playing}
-              scrollParent={scrollEl}
-              onPlay={play}
-            />
-          )}
-        </>
-      )}
-    </CatalogueGate>
-  );
+  const { kind, slug } = await params;
+  return <CollectionView kind={kind} slug={slug} />;
 }
