@@ -1,0 +1,8 @@
+{
+  "_comment": "Manual video id fixes, applied after resolution and recorded at confidence 1.0 so no automated match can overwrite them. Keyed by 'title | film' as it appears in the catalogue. Add an entry whenever a song plays the wrong recording.",
+
+  "Ek Anar Do Bimar | Baazi": {
+    "video_id": "OVnbcB6phag",
+    "note": "Resolver matched a web series episode of the same name (Bakkbenchers). The commonly cited upload for the real song has embedding disabled; this one is the Kalyanji-Anandji Classics copy and does embed."
+  }
+}
