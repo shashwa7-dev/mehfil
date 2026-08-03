@@ -179,11 +179,30 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
                 >
                   <Menu className="size-4" />
                 </SheetTrigger>
-                <SheetContent side="left" className="flex w-[19rem] flex-col bg-sidebar p-0">
+                <SheetContent
+                  side="left"
+                  className="relative flex w-[19rem] flex-col overflow-hidden bg-sidebar p-0"
+                >
                   <SheetTitle className="sr-only">Menu</SheetTitle>
-                  {brandAndNav}
-                  <div className="min-h-0 flex-1" />
-                  {credit}
+                  {/* Same treatment as the rail, different artwork — the menu
+                      has the same blank stretch to fill and should not look
+                      like a plainer version of the desktop chrome. */}
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute inset-x-0 bottom-0 top-1/3 [mask-image:linear-gradient(to_top,#000_0%,#000_35%,transparent_100%)]"
+                  >
+                    <img
+                      src="/collage-bazaar.jpg"
+                      alt=""
+                      className="size-full object-cover opacity-[0.16] saturate-[0.55] sepia-[0.35]"
+                    />
+                  </div>
+
+                  <div className="relative z-10 flex min-h-0 flex-1 flex-col">
+                    {brandAndNav}
+                    <div className="min-h-0 flex-1" />
+                    {credit}
+                  </div>
                 </SheetContent>
               </Sheet>
             </div>
