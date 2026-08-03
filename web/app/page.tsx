@@ -22,7 +22,7 @@ export default function BrowsePage() {
     <CatalogueGate isLoading={isLoading} isError={isError} error={error}>
       {catalogue && (
         <>
-          <h2 className="pb-4 text-2xl">Browse</h2>
+          <h2 className="pb-4 pt-1 text-2xl leading-tight">Browse</h2>
 
           {/* The rail carries this on desktop; below lg it is the only way to
               reach the whole catalogue from here. */}
