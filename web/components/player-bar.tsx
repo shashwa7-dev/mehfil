@@ -629,7 +629,10 @@ export function PlayerBar({
       <div
         className={
           expanded
-            ? "flex min-h-0 flex-1 items-center justify-center md:px-5 md:py-2"
+            // Padding from the smallest size up, not only from md. The cabinet
+            // ran edge to edge on a phone, so its sides were cut off by the
+            // viewport rather than sitting within it.
+            ? "flex min-h-0 flex-1 items-center justify-center px-4 py-3 sm:px-8 md:px-10 md:py-4"
             : "size-full"
         }
       >
