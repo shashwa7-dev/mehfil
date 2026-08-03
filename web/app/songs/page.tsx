@@ -8,14 +8,25 @@ import { FacetPanel } from "@/components/facet-panel";
 import { useFrame } from "@/components/app-frame";
 import { usePlayer } from "@/components/player-provider";
 import { SongList } from "@/components/song-list";
-import { filterSongs, type Catalogue } from "@/lib/catalogue";
-import { useCatalogue } from "@/lib/queries";
+import { facetCards, filterSongs, type Catalogue, type FacetCard } from "@/lib/catalogue";
+import { useCatalogue, usePhotoManifest, useStationPosters } from "@/lib/queries";
+import { SearchMatches } from "@/components/search-matches";
 
 export default function SongsPage() {
   const { data: catalogue, isLoading, isError, error } = useCatalogue();
   const { scrollEl, filterSlot, query } = useFrame();
   const [selected, setSelected] = useState<Record<string, Set<number>>>({});
   const { currentId, playing, play, playFirst, playRandom, setQueue } = usePlayer();
+  const { data: photos } = usePhotoManifest();
+  const { data: posters } = useStationPosters();
+
+  // Built once per catalogue, not per keystroke: each facet costs a full scan
+  // of the song list, and there are seven of them.
+  const cardsByFacet = useMemo<Record<string, FacetCard[]>>(() => {
+    if (!catalogue) return {};
+    const facets = ["stations", "artists", "composer", "lyricist", "actor", "films"];
+    return Object.fromEntries(facets.map((f) => [f, facetCards(catalogue, f)]));
+  }, [catalogue]);
 
   const results = useMemo(
     () => (catalogue ? filterSongs(catalogue, selected, query) : []),
@@ -130,6 +141,16 @@ export default function SongsPage() {
                 Clear all
               </button>
             </div>
+          )}
+
+          {query.trim() && (
+            <SearchMatches
+              catalogue={catalogue}
+              cardsByFacet={cardsByFacet}
+              query={query}
+              photos={photos ?? null}
+              posters={posters ?? null}
+            />
           )}
 
           {results.length === 0 ? (
