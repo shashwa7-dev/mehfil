@@ -1,7 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Pause, Play, Repeat, Shuffle, SkipBack, SkipForward, Volume2, VolumeX } from "lucide-react";
+import {
+  Loader2,
+  Pause,
+  Play,
+  Repeat,
+  Shuffle,
+  SkipBack,
+  SkipForward,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
 import { artwork, type Song } from "@/lib/catalogue";
 
 type YTPlayer = {
@@ -18,11 +28,32 @@ declare global {
   interface Window {
     YT?: {
       Player: new (el: HTMLElement | string, opts: Record<string, unknown>) => YTPlayer;
-      PlayerState: { ENDED: number; PLAYING: number; PAUSED: number };
+      PlayerState: {
+        UNSTARTED: number;
+        ENDED: number;
+        PLAYING: number;
+        PAUSED: number;
+        BUFFERING: number;
+        CUED: number;
+      };
     };
     onYouTubeIframeAPIReady?: () => void;
   }
 }
+
+// YouTube's onError codes. 101 and 150 are the same condition reported two
+// ways: the owner has disallowed embedded playback.
+const ERROR_TEXT: Record<number, string> = {
+  2: "Invalid video id",
+  5: "Playback failed in this browser",
+  100: "Video removed or private",
+  101: "Owner disabled embedding",
+  150: "Owner disabled embedding",
+};
+
+// A load that never reaches PLAYING is indistinguishable from a slow one
+// without a deadline. Long enough not to trip on a genuinely slow network.
+const STALL_MS = 15000;
 
 let apiPromise: Promise<void> | null = null;
 
@@ -122,6 +153,7 @@ export function PlayerBar({
   onPrev,
   onEnded,
   onPlayingChange,
+  onUnplayable,
 }: {
   song: Song | null;
   shuffle: boolean;
@@ -132,11 +164,14 @@ export function PlayerBar({
   onPrev: () => void;
   onEnded: () => void;
   onPlayingChange: (playing: boolean) => void;
+  onUnplayable: (songId: number, reason: string) => void;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YTPlayer | null>(null);
   const [ready, setReady] = useState(false);
   const [playing, setPlaying] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(0.8);
@@ -147,6 +182,12 @@ export function PlayerBar({
   endedRef.current = onEnded;
   const playingRef = useRef(onPlayingChange);
   playingRef.current = onPlayingChange;
+  const unplayableRef = useRef(onUnplayable);
+  unplayableRef.current = onUnplayable;
+  // The song the player was last told to load, read inside YT callbacks which
+  // close over their creation-time scope and would otherwise see a stale song.
+  const songRef = useRef<Song | null>(song);
+  songRef.current = song;
 
   useEffect(() => {
     let cancelled = false;
@@ -161,9 +202,28 @@ export function PlayerBar({
           onStateChange: (event: { data: number }) => {
             const state = window.YT!.PlayerState;
             if (event.data === state.ENDED) endedRef.current();
+
             const isPlaying = event.data === state.PLAYING;
             setPlaying(isPlaying);
             playingRef.current(isPlaying);
+
+            // Buffering and unstarted both mean "not audible yet". Anything
+            // else means the load resolved one way or the other.
+            setLoading(
+              event.data === state.BUFFERING || event.data === state.UNSTARTED
+            );
+            if (isPlaying) setFailure(null);
+          },
+          // Without this a refused video is indistinguishable from a slow one:
+          // the bar simply sits at 0:00 forever.
+          onError: (event: { data: number }) => {
+            const reason = ERROR_TEXT[event.data] ?? `Playback error ${event.data}`;
+            setLoading(false);
+            setPlaying(false);
+            playingRef.current(false);
+            setFailure(reason);
+            const failed = songRef.current;
+            if (failed) unplayableRef.current(failed.id, reason);
           },
         },
       });
@@ -178,7 +238,23 @@ export function PlayerBar({
     playerRef.current.loadVideoById(song.video);
     setElapsed(0);
     setDuration(0);
+    setFailure(null);
+    setLoading(true);
   }, [ready, song?.video]);
+
+  // Some failures never fire onError -- the player just never starts. Give the
+  // load a deadline so it reports rather than hanging at 0:00 indefinitely.
+  useEffect(() => {
+    if (!loading || !song) return;
+    const timer = window.setTimeout(() => {
+      if (playerRef.current && playerRef.current.getCurrentTime() > 0) return;
+      const reason = "Timed out — the video never started";
+      setLoading(false);
+      setFailure(reason);
+      unplayableRef.current(song.id, reason);
+    }, STALL_MS);
+    return () => window.clearTimeout(timer);
+  }, [loading, song]);
 
   useEffect(() => {
     playerRef.current?.setVolume(muted ? 0 : Math.round(volume * 100));
@@ -237,7 +313,13 @@ export function PlayerBar({
               <div className="min-w-0">
                 <div className="truncate text-sm font-medium">{song.title}</div>
                 <div className="truncate text-xs text-muted-foreground">
-                  {song.artists.join(", ") || "Unknown artist"}
+                  {failure ? (
+                    <span className="text-destructive">{failure} — skipping</span>
+                  ) : loading ? (
+                    "Loading…"
+                  ) : (
+                    song.artists.join(", ") || "Unknown artist"
+                  )}
                 </div>
               </div>
             </>
@@ -265,7 +347,9 @@ export function PlayerBar({
               title={playing ? "Pause" : "Play"}
               className="grid size-9 place-items-center rounded-full bg-foreground text-background transition hover:scale-105 disabled:opacity-40 disabled:hover:scale-100"
             >
-              {playing ? (
+              {loading ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : playing ? (
                 <Pause className="size-4 fill-current" />
               ) : (
                 <Play className="size-4 translate-x-px fill-current" />

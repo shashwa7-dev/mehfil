@@ -94,6 +94,30 @@ export default function Home() {
     step(1);
   }, [repeat, current, step]);
 
+  // Songs YouTube refused this session. Kept so auto-skip cannot bounce back
+  // into a dead track and loop, and so the list can mark them.
+  const [unplayable, setUnplayable] = useState<Record<number, string>>({});
+
+  const handleUnplayable = useCallback(
+    (songId: number, reason: string) => {
+      setUnplayable((prev) => (prev[songId] ? prev : { ...prev, [songId]: reason }));
+      // Only advance if this is still the song on screen; a late error from a
+      // track the user already skipped past must not hijack playback.
+      if (songId !== current) return;
+      const queue = queueRef.current;
+      const at = queue.findIndex((s) => s.id === songId);
+      for (let i = 1; i <= queue.length; i++) {
+        const candidate = queue[(at + i) % queue.length];
+        if (!candidate || candidate.id === songId) break;
+        if (!unplayable[candidate.id]) {
+          play(candidate.id);
+          return;
+        }
+      }
+    },
+    [current, play, unplayable]
+  );
+
   const playFirst = useCallback(
     (songs: RawSong[]) => {
       if (songs.length === 0) return;
@@ -323,6 +347,7 @@ export default function Home() {
         onPrev={() => step(-1)}
         onEnded={onEnded}
         onPlayingChange={setPlaying}
+        onUnplayable={handleUnplayable}
       />
     </div>
   );
