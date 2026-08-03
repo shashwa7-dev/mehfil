@@ -11,6 +11,7 @@ import {
   type Catalogue,
   type FacetCard,
 } from "@/lib/catalogue";
+import { StationPoster } from "@/components/station-poster";
 import { flattenPages, usePagedItems, usePhotoManifest } from "@/lib/queries";
 
 const TABS: { facet: string; label: string; round?: boolean }[] = [
@@ -41,6 +42,7 @@ export function BrowseGrid({
   const loaded = useMemo(() => flattenPages<FacetCard>(paged.data?.pages), [paged.data]);
 
   const isPerson = PERSON_FACETS.has(tab.facet);
+  const isStation = tab.facet === "stations";
 
   return (
     <div>
@@ -88,16 +90,25 @@ export function BrowseGrid({
               className="group relative h-full cursor-pointer rounded-lg bg-white/[0.04] p-3 outline-none transition hover:bg-white/[0.09] focus-visible:bg-white/[0.09]"
             >
               <div className="relative mb-3">
-                <img
-                  src={
-                    (isPerson && portrait(card.label, photos ?? null)) || artwork(card.video)
-                  }
-                  alt=""
-                  loading="lazy"
-                  className={`aspect-square w-full object-cover shadow-lg ${
-                    tab.round ? "rounded-full object-top" : "rounded-md"
-                  }`}
-                />
+                {isStation ? (
+                  <StationPoster
+                    name={card.label}
+                    meta={catalogue.stationMeta?.[card.label]}
+                    photos={photos ?? null}
+                    video={card.video}
+                  />
+                ) : (
+                  <img
+                    src={
+                      (isPerson && portrait(card.label, photos ?? null)) || artwork(card.video)
+                    }
+                    alt=""
+                    loading="lazy"
+                    className={`aspect-square w-full object-cover shadow-lg ${
+                      tab.round ? "rounded-full object-top" : "rounded-md"
+                    }`}
+                  />
+                )}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();

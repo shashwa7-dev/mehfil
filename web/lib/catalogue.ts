@@ -29,9 +29,16 @@ export type RawSong = {
   dr: number[]; // director
 };
 
+/** What a station is named after, so its poster can be chosen sensibly. */
+export type StationMeta = {
+  kind: "singer" | "composer" | "lyricist" | "actor" | "director" | "mood" | "genre" | "format";
+  person: string | null;
+};
+
 export type Catalogue = {
   facets: Record<FacetKey, string[]>;
   songs: RawSong[];
+  stationMeta?: Record<string, StationMeta>;
 };
 
 export type Song = {
