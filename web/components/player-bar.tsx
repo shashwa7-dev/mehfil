@@ -581,28 +581,45 @@ export function PlayerBar({
       )}
 
       {expanded && (
-        <div className="relative z-10 flex shrink-0 items-center justify-between px-5 py-4">
-          <span className="text-[11px] uppercase tracking-widest text-muted-foreground">
+        <div className="relative z-10 flex shrink-0 items-center gap-3 px-4 py-3 sm:px-6">
+          {/* Collapse leads, as the way out of a full-screen view. A chevron
+              alone was easy to miss against the picture behind it. */}
+          <button
+            onClick={() => setExpanded(false)}
+            title="Collapse"
+            className="grid size-9 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-foreground/80 backdrop-blur transition hover:bg-white/[0.14] hover:text-foreground"
+          >
+            <ChevronDown className="size-5" />
+          </button>
+
+          <span className="flex-1 truncate text-center text-[11px] uppercase tracking-widest text-muted-foreground">
             Now playing
           </span>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={onToggleAmbient}
-              title={ambient ? "Ambient mode on" : "Ambient mode off"}
-              className={`rounded-full p-2 transition hover:bg-white/10 ${
-                ambient ? "text-primary" : "text-muted-foreground hover:text-foreground"
+
+          {/* Labelled and visibly two-state. As a bare icon that only changed
+              colour, there was nothing to say it was a toggle, what it
+              controlled, or which way it was set. */}
+          <button
+            onClick={onToggleAmbient}
+            role="switch"
+            aria-checked={ambient}
+            title={ambient ? "Turn ambient off" : "Turn ambient on"}
+            className={`flex shrink-0 items-center gap-1.5 rounded-full border py-1.5 pl-2 pr-3 text-[11px] font-medium backdrop-blur transition ${
+              ambient
+                ? "border-primary/40 bg-primary/20 text-primary"
+                : "border-white/10 bg-white/[0.06] text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Sparkles
+              className={`size-3.5 transition-transform ${ambient ? "scale-110" : ""}`}
+            />
+            <span className="hidden sm:inline">Ambient</span>
+            <span
+              className={`ml-0.5 size-1.5 rounded-full transition-colors ${
+                ambient ? "bg-primary" : "bg-white/25"
               }`}
-            >
-              <Sparkles className="size-4" />
-            </button>
-            <button
-              onClick={() => setExpanded(false)}
-              title="Collapse"
-              className="rounded-full p-2 text-muted-foreground transition hover:bg-white/10 hover:text-foreground"
-            >
-              <ChevronDown className="size-5" />
-            </button>
-          </div>
+            />
+          </button>
         </div>
       )}
 
