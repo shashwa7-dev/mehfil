@@ -146,7 +146,9 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
             ref={setScrollEl}
             className="scroll-slim min-h-0 flex-1 overflow-y-auto rounded-none bg-gradient-to-b from-white/[0.06] to-transparent lg:rounded-lg"
           >
-            <div className="sticky top-0 z-20 flex items-center gap-2 bg-background/70 px-4 py-3 backdrop-blur sm:px-6">
+            {/* Gutter must match the content below exactly, or the search box
+                sits on a different edge from everything it sits above. */}
+            <div className="sticky top-0 z-20 flex items-center gap-2 bg-background/70 px-4 pb-4 pt-3 backdrop-blur sm:px-6 lg:px-8">
               <Link href="/" className="flex shrink-0 items-center gap-2 lg:hidden">
                 <img src="/logo.png" alt="" width={32} height={32} className="size-8 rounded-lg" />
               </Link>
@@ -214,8 +216,10 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
             </div>
 
             {/* One place sets the page gutter and bottom room, so routes only
-                decide their own vertical rhythm and cannot drift apart. */}
-            <div className="px-4 pb-16 pt-2 sm:px-6 lg:px-8">{children}</div>
+                decide their own vertical rhythm and cannot drift apart. The
+                gap below the header comes from the header itself, so this
+                needs no top padding of its own. */}
+            <div className="px-4 pb-16 sm:px-6 lg:px-8">{children}</div>
           </main>
 
           {playerBar}
