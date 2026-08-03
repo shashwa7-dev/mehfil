@@ -455,13 +455,19 @@ export function PlayerBar({
 
       <div
         className={
-          expanded ? "flex min-h-0 flex-1 items-center justify-center px-5" : "size-full"
+          expanded
+            ? "flex min-h-0 flex-1 items-center justify-center px-5 py-2"
+            : "size-full"
         }
       >
+        {/* Height-driven rather than width-driven: `h-full` takes the space the
+            flex row actually has and `aspect-video` derives the width from it,
+            with max-w capping it on wide screens. Sizing by width instead lets
+            a short viewport push the 16:9 height into the text below it. */}
         <div
           className={
             expanded
-              ? "aspect-video w-full max-w-4xl overflow-hidden rounded-xl bg-black shadow-2xl ring-1 ring-white/10"
+              ? "aspect-video h-full max-w-4xl overflow-hidden rounded-xl bg-black shadow-2xl ring-1 ring-white/10"
               : "size-full"
           }
         >
@@ -470,8 +476,8 @@ export function PlayerBar({
       </div>
 
       {expanded && (
-        <div className="shrink-0 px-5 pb-8 pt-5">
-          <div className="mx-auto flex w-full max-w-4xl flex-col items-center gap-3">
+        <div className="shrink-0 px-5 pb-[max(2rem,env(safe-area-inset-bottom))] pt-6">
+          <div className="mx-auto flex w-full max-w-4xl flex-col items-center gap-4">
             {song && (
               <div className="w-full text-center">
                 <h2 className="truncate text-2xl">{song.title}</h2>
