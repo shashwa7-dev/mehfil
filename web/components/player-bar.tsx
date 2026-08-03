@@ -14,10 +14,13 @@ import {
   SkipBack,
   SkipForward,
   Sparkles,
+  ListVideo,
   Volume2,
   VolumeX,
 } from "lucide-react";
 import { artwork, type Song } from "@/lib/catalogue";
+import { useCatalogue } from "@/lib/queries";
+import { QueuePanel } from "@/components/queue-panel";
 
 type YTPlayer = {
   playVideo(): void;
@@ -230,6 +233,8 @@ export function PlayerBar({
   const [loading, setLoading] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const [queueOpen, setQueueOpen] = useState(false);
+  const { data: catalogue } = useCatalogue();
   const barSwipe = useSwipe((d) => d === "up" && setExpanded(true));
   const stageSwipe = useSwipe((d) => d === "down" && setExpanded(false));
   // The video layer portals to <body>, which only exists after mount.
@@ -732,6 +737,13 @@ export function PlayerBar({
               unverified
             </span>
           )}
+          <button
+            onClick={() => setQueueOpen(true)}
+            className={iconButton}
+            title="Queue"
+          >
+            <ListVideo className="size-4" />
+          </button>
           <button onClick={() => setMuted((m) => !m)} className={iconButton} title="Mute">
             {muted || volume === 0 ? (
               <VolumeX className="size-4" />
@@ -749,6 +761,13 @@ export function PlayerBar({
           />
           </div>
         </div>
+          {catalogue && (
+            <QueuePanel
+              catalogue={catalogue}
+              open={queueOpen}
+              onClose={() => setQueueOpen(false)}
+            />
+          )}
         </footer>
       )}
     </>

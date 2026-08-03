@@ -18,6 +18,8 @@ type PlayerApi = {
   ambient: boolean;
   /** Songs the player advances through. Set by whichever route is showing. */
   setQueue: (songs: RawSong[]) => void;
+  /** The same list, observable, so the queue view can render it. */
+  queue: RawSong[];
   play: (id: number) => void;
   playFirst: (songs: RawSong[]) => void;
   playRandom: (songs: RawSong[]) => void;
@@ -59,11 +61,14 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [ambient, setAmbient] = useState(true);
   const [unplayable, setUnplayable] = useState<Record<number, string>>({});
 
-  // A ref, not state: the queue changes on every route and filter change, and
-  // re-rendering the player for it would be pointless churn.
+  // Mirrored into state as well as a ref. The ref keeps next/previous cheap
+  // and free of stale closures; the state is what lets the queue view show
+  // what is coming without polling.
   const queueRef = useRef<RawSong[]>([]);
+  const [queue, setQueueState] = useState<RawSong[]>([]);
   const setQueue = useCallback((songs: RawSong[]) => {
     queueRef.current = songs;
+    setQueueState(songs);
   }, []);
 
   const play = useCallback((id: number) => {
@@ -147,13 +152,14 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       playing,
       ambient,
       setQueue,
+      queue,
       play,
       playFirst,
       playRandom,
       toggleAmbient: () => setAmbient((v) => !v),
       unplayable,
     }),
-    [currentId, playing, ambient, setQueue, play, playFirst, playRandom, unplayable]
+    [currentId, playing, ambient, setQueue, queue, play, playFirst, playRandom, unplayable]
   );
 
   // Rendered by the frame rather than here, so the bar can sit inside the
