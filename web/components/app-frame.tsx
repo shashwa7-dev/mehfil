@@ -169,7 +169,7 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
               </Link>
 
               {!hideSearch && (
-              <div className="relative w-full max-w-lg">
+              <div className="relative min-w-0 flex-1 md:max-w-lg">
                 <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground transition-colors" />
                 <input
                   value={query}
@@ -199,9 +199,9 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
                 <button
                   onClick={() => playRandom(catalogue.songs)}
                   title="Play something at random"
-                  className="ml-auto hidden shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-medium text-foreground/80 transition hover:border-primary/40 hover:text-foreground lg:inline-flex"
+                  className="group/surprise ml-auto hidden shrink-0 items-center gap-2 rounded-full border border-primary/30 bg-primary/15 px-4 py-2 text-xs font-semibold text-primary shadow-[0_0_0_0_rgba(214,168,84,0)] transition-all hover:border-primary/50 hover:bg-primary/25 hover:shadow-[0_0_20px_-2px_rgba(214,168,84,0.45)] lg:inline-flex"
                 >
-                  <Shuffle className="size-3.5" />
+                  <Shuffle className="size-3.5 transition-transform duration-300 group-hover/surprise:rotate-180" />
                   Surprise me
                 </button>
               )}
