@@ -44,7 +44,9 @@ export function BrowseGrid({
 
   return (
     <div>
-      <div className="scroll-slim -mx-1 mb-4 flex gap-1.5 overflow-x-auto px-1">
+      {/* Negative margin lets the strip run to the container edges so the fade
+          sits where the content actually gets clipped. */}
+      <div className="no-scrollbar fade-x -mx-4 mb-4 flex gap-1.5 overflow-x-auto px-4 sm:-mx-6 sm:px-6">
         {TABS.map((t) => (
           <button
             key={t.facet}

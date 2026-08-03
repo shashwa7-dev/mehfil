@@ -235,3 +235,39 @@
     pointer-events: none;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Horizontal strips (the browse tabs). A visible scrollbar under a row of
+   pills is noise, especially on mobile where it overlaps the content, so it is
+   hidden and the affordance is carried by fading both edges instead: content
+   dissolving at the boundary reads as "there is more this way".
+
+   The fade is applied to the scroller itself, so it stays fixed to the
+   viewport edges while the content moves underneath.
+--------------------------------------------------------------------------- */
+@layer utilities {
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .fade-x {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 20px,
+      #000 calc(100% - 20px),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 20px,
+      #000 calc(100% - 20px),
+      transparent 100%
+    );
+  }
+}
