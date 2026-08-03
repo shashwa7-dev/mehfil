@@ -145,7 +145,7 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
         <div className="flex min-w-0 flex-1 flex-col gap-0 lg:gap-2">
           <main
             ref={setScrollEl}
-            className="scroll-slim min-h-0 flex-1 overflow-y-auto rounded-none bg-gradient-to-b from-white/[0.06] to-transparent lg:rounded-lg"
+            className="scroll-slim min-h-0 flex-1 overflow-y-auto rounded-none bg-card/40 lg:rounded-lg"
           >
             {/* Gutter must match the content below exactly, or the search box
                 sits on a different edge from everything it sits above. */}

@@ -45,21 +45,10 @@ export function CollectionHeader({
   const cover = face ?? (sampleVideo ? artwork(sampleVideo, "hq") : "/logo.png");
 
   return (
-    <div className="relative -mx-4 mb-6 overflow-hidden px-4 pb-6 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
-      {/* Wash drawn from the artwork, so the header takes the colour of
-          whatever it is introducing. */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-        <img
-          src={cover}
-          alt=""
-          className="size-full object-cover opacity-30 blur-3xl saturate-150"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-background/60 to-background" />
-      </div>
-
+    <div className="mb-6 pb-2">
       <Link
         href="/"
-        className="mb-4 inline-flex items-center gap-1.5 rounded-full bg-black/30 py-1.5 pl-2 pr-3 text-xs text-foreground/80 backdrop-blur transition hover:bg-black/50 hover:text-foreground"
+        className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.06] py-1.5 pl-2 pr-3 text-xs text-foreground/80 transition hover:border-white/20 hover:text-foreground"
       >
         <ArrowLeft className="size-3.5" />
         Browse
