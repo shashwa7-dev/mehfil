@@ -452,10 +452,11 @@ export function PlayerBar({
             key={song.video}
             src={artwork(song.video, "hq")}
             alt=""
-            className="absolute left-1/2 top-1/2 h-[130%] w-[130%] -translate-x-1/2 -translate-y-1/2 object-cover opacity-45 blur-[110px] saturate-[1.7] transition-opacity duration-700"
+            className="absolute left-1/2 top-1/2 h-[135%] w-[135%] -translate-x-1/2 -translate-y-1/2 object-cover opacity-60 blur-[100px] saturate-[1.8] transition-opacity duration-700"
           />
-          {/* Keeps text legible over whatever the artwork happens to be. */}
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/40" />
+          {/* Keeps text legible over whatever the artwork happens to be, while
+              leaving the middle open so the video sits inside its own glow. */}
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/55 to-background/35" />
         </div>
       )}
 
@@ -496,11 +497,11 @@ export function PlayerBar({
             flex row actually has and `aspect-video` derives the width from it,
             with max-w capping it on wide screens. Sizing by width instead lets
             a short viewport push the 16:9 height into the text below it. */}
+        {/* No border or shadow: the feathered mask dissolves the frame into the
+            ambient wash instead of drawing a box around it. */}
         <div
           className={
-            expanded
-              ? "aspect-video h-full max-w-4xl overflow-hidden rounded-xl bg-black shadow-2xl ring-1 ring-white/10"
-              : "size-full"
+            expanded ? "feather-edges aspect-video h-full max-w-4xl" : "size-full"
           }
         >
           <div ref={hostRef} className="size-full" />
