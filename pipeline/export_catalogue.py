@@ -18,9 +18,11 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import store
 
 ROLE_KINDS = ("composer", "lyricist", "actor", "singer", "director")
+# Station kinds that name a person, and so can carry a portrait.
+PERSON_KINDS = frozenset(ROLE_KINDS)
 
 
-def main(db_path, out_path):
+def main(db_path, out_path, stations_path="data/stations.json"):
     conn = store.connect(db_path)
 
     rows = conn.execute(
@@ -87,7 +89,24 @@ def main(db_path, out_path):
             },
         })
 
-    payload = {"facets": lists, "songs": songs}
+    # Station posters need to know what a station *is*. A station named after a
+    # person can borrow that person's portrait; a mood or format has no face,
+    # so the UI renders a designed tile instead of an arbitrary song still.
+    taxonomy = json.load(open(stations_path, encoding="utf-8"))
+    station_meta = {}
+    for kind, entries in taxonomy.items():
+        if kind.startswith("_"):
+            continue
+        for station, people in entries.items():
+            if station not in index["stations"]:
+                continue
+            station_meta[station] = {
+                "kind": kind,
+                # First name only: it is the poster subject, not the credit.
+                "person": people[0] if kind in PERSON_KINDS and people else None,
+            }
+
+    payload = {"facets": lists, "songs": songs, "stationMeta": station_meta}
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as fh:
         json.dump(payload, fh, ensure_ascii=False, separators=(",", ":"))
