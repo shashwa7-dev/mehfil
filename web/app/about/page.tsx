@@ -25,17 +25,17 @@ export default function AboutPage() {
   );
 
   return (
-    <div className="mx-auto max-w-2xl pb-16 pt-2">
+    <div className="mx-auto max-w-2xl">
       <Link
         href="/"
-        className="mb-6 inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] py-1.5 pl-2 pr-3 text-xs text-foreground/80 transition hover:bg-white/[0.12]"
+        className="mb-8 inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] py-1.5 pl-2 pr-3 text-xs text-foreground/80 transition hover:bg-white/[0.12]"
       >
         <ArrowLeft className="size-3.5" />
         Back
       </Link>
 
       <h1 className="text-3xl">About Mehfil</h1>
-      <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+      <p className="mt-4 text-sm leading-7 text-muted-foreground">
         A personal project for browsing golden-era Hindi film music by singer,
         composer, lyricist, film and mood. It is a way to navigate a catalogue —
         not a music service.
@@ -94,9 +94,9 @@ export default function AboutPage() {
 
       {posterCredits.length > 0 && (
         <Section title="Station artwork">
-          <ul className="space-y-1.5">
+          <ul className="space-y-2.5">
             {posterCredits.map(([station, credit]) => (
-              <li key={station} className="text-xs">
+              <li key={station} className="text-xs leading-6">
                 <span className="text-foreground">{station}</span> —{" "}
                 {credit.title || "Untitled"}
                 {credit.creator ? ` by ${credit.creator}` : ""} ·{" "}
@@ -123,9 +123,9 @@ export default function AboutPage() {
             From Wikimedia Commons. Licences shown per image; several require
             attribution, given here.
           </p>
-          <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
+          <ul className="mt-4 grid gap-2.5 sm:grid-cols-2">
             {portraitCredits.map((credit) => (
-              <li key={credit.name} className="text-xs">
+              <li key={credit.name} className="text-xs leading-6">
                 <span className="text-foreground">{credit.name}</span> ·{" "}
                 {credit.license}
                 {credit.author ? ` · ${credit.author}` : ""}
@@ -145,7 +145,7 @@ export default function AboutPage() {
         </Section>
       )}
 
-      <p className="mt-10 text-xs text-muted-foreground">
+      <p className="mt-14 border-t border-white/[0.06] pt-6 text-xs text-muted-foreground">
         Made with <span className="text-primary">♥</span> by{" "}
         <a
           href="https://shashwa7.in"
@@ -162,9 +162,9 @@ export default function AboutPage() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="mt-8">
-      <h2 className="text-lg">{title}</h2>
-      <div className="mt-2 space-y-3 text-sm leading-relaxed text-muted-foreground">
+    <section className="mt-12">
+      <h2 className="text-lg tracking-tight">{title}</h2>
+      <div className="mt-3 space-y-4 text-sm leading-7 text-muted-foreground">
         {children}
       </div>
     </section>

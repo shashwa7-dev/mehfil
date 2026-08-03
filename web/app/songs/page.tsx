@@ -82,7 +82,7 @@ export default function SongsPage() {
               filterSlot
             )}
 
-          <div className="flex flex-wrap items-end justify-between gap-3 pb-4 pt-2">
+          <div className="flex flex-wrap items-end justify-between gap-3 pb-4">
             <div className="min-w-0">
               <h2 className="truncate text-2xl">
                 {query.trim() ? `Results for “${query}”` : "All songs"}
