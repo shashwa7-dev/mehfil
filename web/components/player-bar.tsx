@@ -648,27 +648,31 @@ export function PlayerBar({
             so the two stay registered at any size.
             Below md the video still covers the whole display: a cabinet around
             a phone-sized picture would leave almost nothing to watch. */}
+        {/* The cabinet is sized by its own artwork rather than by a box the
+            artwork is fitted into. With object-contain the image letterboxes
+            inside whatever box it is given, so the moment a height or width
+            limit changed the box's aspect, the image no longer filled it — and
+            the screen percentages, which are measured against the box, pointed
+            somewhere the screen was not. That is what put the picture outside
+            the cabinet. Letting the image define the box makes the two
+            impossible to disagree. */}
         <div
           className={
             expanded
-              // max-w-full is what stops the cabinet overflowing: aspect-square
-              // with h-full derives width from the available height, so on a
-              // tall window the square grows wider than the column. Clamping
-              // width makes the height give way instead.
-              ? "video-stage relative aspect-[768/484] max-h-full w-full max-w-4xl"
+              ? "video-stage relative inline-block max-h-full max-w-4xl"
               : "size-full"
           }
         >
-          {/* Always mounted, hidden with CSS rather than conditionally
-              rendered. The YouTube API replaces the host node below with an
-              iframe, so React's tree no longer matches the DOM at that
-              position — inserting or removing a sibling next to it makes
-              insertBefore fail against a node that is no longer there. */}
+          {/* In normal flow, not absolute: this is what gives the wrapper its
+              size. Always mounted and hidden with CSS, because the YouTube API
+              replaces the host node below with an iframe — inserting or
+              removing a sibling beside it makes insertBefore fail against a
+              node that is no longer there. */}
           <img
             src="/tv.png"
             alt=""
             aria-hidden
-            className={`pointer-events-none absolute inset-0 z-10 size-full object-contain ${
+            className={`pointer-events-none relative z-10 max-h-full w-auto max-w-full ${
               expanded ? "block" : "hidden"
             }`}
           />
