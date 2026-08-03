@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { LayoutGrid, ListMusic, Play, Search, X } from "lucide-react";
+import { LayoutGrid, ListMusic, Menu, Play, Search, X } from "lucide-react";
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { BrowseGrid } from "@/components/browse-grid";
 import { FacetPanel } from "@/components/facet-panel";
 import { PlayerBar } from "@/components/player-bar";
@@ -191,53 +192,84 @@ export default function Home() {
       on ? "bg-white/[0.09] text-foreground" : "text-muted-foreground hover:text-foreground"
     }`;
 
+  // One definition shared by the desktop rail and the mobile sheet, so the
+  // two can never drift apart.
+  const sidebar = (
+    <>
+      <div className="shrink-0 px-4 pb-3 pt-4">
+        <button onClick={reset} className="text-left">
+          <h1 className="text-lg tracking-tight">Mehfil</h1>
+          <p className="text-xs text-muted-foreground">
+            {catalogue.songs.length.toLocaleString()} songs ·{" "}
+            {catalogue.facets.stations.length} stations
+          </p>
+        </button>
+      </div>
+
+      <div className="shrink-0 space-y-0.5 px-2 pb-2">
+        <button onClick={reset} className={navButton(!listing)}>
+          <LayoutGrid className="size-4" /> Browse
+        </button>
+        <button
+          onClick={() => {
+            setSelected({});
+            setQuery("");
+            setShowList(true);
+          }}
+          className={navButton(listing)}
+        >
+          <ListMusic className="size-4" /> All songs
+        </button>
+      </div>
+
+      <div className="min-h-0 flex-1 border-t border-white/[0.06]">
+        <FacetPanel
+          catalogue={catalogue}
+          results={results}
+          selected={selected}
+          onToggle={toggle}
+          onClear={() => setSelected({})}
+        />
+      </div>
+    </>
+  );
+
   return (
     <div className="flex h-screen flex-col">
       <div className="flex min-h-0 flex-1 gap-2 p-2">
         <aside className="hidden w-72 shrink-0 flex-col overflow-hidden rounded-lg bg-sidebar lg:flex">
-          <div className="shrink-0 px-4 pb-3 pt-4">
-            <button onClick={reset} className="text-left">
-              <h1 className="text-lg tracking-tight">Mehfil</h1>
-              <p className="text-xs text-muted-foreground">
-                {catalogue.songs.length.toLocaleString()} songs ·{" "}
-                {catalogue.facets.stations.length} stations
-              </p>
-            </button>
-          </div>
-
-          <div className="shrink-0 space-y-0.5 px-2 pb-2">
-            <button onClick={reset} className={navButton(!listing)}>
-              <LayoutGrid className="size-4" /> Browse
-            </button>
-            <button
-              onClick={() => {
-                setSelected({});
-                setQuery("");
-                setShowList(true);
-              }}
-              className={navButton(listing)}
-            >
-              <ListMusic className="size-4" /> All songs
-            </button>
-          </div>
-
-          <div className="min-h-0 flex-1 border-t border-white/[0.06]">
-            <FacetPanel
-              catalogue={catalogue}
-              results={results}
-              selected={selected}
-              onToggle={toggle}
-              onClear={() => setSelected({})}
-            />
-          </div>
+          {sidebar}
         </aside>
 
         <main
           ref={setScrollEl}
           className="scroll-slim min-w-0 flex-1 overflow-y-auto rounded-lg bg-gradient-to-b from-white/[0.06] to-transparent"
         >
-          <div className="sticky top-0 z-20 bg-background/70 px-6 py-3 backdrop-blur">
-            <div className="relative max-w-md">
+          <div className="sticky top-0 z-20 flex items-center gap-2 bg-background/70 px-4 py-3 backdrop-blur sm:px-6">
+            {/* The desktop rail is hidden below lg, so filters need a way in. */}
+            <Sheet>
+              <SheetTrigger
+                render={
+                  <button
+                    title="Filters"
+                    className="relative grid size-9 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-muted-foreground transition hover:text-foreground lg:hidden"
+                  />
+                }
+              >
+                <Menu className="size-4" />
+                {activeCount > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 grid size-4 place-items-center rounded-full bg-primary text-[9px] font-semibold text-primary-foreground">
+                    {activeCount}
+                  </span>
+                )}
+              </SheetTrigger>
+              <SheetContent side="left" className="flex w-[19rem] flex-col bg-sidebar p-0">
+                <SheetTitle className="sr-only">Filters</SheetTitle>
+                {sidebar}
+              </SheetContent>
+            </Sheet>
+
+            <div className="relative w-full max-w-md">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 value={query}

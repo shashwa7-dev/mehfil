@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  ChevronDown,
   Loader2,
+  Maximize2,
   Pause,
   Play,
   Repeat,
@@ -181,6 +183,7 @@ export function PlayerBar({
   const [playing, setPlaying] = useState(false);
   const [loading, setLoading] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(0.8);
@@ -317,6 +320,16 @@ export function PlayerBar({
     return () => window.clearInterval(id);
   }, [playing]);
 
+  // Escape closes the expanded view, matching every other overlay on the web.
+  useEffect(() => {
+    if (!expanded) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setExpanded(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [expanded]);
+
   const toggle = () => {
     const player = playerRef.current;
     if (!player) return;
@@ -339,35 +352,81 @@ export function PlayerBar({
 
   return (
     <footer className="z-50 shrink-0 border-t bg-card/80 backdrop-blur">
-      {/* The iframe must remain mounted to keep audio playing; park it offscreen. */}
-      <div className="pointer-events-none absolute -left-[9999px] size-1 overflow-hidden">
-        <div ref={hostRef} />
-      </div>
+      {/* Dim behind the expanded player. Rendered before it so it stacks under. */}
+      {expanded && (
+        <div
+          onClick={() => setExpanded(false)}
+          className="fixed inset-0 z-[55] bg-black/80 backdrop-blur-sm"
+        />
+      )}
 
       <div className="grid h-[72px] grid-cols-[1fr_auto] items-center gap-4 px-4 md:grid-cols-3">
-        {/* Now playing */}
+        {/* Now playing. The video host is rendered unconditionally: the player
+            is constructed against it on mount, so gating it behind `song`
+            would mean the player is never created at all. */}
         <div className="flex min-w-0 items-center gap-3">
-          {song ? (
-            <>
-              <img
-                src={artwork(song.video)}
-                alt=""
-                className="size-11 shrink-0 rounded object-cover"
-                loading="lazy"
-              />
-              <div className="min-w-0">
-                <div className="truncate text-sm font-medium">{song.title}</div>
-                <div className="truncate text-xs text-muted-foreground">
-                  {failure ? (
-                    <span className="text-destructive">{failure} — skipping</span>
-                  ) : loading ? (
-                    "Loading…"
-                  ) : (
-                    song.artists.join(", ") || "Unknown artist"
-                  )}
+          <div
+            className={
+              expanded
+                ? "fixed inset-x-0 top-1/2 z-[60] mx-auto h-fit w-[min(92vw,880px)] -translate-y-1/2"
+                : `relative size-11 shrink-0 ${song ? "" : "invisible"}`
+            }
+          >
+            {/* Expanding restyles this node in place. Moving or remounting it
+                would tear down the iframe and restart playback. */}
+            <div
+              className={
+                expanded
+                  ? "aspect-video w-full overflow-hidden rounded-xl bg-black shadow-2xl ring-1 ring-white/10"
+                  : "size-11 overflow-hidden rounded bg-black"
+              }
+            >
+              <div ref={hostRef} className="size-full" />
+            </div>
+
+            {expanded && song && (
+              <div className="flex items-start justify-between gap-4 pt-4">
+                <div className="min-w-0">
+                  <h2 className="truncate text-xl">{song.title}</h2>
+                  <p className="truncate text-sm text-muted-foreground">
+                    {song.artists.join(", ") || "Unknown artist"}
+                    {song.film ? ` · ${song.film}` : ""}
+                  </p>
                 </div>
+                <button
+                  onClick={() => setExpanded(false)}
+                  title="Collapse"
+                  className="shrink-0 rounded-full p-2 text-muted-foreground transition hover:bg-white/10 hover:text-foreground"
+                >
+                  <ChevronDown className="size-5" />
+                </button>
               </div>
-            </>
+            )}
+
+            {!expanded && song && (
+              <button
+                onClick={() => setExpanded(true)}
+                title="Expand"
+                className="absolute inset-0 grid place-items-center rounded bg-black/55 text-white opacity-0 transition hover:opacity-100 focus-visible:opacity-100"
+              >
+                <Maximize2 className="size-4" />
+              </button>
+            )}
+          </div>
+
+          {song ? (
+            <div className="min-w-0">
+              <div className="truncate text-sm font-medium">{song.title}</div>
+              <div className="truncate text-xs text-muted-foreground">
+                {failure ? (
+                  <span className="text-destructive">{failure}</span>
+                ) : loading ? (
+                  "Loading…"
+                ) : (
+                  song.artists.join(", ") || "Unknown artist"
+                )}
+              </div>
+            </div>
           ) : (
             <div className="text-xs text-muted-foreground">Nothing playing</div>
           )}
