@@ -632,7 +632,7 @@ export function PlayerBar({
             // Padding from the smallest size up, not only from md. The cabinet
             // ran edge to edge on a phone, so its sides were cut off by the
             // viewport rather than sitting within it.
-            ? "flex min-h-0 flex-1 items-center justify-center px-4 py-3 sm:px-8 md:px-10 md:py-4"
+            ? "flex min-h-0 flex-1 items-center justify-center md:px-10 md:py-4"
             : "size-full"
         }
       >
@@ -664,7 +664,7 @@ export function PlayerBar({
         <div
           className={
             expanded
-              ? "video-stage relative aspect-[768/484] h-full max-w-full leading-none"
+              ? "video-stage absolute inset-0 bg-black md:relative md:inset-auto md:aspect-[768/484] md:h-full md:max-w-full md:bg-transparent md:leading-none"
               : "size-full"
           }
         >
@@ -682,7 +682,7 @@ export function PlayerBar({
             alt=""
             aria-hidden
             className={`pointer-events-none absolute inset-0 z-10 size-full ${
-              expanded ? "block" : "hidden"
+              expanded ? "hidden md:block" : "hidden"
             }`}
           />
           {/* The screen opening. Positioning and clipping live here, not on the
@@ -692,7 +692,7 @@ export function PlayerBar({
               picture escape and fill the whole cabinet.
               overflow-hidden is the backstop. Whatever size the iframe ends up,
               it cannot paint outside the opening. */}
-          <div className="absolute left-[10.03%] top-[10.74%] h-[73.14%] w-[61.85%] overflow-hidden">
+          <div className="size-full overflow-hidden md:absolute md:left-[10.03%] md:top-[10.74%] md:h-[73.14%] md:w-[61.85%]">
             <div ref={hostRef} className="size-full" />
           </div>
         </div>
