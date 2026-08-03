@@ -83,7 +83,10 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
   );
 
   const credit = (
-    <div className="shrink-0 space-y-1.5 border-t border-white/[0.06] px-4 py-3">
+    // Opaque backing: the collage is anchored to the bottom of the rail, so it
+    // sits directly behind this text. Without it the smallest type in the app
+    // is the one competing with a busy image.
+    <div className="shrink-0 space-y-1.5 border-t border-white/[0.06] bg-sidebar/95 px-4 py-3 backdrop-blur-sm">
       <p className="text-[11px] leading-relaxed text-muted-foreground">
         Music streams from YouTube. Nothing is hosted here.
       </p>
