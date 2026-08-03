@@ -25,7 +25,17 @@ export default function AboutPage() {
   );
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="relative mx-auto max-w-2xl">
+      {/* Watermark. Fixed rather than absolute so it holds its corner while the
+          credits scroll past, and hidden below lg where it would sit on top of
+          the text instead of beside it. */}
+      <img
+        src="/logo.png"
+        alt=""
+        aria-hidden
+        className="pointer-events-none fixed -bottom-16 -right-16 hidden w-[28rem] select-none opacity-[0.06] lg:block"
+      />
+
       <Link
         href="/"
         className="mb-8 inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] py-1.5 pl-2 pr-3 text-xs text-foreground/80 transition hover:bg-white/[0.12]"
