@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { LayoutGrid, ListMusic, Menu, Play, Search, X } from "lucide-react";
+import { LayoutGrid, ListMusic, Loader2, Menu, Play, Search, X } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { BrowseGrid } from "@/components/browse-grid";
 import { FacetPanel } from "@/components/facet-panel";
@@ -158,8 +158,29 @@ export default function Home() {
 
   if (isLoading) {
     return (
-      <div className="grid h-[100dvh] place-items-center text-sm text-muted-foreground">
-        Loading catalogue…
+      <div className="relative grid h-[100dvh] place-items-center overflow-hidden px-6">
+        {/* Same warm bloom the player uses, so the wait already feels like
+            the app rather than a blank screen. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute left-1/2 top-1/2 size-[36rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 blur-[120px]"
+        />
+        <div className="relative flex flex-col items-center text-center">
+          <img
+            src="/logo.png"
+            alt=""
+            width={88}
+            height={88}
+            className="size-22 animate-pulse rounded-2xl shadow-2xl"
+          />
+          <h1 className="mt-5 text-2xl tracking-tight">Mehfil</h1>
+          <p className="mt-1 text-xs text-muted-foreground">Retro Bollywood songs</p>
+
+          <div className="mt-6 flex items-center gap-2 text-xs text-muted-foreground">
+            <Loader2 className="size-3.5 animate-spin" />
+            Loading catalogue…
+          </div>
+        </div>
       </div>
     );
   }
@@ -167,11 +188,24 @@ export default function Home() {
   if (isError || !catalogue) {
     return (
       <div className="grid h-[100dvh] place-items-center px-6 text-center">
-        <div>
-          <p className="text-sm">Could not load the catalogue.</p>
-          <p className="mt-1 text-xs text-muted-foreground">
+        <div className="flex flex-col items-center">
+          <img
+            src="/logo.png"
+            alt=""
+            width={64}
+            height={64}
+            className="size-16 rounded-2xl opacity-60 grayscale"
+          />
+          <p className="mt-5 text-sm">Could not load the catalogue.</p>
+          <p className="mt-1 max-w-xs text-xs text-muted-foreground">
             {error instanceof Error ? error.message : "Unknown error"}
           </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-5 rounded-full border border-white/15 px-4 py-2 text-xs transition hover:border-white/30"
+          >
+            Try again
+          </button>
         </div>
       </div>
     );
