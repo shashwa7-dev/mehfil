@@ -365,20 +365,22 @@ export function PlayerBar({
             is constructed against it on mount, so gating it behind `song`
             would mean the player is never created at all. */}
         <div className="flex min-w-0 items-center gap-3">
+          {/* Collapsed shows the still; the live frame only appears on expand.
+              The iframe is never unmounted either way -- it is parked offscreen
+              when collapsed, because remounting it would restart playback.
+              Offscreen rather than display:none, which suspends media. */}
           <div
             className={
               expanded
-                ? "fixed inset-x-0 top-1/2 z-[60] mx-auto h-fit w-[min(92vw,880px)] -translate-y-1/2"
-                : `relative size-11 shrink-0 ${song ? "" : "invisible"}`
+                ? "fixed inset-x-0 top-1/2 z-[60] mx-auto h-fit w-[min(92vw,880px)] -translate-y-1/2 px-4"
+                : "pointer-events-none fixed -left-[9999px] top-0 size-px overflow-hidden"
             }
           >
-            {/* Expanding restyles this node in place. Moving or remounting it
-                would tear down the iframe and restart playback. */}
             <div
               className={
                 expanded
                   ? "aspect-video w-full overflow-hidden rounded-xl bg-black shadow-2xl ring-1 ring-white/10"
-                  : "size-11 overflow-hidden rounded bg-black"
+                  : "size-px"
               }
             >
               <div ref={hostRef} className="size-full" />
@@ -402,17 +404,25 @@ export function PlayerBar({
                 </button>
               </div>
             )}
-
-            {!expanded && song && (
-              <button
-                onClick={() => setExpanded(true)}
-                title="Expand"
-                className="absolute inset-0 grid place-items-center rounded bg-black/55 text-white opacity-0 transition hover:opacity-100 focus-visible:opacity-100"
-              >
-                <Maximize2 className="size-4" />
-              </button>
-            )}
           </div>
+
+          {song && !expanded && (
+            <button
+              onClick={() => setExpanded(true)}
+              title="Expand to video"
+              className="group/art relative size-11 shrink-0 overflow-hidden rounded"
+            >
+              <img
+                src={artwork(song.video)}
+                alt=""
+                loading="lazy"
+                className="size-full object-cover"
+              />
+              <span className="absolute inset-0 grid place-items-center bg-black/55 text-white opacity-0 transition group-hover/art:opacity-100 group-focus-visible/art:opacity-100">
+                <Maximize2 className="size-4" />
+              </span>
+            </button>
+          )}
 
           {song ? (
             <div className="min-w-0">
