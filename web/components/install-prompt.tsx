@@ -141,7 +141,7 @@ export function InstallButton({ className = "" }: { className?: string }) {
         onClick={() => (canInstall ? install() : setShowHelp(true))}
         className={`flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground ${className}`}
       >
-        <Download className="size-4" /> Install app
+        <Download className="size-4" /> Install Mehfil
       </button>
       {showIOSHelp && <IOSInstallHelp onClose={dismissIOSHelp} />}
       {showHelp && !isIOS && <ManualInstallHelp onClose={() => setShowHelp(false)} />}

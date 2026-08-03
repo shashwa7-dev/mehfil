@@ -1,23 +1,30 @@
 /**
  * Minimal service worker.
  *
- * Its main job is to make the app installable: Chromium will not fire
- * `beforeinstallprompt` — and so will not offer a native install — unless a
- * service worker with a fetch handler is registered.
+ * Two jobs: make the app installable (Chromium withholds
+ * `beforeinstallprompt` unless a worker with a fetch handler is registered),
+ * and keep it usable offline — without ever pinning a user to an old build.
  *
- * Caching is deliberately conservative. Navigations go to the network first so
- * a deploy is never masked by a stale shell; only fingerprinted build assets
- * and the catalogue are served cache-first. A wrongly aggressive worker is far
- * worse than none, because it strands users on an old build.
+ * The caching split is the important part:
+ *
+ *   /_next/static/*  cache-first. Fingerprinted by the build, so a given URL
+ *                    can never point at different bytes. Safe to keep forever.
+ *
+ *   everything else  network-first, cache only as an offline fallback. The
+ *                    catalogue, portraits and icons all live at stable URLs
+ *                    that change contents between deploys, so caching them
+ *                    first would strand installed users on a stale catalogue
+ *                    with no way to recover.
+ *
+ * The cache is also wiped on activation, so a new worker never inherits
+ * entries written by an older one.
  */
 
-const CACHE = "mehfil-v1";
-
-// Same-origin paths worth keeping offline once fetched.
-const CACHEABLE = [/^\/_next\/static\//, /^\/artists\//, /^\/catalogue\.json$/, /^\/logo\.png$/];
+const CACHE = "mehfil";
+const IMMUTABLE = /^\/_next\/static\//;
 
 self.addEventListener("install", () => {
-  // Take over as soon as possible rather than waiting for every tab to close.
+  // Don't wait for every existing tab to close before taking over.
   self.skipWaiting();
 });
 
@@ -25,7 +32,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -35,36 +42,43 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
 
   const url = new URL(request.url);
-  if (url.origin !== self.location.origin) return; // never touch YouTube or Commons
+  // Never intervene in YouTube or Wikimedia requests.
+  if (url.origin !== self.location.origin) return;
 
-  // Navigations: network first, cached shell only as an offline fallback.
-  if (request.mode === "navigate") {
+  if (IMMUTABLE.test(url.pathname)) {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE).then((c) => c.put("/", copy));
-          return response;
-        })
-        .catch(() => caches.match("/").then((r) => r ?? Response.error()))
+      caches.match(request).then(
+        (hit) =>
+          hit ??
+          fetch(request).then((response) => {
+            if (response.ok) {
+              const copy = response.clone();
+              caches.open(CACHE).then((c) => c.put(request, copy));
+            }
+            return response;
+          })
+      )
     );
     return;
   }
 
-  if (!CACHEABLE.some((re) => re.test(url.pathname))) return;
-
-  // Build assets are fingerprinted and the catalogue only changes on deploy,
-  // so serving these from cache cannot show stale content within a build.
+  // Network first: the network's answer always wins when it is reachable, so
+  // a deploy is picked up on the next load rather than whenever a cache
+  // happens to expire.
   event.respondWith(
-    caches.match(request).then((hit) => {
-      if (hit) return hit;
-      return fetch(request).then((response) => {
+    fetch(request)
+      .then((response) => {
         if (response.ok) {
           const copy = response.clone();
           caches.open(CACHE).then((c) => c.put(request, copy));
         }
         return response;
-      });
-    })
+      })
+      .catch(() =>
+        caches
+          .match(request)
+          .then((hit) => hit ?? (request.mode === "navigate" ? caches.match("/") : undefined))
+          .then((hit) => hit ?? Response.error())
+      )
   );
 });
