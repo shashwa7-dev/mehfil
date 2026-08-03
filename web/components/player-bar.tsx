@@ -652,14 +652,19 @@ export function PlayerBar({
               : "size-full"
           }
         >
-          {expanded && (
-            <img
-              src="/tv.png"
-              alt=""
-              aria-hidden
-              className="pointer-events-none absolute inset-0 hidden size-full object-contain md:block"
-            />
-          )}
+          {/* Always mounted, hidden with CSS rather than conditionally
+              rendered. The YouTube API replaces the host node below with an
+              iframe, so React's tree no longer matches the DOM at that
+              position — inserting or removing a sibling next to it makes
+              insertBefore fail against a node that is no longer there. */}
+          <img
+            src="/tv.png"
+            alt=""
+            aria-hidden
+            className={`pointer-events-none absolute inset-0 size-full object-contain ${
+              expanded ? "hidden md:block" : "hidden"
+            }`}
+          />
           <div
             ref={hostRef}
             className="size-full md:absolute md:left-[15%] md:top-[16.4%] md:h-[51.1%] md:w-[75.6%]"
