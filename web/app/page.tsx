@@ -198,12 +198,21 @@ export default function Home() {
   const sidebar = (
     <>
       <div className="shrink-0 px-4 pb-3 pt-4">
-        <button onClick={reset} className="text-left">
-          <h1 className="text-lg tracking-tight">Mehfil</h1>
-          <p className="text-xs text-muted-foreground">
-            {catalogue.songs.length.toLocaleString()} songs ·{" "}
-            {catalogue.facets.stations.length} stations
-          </p>
+        <button onClick={reset} className="flex items-center gap-2.5 text-left">
+          <img
+            src="/logo.png"
+            alt=""
+            className="size-9 shrink-0 rounded-lg"
+            width={36}
+            height={36}
+          />
+          <span>
+            <span className="block text-lg leading-tight tracking-tight">Mehfil</span>
+            <span className="block text-xs text-muted-foreground">
+              {catalogue.songs.length.toLocaleString()} songs ·{" "}
+              {catalogue.facets.stations.length} stations
+            </span>
+          </span>
         </button>
       </div>
 
@@ -231,6 +240,17 @@ export default function Home() {
           onToggle={toggle}
           onClear={() => setSelected({})}
         />
+      </div>
+
+      <div className="shrink-0 border-t border-white/[0.06] px-4 py-2.5">
+        <a
+          href="https://shashwa7.in"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[11px] text-muted-foreground transition hover:text-foreground"
+        >
+          Made with <span className="text-primary">♥</span> by shashwa7.in
+        </a>
       </div>
     </>
   );
