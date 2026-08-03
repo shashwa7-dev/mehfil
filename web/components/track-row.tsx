@@ -42,12 +42,12 @@ export function TrackRow({
       }}
       role="button"
       tabIndex={0}
-      className={`group grid cursor-default grid-cols-[2rem_2.5rem_1fr_auto] items-center gap-3 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-white/[0.06] focus-visible:bg-white/[0.08] ${
+      className={`group grid cursor-default grid-cols-[1.5rem_2.5rem_1fr_auto] items-center gap-2.5 rounded-md px-1 py-1.5 outline-none transition-colors hover:bg-white/[0.06] focus-visible:bg-white/[0.08] sm:gap-3 sm:px-2 ${
         active ? "bg-white/[0.07]" : ""
       }`}
     >
       {/* Index swaps to a play control on hover. */}
-      <div className="grid size-8 place-items-center text-xs tabular-nums text-muted-foreground">
+      <div className="grid size-6 place-items-center text-xs tabular-nums text-muted-foreground">
         {active && playing ? (
           <span className="group-hover:hidden">
             <NowPlayingBars />

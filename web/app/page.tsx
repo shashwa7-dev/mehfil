@@ -271,39 +271,18 @@ export default function Home() {
         </div>
       )}
 
-      <div className="flex min-h-0 flex-1 gap-2 p-2">
+      {/* Full-bleed on mobile; the inset rail-and-panel layout only makes
+          sense once the sidebar is actually visible. */}
+      <div className="flex min-h-0 flex-1 gap-0 p-0 lg:gap-2 lg:p-2">
         <aside className="hidden w-72 shrink-0 flex-col overflow-hidden rounded-lg bg-sidebar lg:flex">
           {sidebar}
         </aside>
 
         <main
           ref={setScrollEl}
-          className="scroll-slim min-w-0 flex-1 overflow-y-auto rounded-lg bg-gradient-to-b from-white/[0.06] to-transparent"
+          className="scroll-slim min-w-0 flex-1 overflow-y-auto rounded-none bg-gradient-to-b from-white/[0.06] to-transparent lg:rounded-lg"
         >
           <div className="sticky top-0 z-20 flex items-center gap-2 bg-background/70 px-4 py-3 backdrop-blur sm:px-6">
-            {/* The desktop rail is hidden below lg, so filters need a way in. */}
-            <Sheet>
-              <SheetTrigger
-                render={
-                  <button
-                    title="Filters"
-                    className="relative grid size-9 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-muted-foreground transition hover:text-foreground lg:hidden"
-                  />
-                }
-              >
-                <Menu className="size-4" />
-                {activeCount > 0 && (
-                  <span className="absolute -right-0.5 -top-0.5 grid size-4 place-items-center rounded-full bg-primary text-[9px] font-semibold text-primary-foreground">
-                    {activeCount}
-                  </span>
-                )}
-              </SheetTrigger>
-              <SheetContent side="left" className="flex w-[19rem] flex-col bg-sidebar p-0">
-                <SheetTitle className="sr-only">Filters</SheetTitle>
-                {sidebar}
-              </SheetContent>
-            </Sheet>
-
             {/* The sidebar carries the brand on desktop but is hidden below lg,
                 so mobile needs its own mark. */}
             <button
@@ -340,9 +319,33 @@ export default function Home() {
                 </button>
               )}
             </div>
+
+            {/* The desktop rail is hidden below lg, so filters need a way in.
+                ml-auto keeps it pinned right once the search stops growing. */}
+            <Sheet>
+              <SheetTrigger
+                render={
+                  <button
+                    title="Filters"
+                    className="relative ml-auto grid size-9 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-muted-foreground transition hover:text-foreground lg:hidden"
+                  />
+                }
+              >
+                <Menu className="size-4" />
+                {activeCount > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 grid size-4 place-items-center rounded-full bg-primary text-[9px] font-semibold text-primary-foreground">
+                    {activeCount}
+                  </span>
+                )}
+              </SheetTrigger>
+              <SheetContent side="left" className="flex w-[19rem] flex-col bg-sidebar p-0">
+                <SheetTitle className="sr-only">Filters</SheetTitle>
+                {sidebar}
+              </SheetContent>
+            </Sheet>
           </div>
 
-          <div className="px-6 pb-10">
+          <div className="px-4 pb-10 sm:px-6">
             {!listing ? (
               <>
                 <h2 className="pb-4 pt-2 text-2xl">Browse</h2>
