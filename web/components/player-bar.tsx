@@ -581,7 +581,10 @@ export function PlayerBar({
       )}
 
       {expanded && (
-        <div className="relative z-10 flex shrink-0 items-center gap-3 px-4 py-3 sm:px-6">
+        // Constrained to the same column as the video and the controls below
+        // it. Spanning the window pushed these to the far edges of a wide
+        // screen, so they read as browser chrome rather than part of the view.
+        <div className="relative z-10 mx-auto flex w-full max-w-4xl shrink-0 items-center gap-3 px-4 py-4 sm:px-0">
           {/* Collapse leads, as the way out of a full-screen view. A chevron
               alone was easy to miss against the picture behind it. */}
           <button
