@@ -656,28 +656,32 @@ export function PlayerBar({
             somewhere the screen was not. That is what put the picture outside
             the cabinet. Letting the image define the box makes the two
             impossible to disagree. */}
+        {/* Height-driven: the cabinet takes the row's full height and derives
+            its width from the artwork's ratio, shrinking only when width is
+            the tighter constraint. Sizing it by the image's own width instead
+            left it small on a large screen with the spare height showing
+            underneath. */}
         <div
           className={
             expanded
-              // w-fit is load-bearing: a flex item is blockified, so without it
-              // this stretches to the row's width while the image inside stays
-              // its own size — and the screen offsets, measured against this
-              // box, drift off the artwork again. leading-none removes the
-              // baseline gap an image otherwise leaves beneath it.
-              ? "video-stage relative w-fit max-h-full max-w-4xl leading-none"
+              ? "video-stage relative aspect-[768/484] h-full max-w-full leading-none"
               : "size-full"
           }
         >
-          {/* In normal flow, not absolute: this is what gives the wrapper its
-              size. Always mounted and hidden with CSS, because the YouTube API
-              replaces the host node below with an iframe — inserting or
-              removing a sibling beside it makes insertBefore fail against a
-              node that is no longer there. */}
+          {/* Stretched to the box rather than fitted inside it. object-contain
+              letterboxes when the two ratios differ, and the screen offsets
+              below are measured against the box — so any letterboxing puts
+              them off the artwork, which is what threw the picture outside the
+              cabinet before. Filling guarantees they agree; the ratio is
+              already pinned above, so there is nothing to distort.
+              Always mounted and hidden with CSS, because the player replaces
+              the host node below with an iframe and inserting or removing a
+              sibling beside it breaks reconciliation. */}
           <img
             src="/tv.png"
             alt=""
             aria-hidden
-            className={`pointer-events-none relative z-10 max-h-full w-auto max-w-full ${
+            className={`pointer-events-none absolute inset-0 z-10 size-full ${
               expanded ? "block" : "hidden"
             }`}
           />
