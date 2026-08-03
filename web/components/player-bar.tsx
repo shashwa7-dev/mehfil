@@ -474,7 +474,7 @@ export function PlayerBar({
       )}
 
       {expanded && (
-        <div className="flex shrink-0 items-center justify-between px-5 py-4">
+        <div className="relative z-10 flex shrink-0 items-center justify-between px-5 py-4">
           <span className="text-[11px] uppercase tracking-widest text-muted-foreground">
             Now playing
           </span>
@@ -502,21 +502,19 @@ export function PlayerBar({
       <div
         className={
           expanded
-            ? "flex min-h-0 flex-1 items-center justify-center px-5 py-2"
+            ? "flex min-h-0 flex-1 items-center justify-center md:px-5 md:py-2"
             : "size-full"
         }
       >
-        {/* Height-driven rather than width-driven: `h-full` takes the space the
-            flex row actually has and `aspect-video` derives the width from it,
-            with max-w capping it on wide screens. Sizing by width instead lets
-            a short viewport push the 16:9 height into the text below it. */}
-        {/* clip-path rather than overflow-hidden: border-radius alone does not
-            reliably clip a nested iframe in WebKit, which leaves square
-            corners poking out of the rounded container. */}
+        {/* Below md the stage covers the whole screen (see .video-stage); from
+            md it returns to a centred card, height-driven so a short viewport
+            shrinks the video rather than pushing it into the text below.
+            clip-path rather than overflow-hidden, because border-radius alone
+            does not reliably clip a nested iframe in WebKit. */}
         <div
           className={
             expanded
-              ? "aspect-video h-full max-w-4xl rounded-xl bg-black [clip-path:inset(0_round_0.75rem)]"
+              ? "video-stage absolute inset-0 bg-black md:relative md:inset-auto md:aspect-video md:h-full md:max-w-4xl md:rounded-xl md:[clip-path:inset(0_round_0.75rem)]"
               : "size-full"
           }
         >
@@ -524,8 +522,17 @@ export function PlayerBar({
         </div>
       </div>
 
+      {/* Scrims keep the header and controls legible over the picture. Only
+          needed where the video runs edge to edge. */}
       {expanded && (
-        <div className="shrink-0 px-5 pb-[max(2rem,env(safe-area-inset-bottom))] pt-6">
+        <>
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-background via-background/70 to-transparent md:hidden" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-background via-background/85 to-transparent md:hidden" />
+        </>
+      )}
+
+      {expanded && (
+        <div className="relative z-10 shrink-0 px-5 pb-[max(2rem,env(safe-area-inset-bottom))] pt-6">
           <div className="mx-auto flex w-full max-w-4xl flex-col items-center gap-4">
             {song && (
               <div className="w-full text-center">

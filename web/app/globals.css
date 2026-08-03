@@ -207,3 +207,31 @@
     text-rendering: optimizeLegibility;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Full-bleed video on small screens.
+
+   A 16:9 iframe cannot letterbox gracefully into a portrait phone, so below md
+   it is scaled to cover: sized from whichever axis is the constraint and
+   centred, with the overflow clipped by the stage. The iframe is created by
+   the YouTube API rather than by us, so it has to be reached as a descendant.
+
+   pointer-events are disabled so tapping the picture never surfaces YouTube's
+   own overlay — the app's controls are the only ones.
+--------------------------------------------------------------------------- */
+@media (max-width: 767px) {
+  .video-stage {
+    overflow: hidden;
+  }
+  .video-stage iframe {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100vw;
+    height: 56.25vw;        /* 16:9 derived from width */
+    min-width: 177.7778vh;  /* 16:9 derived from height */
+    min-height: 100%;
+    pointer-events: none;
+  }
+}
