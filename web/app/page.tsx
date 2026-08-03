@@ -1,13 +1,12 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ListMusic, Play } from "lucide-react";
-import { AppShell } from "@/components/app-shell";
 import { BrowseGrid } from "@/components/browse-grid";
 import { CatalogueGate } from "@/components/catalogue-gate";
 import { InstallPrompt } from "@/components/install-prompt";
+import { useFrame } from "@/components/app-frame";
 import { usePlayer } from "@/components/player-provider";
 import { filterSongs, type Catalogue } from "@/lib/catalogue";
 import { collectionHref } from "@/lib/routes";
@@ -15,14 +14,14 @@ import { useCatalogue } from "@/lib/queries";
 
 export default function BrowsePage() {
   const { data: catalogue, isLoading, isError, error } = useCatalogue();
-  const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null);
+  const { scrollEl } = useFrame();
   const router = useRouter();
   const { playFirst } = usePlayer();
 
   return (
     <CatalogueGate isLoading={isLoading} isError={isError} error={error}>
       {catalogue && (
-        <AppShell catalogue={catalogue} onScrollElement={setScrollEl}>
+        <>
           <h2 className="pb-3 pt-2 text-2xl">Browse</h2>
 
           {/* The rail carries this on desktop; below lg it is the only way to
@@ -56,15 +55,15 @@ export default function BrowsePage() {
             }
             onPlay={(facet, index) => {
               // Start immediately and open the collection, so the play button
-              // is not just a slower route link.
+              // is not merely a slower route link.
               const label = catalogue.facets[facet as keyof Catalogue["facets"]][index];
               playFirst(filterSongs(catalogue, { [facet]: new Set([index]) }, ""));
               router.push(collectionHref(facet, label));
             }}
           />
-        </AppShell>
+          <InstallPrompt />
+        </>
       )}
-      <InstallPrompt />
     </CatalogueGate>
   );
 }

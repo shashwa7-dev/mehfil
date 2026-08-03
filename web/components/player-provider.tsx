@@ -28,6 +28,13 @@ type PlayerApi = {
 
 const PlayerContext = createContext<PlayerApi | null>(null);
 
+/** The player bar element, so the frame can place it in the content column. */
+const PlayerBarContext = createContext<React.ReactNode>(null);
+
+export function usePlayerBar() {
+  return useContext(PlayerBarContext);
+}
+
 export function usePlayer() {
   const context = useContext(PlayerContext);
   if (!context) throw new Error("usePlayer must be used inside PlayerProvider");
@@ -149,29 +156,28 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     [currentId, playing, ambient, setQueue, play, playFirst, playRandom, unplayable]
   );
 
+  // Rendered by the frame rather than here, so the bar can sit inside the
+  // content column while this component stays pure state.
+  const bar = (
+    <PlayerBar
+      song={currentSong}
+      shuffle={shuffle}
+      repeat={repeat}
+      ambient={ambient}
+      onToggleShuffle={() => setShuffle((v) => !v)}
+      onToggleRepeat={() => setRepeat((v) => !v)}
+      onToggleAmbient={() => setAmbient((v) => !v)}
+      onNext={() => step(1)}
+      onPrev={() => step(-1)}
+      onEnded={onEnded}
+      onPlayingChange={setPlaying}
+      onUnplayable={handleUnplayable}
+    />
+  );
+
   return (
     <PlayerContext.Provider value={api}>
-      {/* Owns the vertical frame: the route fills the space above, the bar
-          takes what it needs below. Without this the route claimed the whole
-          viewport and pushed the bar off-screen. */}
-      <div className="flex h-[100dvh] flex-col">
-        <div className="min-h-0 flex-1">{children}</div>
-
-        <PlayerBar
-        song={currentSong}
-        shuffle={shuffle}
-        repeat={repeat}
-        ambient={ambient}
-        onToggleShuffle={() => setShuffle((v) => !v)}
-        onToggleRepeat={() => setRepeat((v) => !v)}
-        onToggleAmbient={() => setAmbient((v) => !v)}
-        onNext={() => step(1)}
-        onPrev={() => step(-1)}
-        onEnded={onEnded}
-        onPlayingChange={setPlaying}
-          onUnplayable={handleUnplayable}
-        />
-      </div>
+      <PlayerBarContext.Provider value={bar}>{children}</PlayerBarContext.Provider>
     </PlayerContext.Provider>
   );
 }

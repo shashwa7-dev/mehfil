@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Figtree } from "next/font/google";
 import { Providers } from "./providers";
 import { PlayerProvider } from "@/components/player-provider";
+import { AppFrame } from "@/components/app-frame";
 import "./globals.css";
 
 // Figtree: a geometric sans in the same family as the faces music apps favour.
@@ -85,7 +86,9 @@ export default function RootLayout({
             across navigation, so the YouTube iframe — and the music — survive
             moving between browse, a station and the full song list. */}
         <Providers>
-          <PlayerProvider>{children}</PlayerProvider>
+          <PlayerProvider>
+            <AppFrame>{children}</AppFrame>
+          </PlayerProvider>
         </Providers>
       </body>
     </html>

@@ -1,9 +1,9 @@
 "use client";
 
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo } from "react";
 import { notFound } from "next/navigation";
-import { AppShell } from "@/components/app-shell";
 import { CatalogueGate } from "@/components/catalogue-gate";
+import { useFrame } from "@/components/app-frame";
 import { CollectionHeader } from "@/components/collection-header";
 import { usePlayer } from "@/components/player-provider";
 import { SongList } from "@/components/song-list";
@@ -26,7 +26,7 @@ export default function CollectionPage({
   const { data: catalogue, isLoading, isError, error } = useCatalogue();
   const { data: photos } = usePhotoManifest();
   const { data: posters } = useStationPosters();
-  const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null);
+  const { scrollEl } = useFrame();
   const { currentId, playing, play, playFirst, playRandom, setQueue } = usePlayer();
 
   const facet = FACET_BY_KIND[kind];
@@ -58,7 +58,7 @@ export default function CollectionPage({
   return (
     <CatalogueGate isLoading={isLoading} isError={isError} error={error}>
       {catalogue && resolved && (
-        <AppShell catalogue={catalogue} onScrollElement={setScrollEl}>
+        <>
           <CollectionHeader
             kind={kind}
             label={resolved.label}
@@ -87,7 +87,7 @@ export default function CollectionPage({
               onPlay={play}
             />
           )}
-        </AppShell>
+        </>
       )}
     </CatalogueGate>
   );
