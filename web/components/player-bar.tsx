@@ -669,11 +669,16 @@ export function PlayerBar({
               expanded ? "hidden md:block" : "hidden"
             }`}
           />
-          <div
-            ref={hostRef}
-            className="size-full md:absolute md:left-[10.03%] md:top-[10.74%] md:h-[73.14%] md:w-[61.85%]"
-          />
-
+          {/* The screen opening. Positioning and clipping live here, not on the
+              host below: the player replaces that node with an iframe and the
+              replacement keeps none of its classes, so anything set there is
+              destroyed the moment playback attaches — which is what let the
+              picture escape and fill the whole cabinet.
+              overflow-hidden is the backstop. Whatever size the iframe ends up,
+              it cannot paint outside the opening. */}
+          <div className="size-full overflow-hidden md:absolute md:left-[10.03%] md:top-[10.74%] md:h-[73.14%] md:w-[61.85%]">
+            <div ref={hostRef} className="size-full" />
+          </div>
         </div>
       </div>
 
