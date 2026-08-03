@@ -26,6 +26,8 @@ type YTPlayer = {
   getDuration(): number;
   seekTo(seconds: number, allowSeekAhead: boolean): void;
   setVolume(volume: number): void;
+  getIframe?(): HTMLIFrameElement | null;
+  destroy?(): void;
 };
 
 declare global {
@@ -253,7 +255,18 @@ export function PlayerBar({
     if (!mounted) return;
     let cancelled = false;
     loadYouTubeAPI().then(() => {
-      if (cancelled || !hostRef.current || playerRef.current) return;
+      if (cancelled || !hostRef.current) return;
+      // A player whose iframe has been detached is unrecoverable: every call
+      // silently does nothing and the UI waits forever. `playerRef` being set
+      // is not proof the player is alive, so check the iframe is still in the
+      // document and rebuild if it is not.
+      if (playerRef.current) {
+        const iframe = playerRef.current.getIframe?.();
+        if (iframe && document.contains(iframe)) return;
+        playerRef.current.destroy?.();
+        playerRef.current = null;
+        setReady(false);
+      }
       playerRef.current = new window.YT!.Player(hostRef.current, {
         height: "100%",
         width: "100%",
@@ -530,17 +543,18 @@ export function PlayerBar({
     </div>
   );
 
-  // The portal is rendered unconditionally while the bar itself only appears
-  // once something is playing. Unmounting the whole component instead would
-  // destroy the iframe — and repeat briefly sets the song to null, so that
-  // would tear the player down mid-track.
-  if (!song) {
-    return <>{mounted && createPortal(videoLayer, document.body)}</>;
-  }
-
+  // The portal must keep the same position in the returned tree at all times.
+  // Returning a different root shape when nothing is playing (a fragment vs a
+  // footer) makes React remount the portal's children, which destroys the
+  // iframe while playerRef still points at it — the player then appears to
+  // load forever. So the root is always this fragment with the portal first,
+  // and only the bar below it is conditional.
   return (
-    <footer className="z-50 shrink-0 border-t bg-card/80 backdrop-blur">
+    <>
       {mounted && createPortal(videoLayer, document.body)}
+
+      {song && (
+        <footer className="z-50 shrink-0 border-t bg-card/80 backdrop-blur">
       <div className="grid h-[72px] grid-cols-[1fr_auto] items-center gap-4 px-4 md:grid-cols-3">
         {/* Now playing. The video host is rendered unconditionally: the player
             is constructed against it on mount, so gating it behind `song`
@@ -605,8 +619,10 @@ export function PlayerBar({
             }}
             className="w-24"
           />
+          </div>
         </div>
-      </div>
-    </footer>
+        </footer>
+      )}
+    </>
   );
 }
