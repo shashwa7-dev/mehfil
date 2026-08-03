@@ -45,7 +45,7 @@ export function CollectionHeader({
   const cover = face ?? (sampleVideo ? artwork(sampleVideo, "hq") : "/logo.png");
 
   return (
-    <div className="relative -mx-4 mb-4 overflow-hidden px-4 pb-5 pt-3 sm:-mx-6 sm:px-6">
+    <div className="relative -mx-4 mb-6 overflow-hidden px-4 pb-6 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
       {/* Wash drawn from the artwork, so the header takes the colour of
           whatever it is introducing. */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">

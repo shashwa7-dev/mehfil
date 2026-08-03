@@ -213,7 +213,9 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
               </Sheet>
             </div>
 
-            <div className="px-4 pb-10 sm:px-6">{children}</div>
+            {/* One place sets the page gutter and bottom room, so routes only
+                decide their own vertical rhythm and cannot drift apart. */}
+            <div className="px-4 pb-16 pt-2 sm:px-6 lg:px-8">{children}</div>
           </main>
 
           {playerBar}
