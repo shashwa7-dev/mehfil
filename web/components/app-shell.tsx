@@ -84,7 +84,9 @@ export function AppShell({
   );
 
   return (
-    <div className="relative flex h-[100dvh] flex-col">
+    // Fills the space the player provider leaves, rather than the whole
+    // viewport, or the bar below it would be pushed off-screen.
+    <div className="relative flex h-full flex-col">
       <div className="flex min-h-0 flex-1 gap-0 p-0 lg:gap-2 lg:p-2">
         <aside className="hidden w-72 shrink-0 flex-col overflow-hidden rounded-lg bg-sidebar lg:flex">
           {sidebar}

@@ -151,8 +151,13 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <PlayerContext.Provider value={api}>
-      {children}
-      <PlayerBar
+      {/* Owns the vertical frame: the route fills the space above, the bar
+          takes what it needs below. Without this the route claimed the whole
+          viewport and pushed the bar off-screen. */}
+      <div className="flex h-[100dvh] flex-col">
+        <div className="min-h-0 flex-1">{children}</div>
+
+        <PlayerBar
         song={currentSong}
         shuffle={shuffle}
         repeat={repeat}
@@ -164,8 +169,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         onPrev={() => step(-1)}
         onEnded={onEnded}
         onPlayingChange={setPlaying}
-        onUnplayable={handleUnplayable}
-      />
+          onUnplayable={handleUnplayable}
+        />
+      </div>
     </PlayerContext.Provider>
   );
 }
