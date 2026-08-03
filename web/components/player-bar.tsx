@@ -170,11 +170,13 @@ function Scrubber({
       // the volume control ignore its own w-24 and stretch across the bar.
       className={className}
     >
-      {/* Padding well beyond the visible track: it is what the finger and
-          cursor actually hit, so the bar can stay slim without being fiddly. */}
+      {/* Fixed height, not padding: the track thickens on hover, and without a
+          locked height that growth reflows everything above the bar. The extra
+          height is also the real hit target — the finger and cursor land here,
+          not on the thin visible track. */}
       <SliderPrimitive.Control
         className={`group/scrub relative flex w-full touch-none select-none items-center data-disabled:opacity-50 ${
-          large ? "py-3.5" : "py-3"
+          large ? "h-9" : "h-8"
         }`}
       >
         <SliderPrimitive.Track
@@ -462,7 +464,7 @@ export function PlayerBar({
   // Rendered in both the bar and the expanded view, so the controls are always
   // reachable. `large` scales it up for the full-screen layout.
   const transport = (large: boolean) => (
-    <div className="flex w-full flex-col items-center gap-1">
+    <div className="flex w-full flex-col items-center gap-0.5">
       <div className={`flex items-center ${large ? "gap-4" : "gap-2"}`}>
         <button
           onClick={onToggleShuffle}
@@ -647,7 +649,7 @@ export function PlayerBar({
 
       {song && (
         <footer className="z-50 shrink-0 border-t bg-card/80 backdrop-blur">
-      <div className="grid h-[72px] grid-cols-[1fr_auto] items-center gap-4 px-4 md:grid-cols-3">
+      <div className="grid grid-cols-[1fr_auto] items-center gap-4 px-4 py-2.5 md:grid-cols-3 md:px-5 md:py-3">
         {/* Now playing. The video host is rendered unconditionally: the player
             is constructed against it on mount, so gating it behind `song`
             would mean the player is never created at all. */}

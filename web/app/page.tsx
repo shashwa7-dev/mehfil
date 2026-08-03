@@ -5,7 +5,7 @@ import { LayoutGrid, ListMusic, Menu, Play, Search, X } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { BrowseGrid } from "@/components/browse-grid";
 import { FacetPanel } from "@/components/facet-panel";
-import { InstallPrompt } from "@/components/install-prompt";
+import { InstallButton, InstallPrompt } from "@/components/install-prompt";
 import { PlayerBar } from "@/components/player-bar";
 import { SongList } from "@/components/song-list";
 import { artwork, filterSongs, hydrate, type Catalogue, type RawSong } from "@/lib/catalogue";
@@ -231,6 +231,8 @@ export default function Home() {
         >
           <ListMusic className="size-4" /> All songs
         </button>
+        {/* Renders itself only where installing is actually possible. */}
+        <InstallButton />
       </div>
 
       <div className="min-h-0 flex-1 border-t border-white/[0.06]">
