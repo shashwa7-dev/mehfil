@@ -211,9 +211,14 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
                 >
                   <Menu className="size-4" />
                 </SheetTrigger>
+                {/* No `relative` here. These classes are merged over the base
+                    ones, and it would beat the `fixed` that positions the
+                    panel — taking `inset-y-0 left-0 h-full` with it and
+                    collapsing the drawer to nothing. `fixed` already anchors
+                    the absolutely-positioned texture inside. */}
                 <SheetContent
                   side="left"
-                  className="relative flex w-[19rem] flex-col overflow-hidden bg-sidebar p-0"
+                  className="flex w-[19rem] flex-col overflow-hidden bg-sidebar p-0"
                 >
                   <SheetTitle className="sr-only">Menu</SheetTitle>
                   {/* Same treatment as the rail, different artwork — the menu
