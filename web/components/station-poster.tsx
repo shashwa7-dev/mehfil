@@ -43,13 +43,16 @@ const GENERIC: Record<string, { icon: LucideIcon; from: string; to: string }> = 
 
 const FALLBACK = { icon: Sparkles, from: "#4a4238", to: "#1a1613" };
 
+/**
+ * Fills its container. The card owns the frame — shape, radius, clipping — so
+ * this only decides *what* is shown, never how big it is.
+ */
 export function StationPoster({
   name,
   meta,
   photos,
   poster,
   video,
-  rounded = "rounded-md",
 }: {
   name: string;
   meta: StationMeta | undefined;
@@ -58,9 +61,8 @@ export function StationPoster({
   poster?: string;
   /** Song still, used only when a named person has no portrait yet. */
   video: string;
-  rounded?: string;
 }) {
-  // A photo beats a drawn tile, but only these were worth keeping: keyword
+  // A photo beats a drawn tile, but only a few were worth keeping: keyword
   // search over openly-licensed images returns plenty that match the word and
   // not the meaning, so the rest were dropped rather than shipped.
   if (poster) {
@@ -69,7 +71,7 @@ export function StationPoster({
         src={`/stations/${poster}`}
         alt=""
         loading="lazy"
-        className={`aspect-square w-full object-cover shadow-lg ${rounded}`}
+        className="size-full object-cover"
       />
     );
   }
@@ -84,9 +86,7 @@ export function StationPoster({
         src={face ?? artwork(video)}
         alt=""
         loading="lazy"
-        className={`aspect-square w-full object-cover ${
-          face ? "object-top" : ""
-        } shadow-lg ${rounded}`}
+        className={`size-full object-cover ${face ? "object-top" : ""}`}
       />
     );
   }
@@ -96,7 +96,7 @@ export function StationPoster({
 
   return (
     <div
-      className={`relative grid aspect-square w-full place-items-center overflow-hidden shadow-lg ${rounded}`}
+      className="relative grid size-full place-items-center"
       style={{ background: `linear-gradient(145deg, ${design.from}, ${design.to})` }}
     >
       {/* Soft highlight so the flat gradient reads as a surface, not a swatch. */}
