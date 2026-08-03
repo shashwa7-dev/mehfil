@@ -25,22 +25,7 @@ export default function AboutPage() {
   );
 
   return (
-    <div className="relative mx-auto max-w-2xl pb-16 pt-2">
-      {/* Same treatment as the rail: masked out well before it reaches the
-          text, low opacity, pulled toward the brass palette. Anchored at the
-          top here rather than the bottom, since this page scrolls and a
-          bottom-anchored texture would drift away from the content. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-96 [mask-image:linear-gradient(to_bottom,#000_0%,#000_25%,transparent_100%)]"
-      >
-        <img
-          src="/collage-bazaar.jpg"
-          alt=""
-          className="size-full object-cover opacity-[0.14] saturate-[0.55] sepia-[0.35]"
-        />
-      </div>
-
+    <div className="mx-auto max-w-2xl pb-16 pt-2">
       <Link
         href="/"
         className="mb-6 inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] py-1.5 pl-2 pr-3 text-xs text-foreground/80 transition hover:bg-white/[0.12]"
