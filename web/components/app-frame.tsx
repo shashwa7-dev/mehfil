@@ -97,7 +97,7 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
       <img
         src="/collage.jpg"
         alt=""
-        className="size-full object-cover opacity-[0.16] saturate-[0.55] sepia-[0.35]"
+        className="size-full object-cover opacity-[0.20] saturate-[0.55] sepia-[0.35]"
       />
     </div>
   );
