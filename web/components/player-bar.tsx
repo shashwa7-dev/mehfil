@@ -497,11 +497,14 @@ export function PlayerBar({
             flex row actually has and `aspect-video` derives the width from it,
             with max-w capping it on wide screens. Sizing by width instead lets
             a short viewport push the 16:9 height into the text below it. */}
-        {/* No border or shadow: the feathered mask dissolves the frame into the
-            ambient wash instead of drawing a box around it. */}
+        {/* clip-path rather than overflow-hidden: border-radius alone does not
+            reliably clip a nested iframe in WebKit, which leaves square
+            corners poking out of the rounded container. */}
         <div
           className={
-            expanded ? "feather-edges aspect-video h-full max-w-4xl" : "size-full"
+            expanded
+              ? "aspect-video h-full max-w-4xl rounded-xl bg-black [clip-path:inset(0_round_0.75rem)]"
+              : "size-full"
           }
         >
           <div ref={hostRef} className="size-full" />
