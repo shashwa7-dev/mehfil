@@ -51,6 +51,15 @@ const ERROR_TEXT: Record<number, string> = {
   150: "Owner disabled embedding",
 };
 
+// Only some failures are worth retrying. 100/101/150 are deterministic
+// refusals — the video is gone, or its owner disallows embedding — and will
+// fail identically every time, so retrying only delays the skip. Code 5 is a
+// browser-side player failure, and a stall is usually a network hiccup; both
+// often clear on a second attempt.
+const RETRYABLE_CODES = new Set([5]);
+const MAX_ATTEMPTS = 3;
+const RETRY_BACKOFF_MS = [600, 1800];
+
 // A load that never reaches PLAYING is indistinguishable from a slow one
 // without a deadline. Long enough not to trip on a genuinely slow network.
 const STALL_MS = 15000;
@@ -189,6 +198,43 @@ export function PlayerBar({
   const songRef = useRef<Song | null>(song);
   songRef.current = song;
 
+  // Attempts spent on the song currently loaded, reset whenever it changes.
+  const attemptsRef = useRef(0);
+  const retryTimerRef = useRef<number | null>(null);
+  const [retrying, setRetrying] = useState(0);
+
+  /**
+   * Single funnel for every failure: retry the ones that can plausibly
+   * succeed on a second try, give up immediately on the ones that cannot.
+   */
+  const handleFailure = useRef<(reason: string, retryable: boolean) => void>(() => {});
+  handleFailure.current = (reason, retryable) => {
+    const failed = songRef.current;
+    if (!failed) return;
+
+    if (retryable && attemptsRef.current < MAX_ATTEMPTS) {
+      const delay = RETRY_BACKOFF_MS[attemptsRef.current - 1] ?? 1800;
+      attemptsRef.current += 1;
+      setRetrying(attemptsRef.current);
+      setFailure(`${reason} — retrying`);
+      retryTimerRef.current = window.setTimeout(() => {
+        // The song may have changed while the retry was pending.
+        if (songRef.current?.id !== failed.id) return;
+        setFailure(null);
+        setLoading(true);
+        playerRef.current?.loadVideoById(failed.video);
+      }, delay);
+      return;
+    }
+
+    setLoading(false);
+    setPlaying(false);
+    setRetrying(0);
+    playingRef.current(false);
+    setFailure(reason);
+    unplayableRef.current(failed.id, reason);
+  };
+
   useEffect(() => {
     let cancelled = false;
     loadYouTubeAPI().then(() => {
@@ -218,12 +264,7 @@ export function PlayerBar({
           // the bar simply sits at 0:00 forever.
           onError: (event: { data: number }) => {
             const reason = ERROR_TEXT[event.data] ?? `Playback error ${event.data}`;
-            setLoading(false);
-            setPlaying(false);
-            playingRef.current(false);
-            setFailure(reason);
-            const failed = songRef.current;
-            if (failed) unplayableRef.current(failed.id, reason);
+            handleFailure.current(reason, RETRYABLE_CODES.has(event.data));
           },
         },
       });
@@ -235,6 +276,11 @@ export function PlayerBar({
 
   useEffect(() => {
     if (!ready || !song || !playerRef.current) return;
+    // A new song gets a fresh attempt budget, and any pending retry for the
+    // previous one is abandoned.
+    if (retryTimerRef.current) window.clearTimeout(retryTimerRef.current);
+    attemptsRef.current = 1;
+    setRetrying(0);
     playerRef.current.loadVideoById(song.video);
     setElapsed(0);
     setDuration(0);
@@ -248,13 +294,12 @@ export function PlayerBar({
     if (!loading || !song) return;
     const timer = window.setTimeout(() => {
       if (playerRef.current && playerRef.current.getCurrentTime() > 0) return;
-      const reason = "Timed out — the video never started";
-      setLoading(false);
-      setFailure(reason);
-      unplayableRef.current(song.id, reason);
+      // A stall is usually a network hiccup rather than a dead video, so it
+      // gets the same retry budget as a browser-side player error.
+      handleFailure.current("Timed out — the video never started", true);
     }, STALL_MS);
     return () => window.clearTimeout(timer);
-  }, [loading, song]);
+  }, [loading, song, retrying]);
 
   useEffect(() => {
     playerRef.current?.setVolume(muted ? 0 : Math.round(volume * 100));
