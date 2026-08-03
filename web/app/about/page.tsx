@@ -1,0 +1,172 @@
+"use client";
+
+import Link from "next/link";
+import { ArrowLeft, ExternalLink } from "lucide-react";
+import { usePhotoManifest, useStationPosters } from "@/lib/queries";
+
+/**
+ * What this is, what it does not own, and who made the images.
+ *
+ * The credits are generated from the same manifests the app renders from, so
+ * they cannot drift out of step with what is actually being shown — which is
+ * the usual failure of a hand-written attribution page.
+ */
+export default function AboutPage() {
+  const { data: photos } = usePhotoManifest();
+  const { data: posters } = useStationPosters();
+
+  const portraitCredits = Object.entries(photos ?? {})
+    .filter(([, value]) => value)
+    .map(([name, value]) => ({ name, ...value! }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  const posterCredits = Object.entries(posters ?? {}).sort(([a], [b]) =>
+    a.localeCompare(b)
+  );
+
+  return (
+    <div className="mx-auto max-w-2xl pb-16 pt-2">
+      <Link
+        href="/"
+        className="mb-6 inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] py-1.5 pl-2 pr-3 text-xs text-foreground/80 transition hover:bg-white/[0.12]"
+      >
+        <ArrowLeft className="size-3.5" />
+        Back
+      </Link>
+
+      <h1 className="text-3xl">About Mehfil</h1>
+      <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+        A personal project for browsing golden-era Hindi film music by singer,
+        composer, lyricist, film and mood. It is a way to navigate a catalogue —
+        not a music service.
+      </p>
+
+      <Section title="What this does not own">
+        <p>
+          <strong className="text-foreground">No music is hosted here.</strong>{" "}
+          Nothing is uploaded, stored, or served by this site. Every track plays
+          through YouTube&apos;s official embedded player, from videos published on
+          YouTube by their respective rights holders. Playback, advertising and
+          view counts all remain with YouTube.
+        </p>
+        <p>
+          Song titles, film names and performer credits are factual catalogue
+          information, compiled from a songlist published publicly by Saregama.
+          Recordings, compositions and lyrics remain the property of their
+          respective owners.
+        </p>
+        <p>
+          This project is <strong className="text-foreground">not affiliated
+          with, endorsed by, or connected to</strong> Saregama India Ltd.,
+          YouTube, or any label, artist or estate. Product and company names are
+          the trademarks of their respective owners.
+        </p>
+      </Section>
+
+      <Section title="Images">
+        <p>
+          Song artwork is shown using YouTube&apos;s own video thumbnails. Artist
+          portraits come from Wikimedia Commons and station artwork from
+          Openverse, each under an open licence, credited in full below.
+        </p>
+        <p>
+          Decorative artwork elsewhere in the interface may include film poster
+          imagery reproduced at low fidelity for illustrative purposes, and is
+          removed on request.
+        </p>
+      </Section>
+
+      <Section title="Requests and corrections">
+        <p>
+          If you own rights to something shown here and would like it removed, or
+          you have spotted a credit that is wrong, please get in touch at{" "}
+          <a
+            href="https://shashwa7.in"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline"
+          >
+            shashwa7.in
+          </a>
+          . Requests are honoured promptly and without argument.
+        </p>
+      </Section>
+
+      {posterCredits.length > 0 && (
+        <Section title="Station artwork">
+          <ul className="space-y-1.5">
+            {posterCredits.map(([station, credit]) => (
+              <li key={station} className="text-xs">
+                <span className="text-foreground">{station}</span> —{" "}
+                {credit.title || "Untitled"}
+                {credit.creator ? ` by ${credit.creator}` : ""} ·{" "}
+                <span className="uppercase">{credit.license}</span>
+                {credit.source && (
+                  <a
+                    href={credit.source}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ml-1 inline-flex text-primary hover:underline"
+                  >
+                    <ExternalLink className="size-3" />
+                  </a>
+                )}
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+
+      {portraitCredits.length > 0 && (
+        <Section title={`Portraits (${portraitCredits.length})`}>
+          <p className="text-xs">
+            From Wikimedia Commons. Licences shown per image; several require
+            attribution, given here.
+          </p>
+          <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
+            {portraitCredits.map((credit) => (
+              <li key={credit.name} className="text-xs">
+                <span className="text-foreground">{credit.name}</span> ·{" "}
+                {credit.license}
+                {credit.author ? ` · ${credit.author}` : ""}
+                {credit.source && (
+                  <a
+                    href={credit.source}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ml-1 inline-flex text-primary hover:underline"
+                  >
+                    <ExternalLink className="size-3" />
+                  </a>
+                )}
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+
+      <p className="mt-10 text-xs text-muted-foreground">
+        Made with <span className="text-primary">♥</span> by{" "}
+        <a
+          href="https://shashwa7.in"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary hover:underline"
+        >
+          shashwa7.in
+        </a>
+      </p>
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="mt-8">
+      <h2 className="text-lg">{title}</h2>
+      <div className="mt-2 space-y-3 text-sm leading-relaxed text-muted-foreground">
+        {children}
+      </div>
+    </section>
+  );
+}
