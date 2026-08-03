@@ -166,27 +166,27 @@ function Scrubber({
         setDragging(false);
         onCommit((Array.isArray(v) ? v[0] : v) / 1000);
       }}
-      className={`w-full ${className}`}
+      // Width comes entirely from the caller. Defaulting to w-full here made
+      // the volume control ignore its own w-24 and stretch across the bar.
+      className={className}
     >
-      {/* Generous vertical padding gives the thumb a real touch target while
-          the visible track stays thin. */}
+      {/* Padding well beyond the visible track: it is what the finger and
+          cursor actually hit, so the bar can stay slim without being fiddly. */}
       <SliderPrimitive.Control
-        className={`group/scrub relative flex w-full touch-none select-none items-center ${
-          large ? "py-3" : "py-2.5"
-        } data-disabled:opacity-50`}
+        className={`group/scrub relative flex w-full touch-none select-none items-center data-disabled:opacity-50 ${
+          large ? "py-3.5" : "py-3"
+        }`}
       >
         <SliderPrimitive.Track
           className={`relative w-full grow overflow-hidden rounded-full bg-white/25 transition-all ${
-            large ? "h-1.5 group-hover/scrub:h-2" : "h-1 group-hover/scrub:h-1.5"
+            large ? "h-2 group-hover/scrub:h-2.5" : "h-1.5 group-hover/scrub:h-2"
           }`}
         >
           <SliderPrimitive.Indicator className="h-full rounded-full bg-foreground transition-colors group-hover/scrub:bg-primary" />
         </SliderPrimitive.Track>
         <SliderPrimitive.Thumb
           className={`block shrink-0 rounded-full bg-foreground shadow transition-opacity after:absolute after:-inset-3 ${
-            large
-              ? "size-4 opacity-100"
-              : "size-3 opacity-0 group-hover/scrub:opacity-100 data-dragging:opacity-100"
+            large ? "size-4" : "size-3.5"
           }`}
         />
       </SliderPrimitive.Control>
