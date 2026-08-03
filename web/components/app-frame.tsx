@@ -3,10 +3,10 @@
 import { createContext, useContext, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutGrid, ListMusic, Menu, Search, X } from "lucide-react";
+import { LayoutGrid, ListMusic, Menu, Search, Shuffle, X } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { InstallButton } from "@/components/install-prompt";
-import { usePlayerBar } from "@/components/player-provider";
+import { usePlayer, usePlayerBar } from "@/components/player-provider";
 import { useCatalogue } from "@/lib/queries";
 
 type Frame = {
@@ -45,6 +45,7 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const playerBar = usePlayerBar();
+  const { playRandom } = usePlayer();
 
   const onBrowse = pathname === "/";
 
@@ -176,6 +177,19 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
                 )}
               </div>
 
+              {/* Fills the empty right side with the one action that needs no
+                  prior choice: drop into the catalogue at random. */}
+              {catalogue && (
+                <button
+                  onClick={() => playRandom(catalogue.songs)}
+                  title="Play something at random"
+                  className="ml-auto hidden shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-medium text-foreground/80 transition hover:border-primary/40 hover:text-foreground lg:inline-flex"
+                >
+                  <Shuffle className="size-3.5" />
+                  Surprise me
+                </button>
+              )}
+
               <Sheet>
                 <SheetTrigger
                   render={
@@ -219,7 +233,7 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
                 decide their own vertical rhythm and cannot drift apart. The
                 gap below the header comes from the header itself, so this
                 needs no top padding of its own. */}
-            <div className="px-4 pb-16 sm:px-6 lg:px-8">{children}</div>
+            <div className="px-4 pb-16 pt-4 sm:px-6 sm:pt-5 lg:px-8">{children}</div>
           </main>
 
           {playerBar}
