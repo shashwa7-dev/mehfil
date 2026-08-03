@@ -34,7 +34,34 @@ export function SearchMatches({
   photos: PhotoManifest | null;
   posters: StationPosterManifest | null;
 }) {
-  const matches = searchFacetCards(cardsByFacet, query).slice(0, 8);
+  const all = searchFacetCards(cardsByFacet, query);
+
+  /**
+   * Collapse a station onto the person it is named after.
+   *
+   * "Manna Dey" the singer and "MANNA DEY" the station are separate rows in
+   * the catalogue — one is every song crediting him, the other Saregama's
+   * curation of them — but they are one person to anyone searching, and
+   * offering both reads as a bug.
+   *
+   * The person entry wins: it is the complete set, while the station is a
+   * selection from it. A station named after nobody, like Romance, is
+   * untouched.
+   */
+  const people = new Set(
+    all
+      .filter(({ facet }) => PERSON_FACETS.has(facet))
+      .map(({ card }) => card.label.toLowerCase())
+  );
+
+  const matches = all
+    .filter(({ facet, card }) => {
+      if (facet !== "stations") return true;
+      const person = catalogue.stationMeta?.[card.label]?.person;
+      return !person || !people.has(person.toLowerCase());
+    })
+    .slice(0, 8);
+
   if (matches.length === 0) return null;
 
   return (
