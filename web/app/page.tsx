@@ -382,45 +382,14 @@ export default function Home() {
             </Sheet>
           </div>
 
-          {/* On desktop these live in the rail; below lg the rail is hidden and
-              they were only reachable by opening the drawer. */}
-          <div className="flex gap-1.5 px-4 pb-1 pt-1 lg:hidden">
-            {(
-              [
-                { label: "Browse", on: !listing, go: reset },
-                {
-                  label: "All songs",
-                  on: listing,
-                  go: () => {
-                    setSelected({});
-                    setQuery("");
-                    setShowList(true);
-                  },
-                },
-              ] as const
-            ).map((tab) => (
-              <button
-                key={tab.label}
-                onClick={tab.go}
-                className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
-                  tab.on
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-white/[0.07] text-foreground/80 hover:bg-white/[0.12]"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
           <div className="px-4 pb-10 sm:px-6">
             {!listing ? (
               <>
                 <h2 className="pb-3 pt-2 text-2xl">Browse</h2>
 
                 {/* Browsing by station or artist is the point of this screen,
-                    but the whole catalogue should still be one tap away. The
-                    rail offers this on desktop; below lg it needs saying here. */}
+                    but the whole catalogue should stay one tap away. The rail
+                    carries this on desktop, so it only appears below lg. */}
                 <button
                   onClick={() => {
                     setSelected({});
