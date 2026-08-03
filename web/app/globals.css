@@ -219,6 +219,25 @@
   pointer-events: none;
 }
 
+/* Below md there is no cabinet, so the picture covers the display: sized from
+   whichever axis constrains it and centred, with the overflow clipped by the
+   stage. A 16:9 frame cannot letterbox gracefully into a portrait phone. */
+@media (max-width: 767px) {
+  .video-stage {
+    overflow: hidden;
+  }
+  .video-stage iframe {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100vw;
+    height: 56.25vw;
+    min-width: 177.7778vh;
+    min-height: 100%;
+  }
+}
+
 /* Horizontal strips: scrollbar hidden, edges faded to signal there is more. */
 @layer utilities {
   .no-scrollbar {
