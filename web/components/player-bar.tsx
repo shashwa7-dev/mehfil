@@ -237,25 +237,37 @@ export function PlayerBar({
   const { data: catalogue } = useCatalogue();
   const barSwipe = useSwipe((d) => d === "up" && setExpanded(true));
   const stageSwipe = useSwipe((d) => d === "down" && setExpanded(false));
-  // The video layer portals to <body>, which only exists after mount.
+  // The video layer portals to <body>, which only exists after mount. The
+  // extra render this costs is the point: there is no way to know we are on
+  // the client during the first one.
   const [mounted, setMounted] = useState(false);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- mount detection
   useEffect(() => setMounted(true), []);
   const [elapsed, setElapsed] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(0.8);
   const [muted, setMuted] = useState(false);
 
-  // Keep the latest callbacks without re-creating the player each render.
+  /**
+   * Latest values for the YouTube callbacks.
+   *
+   * Those callbacks are created once, when the player is constructed, and
+   * close over that render's scope — so they need a ref to read anything
+   * current. The refs are filled in an effect rather than during render:
+   * writing to a ref while rendering is not safe under concurrent rendering,
+   * where a render can be started and thrown away.
+   */
   const endedRef = useRef(onEnded);
-  endedRef.current = onEnded;
   const playingRef = useRef(onPlayingChange);
-  playingRef.current = onPlayingChange;
   const unplayableRef = useRef(onUnplayable);
-  unplayableRef.current = onUnplayable;
-  // The song the player was last told to load, read inside YT callbacks which
-  // close over their creation-time scope and would otherwise see a stale song.
   const songRef = useRef<Song | null>(song);
-  songRef.current = song;
+
+  useEffect(() => {
+    endedRef.current = onEnded;
+    playingRef.current = onPlayingChange;
+    unplayableRef.current = onUnplayable;
+    songRef.current = song;
+  });
 
   // Attempts spent on the song currently loaded, reset whenever it changes.
   const attemptsRef = useRef(0);
@@ -277,32 +289,38 @@ export function PlayerBar({
    * succeed on a second try, give up immediately on the ones that cannot.
    */
   const handleFailure = useRef<(reason: string, retryable: boolean) => void>(() => {});
-  handleFailure.current = (reason, retryable) => {
-    const failed = songRef.current;
-    if (!failed) return;
 
-    if (retryable && attemptsRef.current < MAX_ATTEMPTS) {
-      const delay = RETRY_BACKOFF_MS[attemptsRef.current - 1] ?? 1800;
-      attemptsRef.current += 1;
-      setRetrying(attemptsRef.current);
-      setFailure(`${reason} — retrying`);
-      retryTimerRef.current = window.setTimeout(() => {
-        // The song may have changed while the retry was pending.
-        if (songRef.current?.id !== failed.id) return;
-        setFailure(null);
-        setLoading(true);
-        playerRef.current?.loadVideoById(failed.video);
-      }, delay);
-      return;
-    }
+  // Assigned in an effect, not during render: everything it touches is a ref
+  // or a setter, so it never needs to be current *within* a render — only by
+  // the time a player callback fires, which is always after one.
+  useEffect(() => {
+    handleFailure.current = (reason, retryable) => {
+      const failed = songRef.current;
+      if (!failed) return;
 
-    setLoading(false);
-    setPlaying(false);
-    setRetrying(0);
-    playingRef.current(false);
-    setFailure(reason);
-    unplayableRef.current(failed.id, reason);
-  };
+      if (retryable && attemptsRef.current < MAX_ATTEMPTS) {
+        const delay = RETRY_BACKOFF_MS[attemptsRef.current - 1] ?? 1800;
+        attemptsRef.current += 1;
+        setRetrying(attemptsRef.current);
+        setFailure(`${reason} — retrying`);
+        retryTimerRef.current = window.setTimeout(() => {
+          // The song may have changed while the retry was pending.
+          if (songRef.current?.id !== failed.id) return;
+          setFailure(null);
+          setLoading(true);
+          playerRef.current?.loadVideoById(failed.video);
+        }, delay);
+        return;
+      }
+
+      setLoading(false);
+      setPlaying(false);
+      setRetrying(0);
+      playingRef.current(false);
+      setFailure(reason);
+      unplayableRef.current(failed.id, reason);
+    };
+  });
 
   useEffect(() => {
     // hostRef lives inside the portal, so there is nothing to attach to until
