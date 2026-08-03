@@ -12,6 +12,7 @@ import {
   Shuffle,
   SkipBack,
   SkipForward,
+  Sparkles,
   Volume2,
   VolumeX,
 } from "lucide-react";
@@ -166,10 +167,14 @@ export function PlayerBar({
   onEnded,
   onPlayingChange,
   onUnplayable,
+  ambient,
+  onToggleAmbient,
 }: {
   song: Song | null;
   shuffle: boolean;
   repeat: boolean;
+  ambient: boolean;
+  onToggleAmbient: () => void;
   onToggleShuffle: () => void;
   onToggleRepeat: () => void;
   onNext: () => void;
@@ -434,22 +439,49 @@ export function PlayerBar({
     <div
       className={
         expanded
-          ? "fixed inset-0 z-[70] flex flex-col bg-background"
+          ? "fixed inset-0 z-[70] flex flex-col overflow-hidden bg-background"
           : "pointer-events-none fixed -left-[9999px] top-0 h-36 w-64 overflow-hidden"
       }
     >
+      {/* Ambient wash. The iframe is cross-origin so its frames cannot be
+          sampled to a canvas, but a heavily blurred copy of the thumbnail
+          gives the same bloom for nothing — no pixel access, no timers. */}
+      {expanded && ambient && song && (
+        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+          <img
+            key={song.video}
+            src={artwork(song.video, "hq")}
+            alt=""
+            className="absolute left-1/2 top-1/2 h-[130%] w-[130%] -translate-x-1/2 -translate-y-1/2 object-cover opacity-45 blur-[110px] saturate-[1.7] transition-opacity duration-700"
+          />
+          {/* Keeps text legible over whatever the artwork happens to be. */}
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/40" />
+        </div>
+      )}
+
       {expanded && (
         <div className="flex shrink-0 items-center justify-between px-5 py-4">
           <span className="text-[11px] uppercase tracking-widest text-muted-foreground">
             Now playing
           </span>
-          <button
-            onClick={() => setExpanded(false)}
-            title="Collapse"
-            className="rounded-full p-2 text-muted-foreground transition hover:bg-white/10 hover:text-foreground"
-          >
-            <ChevronDown className="size-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={onToggleAmbient}
+              title={ambient ? "Ambient mode on" : "Ambient mode off"}
+              className={`rounded-full p-2 transition hover:bg-white/10 ${
+                ambient ? "text-primary" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Sparkles className="size-4" />
+            </button>
+            <button
+              onClick={() => setExpanded(false)}
+              title="Collapse"
+              className="rounded-full p-2 text-muted-foreground transition hover:bg-white/10 hover:text-foreground"
+            >
+              <ChevronDown className="size-5" />
+            </button>
+          </div>
         </div>
       )}
 

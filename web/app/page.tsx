@@ -7,7 +7,7 @@ import { BrowseGrid } from "@/components/browse-grid";
 import { FacetPanel } from "@/components/facet-panel";
 import { PlayerBar } from "@/components/player-bar";
 import { SongList } from "@/components/song-list";
-import { filterSongs, hydrate, type Catalogue, type RawSong } from "@/lib/catalogue";
+import { artwork, filterSongs, hydrate, type Catalogue, type RawSong } from "@/lib/catalogue";
 import { useCatalogue } from "@/lib/queries";
 
 export default function Home() {
@@ -20,6 +20,7 @@ export default function Home() {
   const [repeat, setRepeat] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [showList, setShowList] = useState(false);
+  const [ambient, setAmbient] = useState(true);
 
   // Virtuoso needs the resolved scroll node, not a ref, so a callback ref
   // stores it in state and re-renders the lists once it exists.
@@ -235,7 +236,21 @@ export default function Home() {
   );
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="relative flex h-screen flex-col">
+      {/* App-wide ambient wash, far subtler than the full-screen one: enough to
+          tint the shell with the current song without disturbing text. */}
+      {ambient && currentSong && (
+        <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+          <img
+            key={currentSong.video}
+            src={artwork(currentSong.video, "hq")}
+            alt=""
+            className="absolute -top-1/4 left-1/2 h-[80%] w-[120%] -translate-x-1/2 object-cover opacity-[0.18] blur-[130px] saturate-150 transition-opacity duration-1000"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background" />
+        </div>
+      )}
+
       <div className="flex min-h-0 flex-1 gap-2 p-2">
         <aside className="hidden w-72 shrink-0 flex-col overflow-hidden rounded-lg bg-sidebar lg:flex">
           {sidebar}
@@ -380,6 +395,8 @@ export default function Home() {
         onEnded={onEnded}
         onPlayingChange={setPlaying}
         onUnplayable={handleUnplayable}
+        ambient={ambient}
+        onToggleAmbient={() => setAmbient((v) => !v)}
       />
     </div>
   );
