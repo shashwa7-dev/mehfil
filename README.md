@@ -1,7 +1,10 @@
-# Carvaan
+# Mehfil
 
-A personal, local web player for browsing the Saregama Carvaan Gold catalogue by
-singer, composer, lyricist, actor, film, station and mood.
+*Mehfil* — an evening gathering for music and poetry.
+
+A personal, local web player for browsing golden-era Hindi film music by singer,
+composer, lyricist, actor, film, station and mood. The catalogue is built from
+Saregama's publicly published Carvaan Gold songlist.
 
 The device is a *dial*: 66 fixed positions, one axis, pick one. This is a *query
 engine*: the same catalogue with composable filters, so

@@ -151,7 +151,7 @@ export default function Home() {
         <aside className="hidden w-72 shrink-0 flex-col overflow-hidden rounded-lg bg-sidebar lg:flex">
           <div className="shrink-0 px-4 pb-3 pt-4">
             <button onClick={reset} className="text-left">
-              <h1 className="text-base font-semibold tracking-tight">Carvaan</h1>
+              <h1 className="text-base font-semibold tracking-tight">Mehfil</h1>
               <p className="text-xs text-muted-foreground">
                 {catalogue.songs.length.toLocaleString()} songs ·{" "}
                 {catalogue.facets.stations.length} stations

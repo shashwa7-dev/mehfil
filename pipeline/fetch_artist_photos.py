@@ -72,24 +72,69 @@ def slugify(name):
     return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
 
 
+def name_key(name):
+    """Fold a name for comparison: lowercase, letters and digits only.
+
+    Keeps "R.D. Burman" == "R. D. Burman" while still separating "Anand" from
+    "Anand Bakshi".
+    """
+    return re.sub(r"[^a-z0-9]+", "", (name or "").lower())
+
+
+def names_match(query, labels):
+    """True only when the entity is actually called what we searched for.
+
+    Wikidata search is fuzzy: "Abhas" returns Kishore Kumar (whose birth name
+    was Abhas Kumar Ganguly) and "Benny" returns Benny Andersson of ABBA.
+    Occupation checks do not catch either, because both are real musicians.
+    Requiring the name itself to match is what rejects them.
+    """
+    target = name_key(query)
+    return any(name_key(label) == target for label in labels)
+
+
+class LookupFailed(Exception):
+    """The API did not answer. Distinct from 'this person has no photo'.
+
+    Conflating the two is how a momentary rate-limit permanently blacklists
+    someone: the null gets cached in the manifest and never retried.
+    """
+
+
 def find_person(name):
-    """Return (qid, image_filename) for a verified musical human, else None."""
+    """Return (qid, image_filename) for a verified musical human, else None.
+
+    Raises LookupFailed if the API could not be reached, so the caller can
+    leave the person out of the manifest and retry on the next run.
+    """
     query = urllib.parse.quote(name)
     found = get_json(
         f"{API}?action=wbsearchentities&search={query}&language=en&format=json&limit=5"
     )
-    if not found or not found.get("search"):
+    if found is None:
+        raise LookupFailed(name)
+    if not found.get("search"):
         return None
 
     ids = [hit["id"] for hit in found["search"]]
     entities = get_json(
-        f"{API}?action=wbgetentities&ids={'|'.join(ids)}&props=claims&format=json"
+        f"{API}?action=wbgetentities&ids={'|'.join(ids)}"
+        f"&props=claims|labels|aliases&languages=en&format=json"
     )
-    if not entities:
-        return None
+    if entities is None:
+        raise LookupFailed(name)
+    if "entities" not in entities:
+        raise LookupFailed(name)
 
     for qid in ids:  # search order is relevance order
-        claims = entities.get("entities", {}).get(qid, {}).get("claims", {})
+        entity = entities.get("entities", {}).get(qid, {})
+        claims = entity.get("claims", {})
+
+        # The entity must actually bear this name, not merely be a fuzzy hit.
+        labels = [entity.get("labels", {}).get("en", {}).get("value", "")]
+        labels += [a["value"] for a in entity.get("aliases", {}).get("en", [])]
+        if not names_match(name, labels):
+            continue
 
         instances = {
             c["mainsnak"]["datavalue"]["value"]["id"]
@@ -193,7 +238,13 @@ def main(db_path, out_dir):
         slug = slugify(name)
         path = os.path.join(out_dir, f"{slug}.jpg")
 
-        result = find_person(name)
+        try:
+            result = find_person(name)
+        except LookupFailed:
+            # Leave absent from the manifest so the next run retries.
+            miss += 1
+            continue
+
         if result:
             qid, filename = result
             meta = image_meta(filename)

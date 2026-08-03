@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Carvaan",
-  description: "Browse and play the Saregama Carvaan catalogue by singer, composer, lyricist, film and mood.",
+  title: "Mehfil",
+  description: "Browse and play golden-era Hindi film music by singer, composer, lyricist, film and mood.",
 };
 
 export default function RootLayout({
