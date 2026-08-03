@@ -22,6 +22,20 @@ export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
 
+    // Never in development. The worker caches build assets, which change on
+    // every edit, so it serves stale chunks and makes changes appear not to
+    // land. Any worker left over from a previous dev session is unregistered
+    // and its caches dropped, since it would otherwise keep intercepting.
+    if (process.env.NODE_ENV !== "production") {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        registrations.forEach((registration) => registration.unregister());
+      });
+      if ("caches" in window) {
+        caches.keys().then((keys) => keys.forEach((key) => caches.delete(key)));
+      }
+      return;
+    }
+
     // Captured before registering: on a first install `controllerchange` also
     // fires, and reloading then would be a pointless refresh on first visit.
     const hadController = Boolean(navigator.serviceWorker.controller);
