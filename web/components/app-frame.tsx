@@ -48,6 +48,10 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
   const { playRandom } = usePlayer();
 
   const onBrowse = pathname === "/";
+  // The about page has nothing to search and its own back control, so the
+  // header would be an empty bar. Mobile still needs the menu, which only
+  // lives there, so the row stays below lg with the search removed.
+  const hideSearch = pathname === "/about";
 
   const navClass = (active: boolean) =>
     `flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition ${
@@ -149,11 +153,16 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
           >
             {/* Gutter must match the content below exactly, or the search box
                 sits on a different edge from everything it sits above. */}
-            <div className="sticky top-0 z-20 flex items-center gap-2 bg-background/70 px-4 pb-2 pt-3 backdrop-blur sm:px-6 lg:px-8">
+            <div
+              className={`sticky top-0 z-20 items-center gap-2 bg-background/70 px-4 pb-2 pt-3 backdrop-blur sm:px-6 lg:px-8 ${
+                hideSearch ? "flex lg:hidden" : "flex"
+              }`}
+            >
               <Link href="/" className="flex shrink-0 items-center gap-2 lg:hidden">
                 <img src="/logo.png" alt="" width={32} height={32} className="size-8 rounded-lg" />
               </Link>
 
+              {!hideSearch && (
               <div className="relative w-full max-w-md">
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <input
@@ -176,10 +185,11 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
                   </button>
                 )}
               </div>
+              )}
 
               {/* Fills the empty right side with the one action that needs no
                   prior choice: drop into the catalogue at random. */}
-              {catalogue && (
+              {catalogue && !hideSearch && (
                 <button
                   onClick={() => playRandom(catalogue.songs)}
                   title="Play something at random"
