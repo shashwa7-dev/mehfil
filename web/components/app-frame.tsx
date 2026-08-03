@@ -87,6 +87,21 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
     </>
   );
 
+  // One definition for both the rail and the mobile menu: they are the same
+  // surface at different sizes, and two copies would drift.
+  const railTexture = (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-x-0 bottom-0 top-1/3 [mask-image:linear-gradient(to_top,#000_0%,#000_35%,transparent_100%)]"
+    >
+      <img
+        src="/collage.jpg"
+        alt=""
+        className="size-full object-cover opacity-[0.16] saturate-[0.55] sepia-[0.35]"
+      />
+    </div>
+  );
+
   const credit = (
     // Opaque backing: the collage is anchored to the bottom of the rail, so it
     // sits directly behind this text. Without it the smallest type in the app
@@ -123,20 +138,11 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
       <div className="flex h-[100dvh] gap-0 p-0 lg:gap-2 lg:p-2">
         {/* Full height, beside the player rather than above it. */}
         <aside className="relative hidden w-72 shrink-0 flex-col overflow-hidden rounded-lg bg-sidebar lg:flex">
-          {/* Texture for the space the filter panel leaves empty. Masked to
-              nothing well before it reaches the navigation, and desaturated
-              toward the brass palette, so it reads as a surface rather than a
-              picture competing with the controls in front of it. */}
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 bottom-0 top-1/3 [mask-image:linear-gradient(to_top,#000_0%,#000_35%,transparent_100%)]"
-          >
-            <img
-              src="/collage.jpg"
-              alt=""
-              className="size-full object-cover opacity-[0.16] saturate-[0.55] sepia-[0.35]"
-            />
-          </div>
+          {/* Texture for the space the filter panel leaves empty: masked out
+              well before the navigation and pulled toward the brass palette,
+              so it reads as a surface rather than a picture competing with the
+              controls in front of it. */}
+          {railTexture}
 
           {/* Above the texture, or the controls sit behind it. */}
           <div className="relative z-10 flex min-h-0 flex-1 flex-col">
@@ -221,19 +227,7 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
                   className="flex w-[19rem] flex-col overflow-hidden bg-sidebar p-0"
                 >
                   <SheetTitle className="sr-only">Menu</SheetTitle>
-                  {/* Same treatment as the rail, different artwork — the menu
-                      has the same blank stretch to fill and should not look
-                      like a plainer version of the desktop chrome. */}
-                  <div
-                    aria-hidden
-                    className="pointer-events-none absolute inset-x-0 bottom-0 top-1/3 [mask-image:linear-gradient(to_top,#000_0%,#000_35%,transparent_100%)]"
-                  >
-                    <img
-                      src="/collage-bazaar.jpg"
-                      alt=""
-                      className="size-full object-cover opacity-[0.16] saturate-[0.55] sepia-[0.35]"
-                    />
-                  </div>
+                  {railTexture}
 
                   <div className="relative z-10 flex min-h-0 flex-1 flex-col">
                     {brandAndNav}
