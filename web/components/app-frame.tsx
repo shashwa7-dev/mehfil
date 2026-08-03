@@ -163,8 +163,8 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
               </Link>
 
               {!hideSearch && (
-              <div className="relative w-full max-w-md">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <div className="relative w-full max-w-lg">
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground transition-colors" />
                 <input
                   value={query}
                   onChange={(e) => {
@@ -174,12 +174,12 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
                     if (pathname !== "/songs" && e.target.value) router.push("/songs");
                   }}
                   placeholder="Search songs, films, singers…"
-                  className="h-9 w-full rounded-full border border-white/10 bg-white/[0.06] pl-9 pr-8 text-sm outline-none placeholder:text-muted-foreground focus:border-primary/50"
+                  className="h-10 w-full rounded-full border border-white/10 bg-white/[0.07] pl-10 pr-9 text-sm outline-none transition placeholder:text-muted-foreground/70 hover:border-white/20 hover:bg-white/[0.09] focus:border-primary/50 focus:bg-white/[0.1] focus:ring-4 focus:ring-primary/10"
                 />
                 {query && (
                   <button
                     onClick={() => setQuery("")}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-3 top-1/2 grid size-5 -translate-y-1/2 place-items-center rounded-full text-muted-foreground transition hover:bg-white/10 hover:text-foreground"
                   >
                     <X className="size-3.5" />
                   </button>
