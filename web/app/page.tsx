@@ -5,16 +5,15 @@ import { LayoutGrid, ListMusic, Play, Search, X } from "lucide-react";
 import { BrowseGrid } from "@/components/browse-grid";
 import { FacetPanel } from "@/components/facet-panel";
 import { PlayerBar } from "@/components/player-bar";
-import { TrackRow } from "@/components/track-row";
+import { SongList } from "@/components/song-list";
 import { filterSongs, hydrate, type Catalogue, type RawSong } from "@/lib/catalogue";
-
-const PAGE_SIZE = 80;
+import { useCatalogue } from "@/lib/queries";
 
 export default function Home() {
-  const [catalogue, setCatalogue] = useState<Catalogue | null>(null);
+  const { data: catalogue, isLoading, isError, error } = useCatalogue();
+
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Record<string, Set<number>>>({});
-  const [limit, setLimit] = useState(PAGE_SIZE);
   const [current, setCurrent] = useState<number | null>(null);
   const [shuffle, setShuffle] = useState(false);
   const [repeat, setRepeat] = useState(false);
@@ -23,25 +22,30 @@ export default function Home() {
 
   const scrollRef = useRef<HTMLElement>(null);
 
-  useEffect(() => {
-    fetch("/catalogue.json")
-      .then((r) => r.json())
-      .then(setCatalogue);
-  }, []);
-
   const results = useMemo(
     () => (catalogue ? filterSongs(catalogue, selected, query) : []),
     [catalogue, selected, query]
   );
 
   const activeCount = Object.values(selected).reduce((n, s) => n + s.size, 0);
-  // Browse until there is something specific to show.
   const listing = showList || activeCount > 0 || query.trim().length > 0;
 
+  // Identifies the current result set, so the paged query resets on change.
+  const filterKey = useMemo(
+    () =>
+      JSON.stringify({
+        q: query.trim(),
+        f: Object.entries(selected)
+          .filter(([, s]) => s.size)
+          .map(([k, s]) => [k, [...s].sort()])
+          .sort(),
+      }),
+    [query, selected]
+  );
+
   useEffect(() => {
-    setLimit(PAGE_SIZE);
     scrollRef.current?.scrollTo({ top: 0 });
-  }, [selected, query, showList]);
+  }, [filterKey, showList]);
 
   const queueRef = useRef<RawSong[]>([]);
   queueRef.current = results;
@@ -52,7 +56,8 @@ export default function Home() {
       const set = new Set(next[facet] ?? []);
       if (set.has(index)) set.delete(index);
       else set.add(index);
-      next[facet] = set;
+      if (set.size === 0) delete next[facet];
+      else next[facet] = set;
       return next;
     });
   }, []);
@@ -90,14 +95,11 @@ export default function Home() {
   const playFirst = useCallback(
     (songs: RawSong[]) => {
       if (songs.length === 0) return;
-      play(
-        shuffle ? songs[Math.floor(Math.random() * songs.length)].id : songs[0].id
-      );
+      play(shuffle ? songs[Math.floor(Math.random() * songs.length)].id : songs[0].id);
     },
     [play, shuffle]
   );
 
-  /** Card play: filter to that value, then start it immediately. */
   const playFacet = useCallback(
     (facet: string, index: number) => {
       if (!catalogue) return;
@@ -125,10 +127,23 @@ export default function Home() {
     );
   }, [catalogue, selected]);
 
-  if (!catalogue) {
+  if (isLoading) {
     return (
       <div className="grid h-screen place-items-center text-sm text-muted-foreground">
         Loading catalogue…
+      </div>
+    );
+  }
+
+  if (isError || !catalogue) {
+    return (
+      <div className="grid h-screen place-items-center px-6 text-center">
+        <div>
+          <p className="text-sm">Could not load the catalogue.</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {error instanceof Error ? error.message : "Unknown error"}
+          </p>
+        </div>
       </div>
     );
   }
@@ -145,13 +160,18 @@ export default function Home() {
     setShowList(false);
   };
 
+  const navButton = (on: boolean) =>
+    `flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition ${
+      on ? "bg-white/[0.09] text-foreground" : "text-muted-foreground hover:text-foreground"
+    }`;
+
   return (
     <div className="flex h-screen flex-col">
       <div className="flex min-h-0 flex-1 gap-2 p-2">
         <aside className="hidden w-72 shrink-0 flex-col overflow-hidden rounded-lg bg-sidebar lg:flex">
           <div className="shrink-0 px-4 pb-3 pt-4">
             <button onClick={reset} className="text-left">
-              <h1 className="text-base font-semibold tracking-tight">Mehfil</h1>
+              <h1 className="text-lg tracking-tight">Mehfil</h1>
               <p className="text-xs text-muted-foreground">
                 {catalogue.songs.length.toLocaleString()} songs ·{" "}
                 {catalogue.facets.stations.length} stations
@@ -160,14 +180,7 @@ export default function Home() {
           </div>
 
           <div className="shrink-0 space-y-0.5 px-2 pb-2">
-            <button
-              onClick={reset}
-              className={`flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition ${
-                !listing
-                  ? "bg-white/[0.09] text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
+            <button onClick={reset} className={navButton(!listing)}>
               <LayoutGrid className="size-4" /> Browse
             </button>
             <button
@@ -176,11 +189,7 @@ export default function Home() {
                 setQuery("");
                 setShowList(true);
               }}
-              className={`flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition ${
-                listing
-                  ? "bg-white/[0.09] text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+              className={navButton(listing)}
             >
               <ListMusic className="size-4" /> All songs
             </button>
@@ -224,16 +233,19 @@ export default function Home() {
           <div className="px-6 pb-10">
             {!listing ? (
               <>
-                <h2 className="pb-4 pt-2 text-2xl font-bold tracking-tight">Browse</h2>
-                <BrowseGrid catalogue={catalogue} onPick={toggle} onPlay={playFacet} />
+                <h2 className="pb-4 pt-2 text-2xl">Browse</h2>
+                <BrowseGrid
+                  catalogue={catalogue}
+                  scrollRef={scrollRef}
+                  onPick={toggle}
+                  onPlay={playFacet}
+                />
               </>
             ) : (
               <>
                 <div className="flex flex-wrap items-end justify-between gap-3 pb-4 pt-2">
                   <div className="min-w-0">
-                    <h2 className="truncate text-2xl font-bold tracking-tight">
-                      {heading}
-                    </h2>
+                    <h2 className="truncate text-2xl">{heading}</h2>
                     <p className="text-xs text-muted-foreground">
                       {results.length.toLocaleString()} songs
                     </p>
@@ -283,33 +295,15 @@ export default function Home() {
                     </button>
                   </div>
                 ) : (
-                  <div className="space-y-0.5">
-                    {results.slice(0, limit).map((raw, i) => {
-                      const song = hydrate(raw, catalogue.facets);
-                      return (
-                        <TrackRow
-                          key={song.id}
-                          song={song}
-                          index={i}
-                          active={song.id === current}
-                          playing={playing}
-                          onPlay={() => play(song.id)}
-                        />
-                      );
-                    })}
-                  </div>
-                )}
-
-                {limit < results.length && (
-                  <div className="pt-6 text-center">
-                    <button
-                      onClick={() => setLimit((n) => n + PAGE_SIZE)}
-                      className="rounded-full border border-white/15 px-4 py-2 text-xs text-muted-foreground transition hover:border-white/30 hover:text-foreground"
-                    >
-                      Load {Math.min(PAGE_SIZE, results.length - limit)} more (
-                      {(results.length - limit).toLocaleString()} left)
-                    </button>
-                  </div>
+                  <SongList
+                    catalogue={catalogue}
+                    songs={results}
+                    filterKey={filterKey}
+                    currentId={current}
+                    playing={playing}
+                    scrollRef={scrollRef}
+                    onPlay={play}
+                  />
                 )}
               </>
             )}

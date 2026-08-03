@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Fraunces, Inter } from "next/font/google";
+import { Providers } from "./providers";
 import "./globals.css";
 
 // Fraunces for display: an old-style serif with real warmth, which suits a
@@ -35,7 +36,9 @@ export default function RootLayout({
       lang="en"
       className={`dark ${inter.variable} ${fraunces.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col overflow-hidden">{children}</body>
+      <body className="min-h-full flex flex-col overflow-hidden">
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }
