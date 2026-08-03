@@ -20,7 +20,9 @@ export default function Home() {
   const [playing, setPlaying] = useState(false);
   const [showList, setShowList] = useState(false);
 
-  const scrollRef = useRef<HTMLElement>(null);
+  // Virtuoso needs the resolved scroll node, not a ref, so a callback ref
+  // stores it in state and re-renders the lists once it exists.
+  const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null);
 
   const results = useMemo(
     () => (catalogue ? filterSongs(catalogue, selected, query) : []),
@@ -44,8 +46,8 @@ export default function Home() {
   );
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: 0 });
-  }, [filterKey, showList]);
+    scrollEl?.scrollTo({ top: 0 });
+  }, [filterKey, showList, scrollEl]);
 
   const queueRef = useRef<RawSong[]>([]);
   queueRef.current = results;
@@ -207,7 +209,7 @@ export default function Home() {
         </aside>
 
         <main
-          ref={scrollRef}
+          ref={setScrollEl}
           className="scroll-slim min-w-0 flex-1 overflow-y-auto rounded-lg bg-gradient-to-b from-white/[0.06] to-transparent"
         >
           <div className="sticky top-0 z-20 bg-background/70 px-6 py-3 backdrop-blur">
@@ -236,7 +238,7 @@ export default function Home() {
                 <h2 className="pb-4 pt-2 text-2xl">Browse</h2>
                 <BrowseGrid
                   catalogue={catalogue}
-                  scrollRef={scrollRef}
+                  scrollParent={scrollEl}
                   onPick={toggle}
                   onPlay={playFacet}
                 />
@@ -301,7 +303,7 @@ export default function Home() {
                     filterKey={filterKey}
                     currentId={current}
                     playing={playing}
-                    scrollRef={scrollRef}
+                    scrollParent={scrollEl}
                     onPlay={play}
                   />
                 )}

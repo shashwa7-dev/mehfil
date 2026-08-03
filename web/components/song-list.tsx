@@ -1,17 +1,10 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
-import { useVirtualizer } from "@tanstack/react-virtual";
+import { useMemo } from "react";
+import { Virtuoso } from "react-virtuoso";
 import { TrackRow } from "@/components/track-row";
 import { hydrate, type Catalogue, type RawSong } from "@/lib/catalogue";
 import { flattenPages, usePagedItems } from "@/lib/queries";
-
-const ROW_HEIGHT = 56;
-// Rows rendered beyond the viewport. Enough to cover a fast flick without
-// painting the whole catalogue.
-const OVERSCAN = 8;
-// How close to the end of loaded rows before pulling the next page.
-const PREFETCH_ROWS = 20;
 
 export function SongList({
   catalogue,
@@ -19,7 +12,7 @@ export function SongList({
   filterKey,
   currentId,
   playing,
-  scrollRef,
+  scrollParent,
   onPlay,
 }: {
   catalogue: Catalogue;
@@ -27,65 +20,41 @@ export function SongList({
   filterKey: string;
   currentId: number | null;
   playing: boolean;
-  scrollRef: React.RefObject<HTMLElement | null>;
+  scrollParent: HTMLElement | null;
   onPlay: (id: number) => void;
 }) {
   const paged = usePagedItems(songs, filterKey);
-  const loaded = useMemo(() => flattenPages(paged.data?.pages), [paged.data]);
+  const loaded = useMemo(() => flattenPages<RawSong>(paged.data?.pages), [paged.data]);
 
-  const virtualizer = useVirtualizer({
-    count: loaded.length,
-    getScrollElement: () => scrollRef.current,
-    estimateSize: () => ROW_HEIGHT,
-    overscan: OVERSCAN,
-  });
-
-  const virtualRows = virtualizer.getVirtualItems();
-  const lastVisible = virtualRows.at(-1)?.index ?? 0;
-
-  // Reveal the next page as the user approaches the end of what is loaded.
-  // This replaces a "load more" button: scrolling is the only trigger.
-  useEffect(() => {
-    if (
-      paged.hasNextPage &&
-      !paged.isFetchingNextPage &&
-      lastVisible >= loaded.length - PREFETCH_ROWS
-    ) {
-      paged.fetchNextPage();
-    }
-  }, [lastVisible, loaded.length, paged]);
-
-  if (songs.length === 0) return null;
+  // Virtuoso measures against the page's own scroll container, so the list
+  // stays part of the normal document flow rather than owning a scrollbar.
+  if (!scrollParent || songs.length === 0) return null;
 
   return (
-    <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
-      {virtualRows.map((row) => {
-        const raw = loaded[row.index];
-        if (!raw) return null;
+    <Virtuoso
+      customScrollParent={scrollParent}
+      data={loaded}
+      // Fired as the end of the loaded range comes into view. This is what
+      // replaces the load-more button: scrolling is the only trigger.
+      endReached={() => {
+        if (paged.hasNextPage && !paged.isFetchingNextPage) paged.fetchNextPage();
+      }}
+      // Start pulling slightly before the true end so the next page is ready
+      // by the time it is needed.
+      increaseViewportBy={{ top: 0, bottom: 600 }}
+      computeItemKey={(_, song) => song.id}
+      itemContent={(index, raw) => {
         const song = hydrate(raw, catalogue.facets);
         return (
-          <div
-            key={song.id}
-            data-index={row.index}
-            ref={virtualizer.measureElement}
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              transform: `translateY(${row.start}px)`,
-            }}
-          >
-            <TrackRow
-              song={song}
-              index={row.index}
-              active={song.id === currentId}
-              playing={playing}
-              onPlay={() => onPlay(song.id)}
-            />
-          </div>
+          <TrackRow
+            song={song}
+            index={index}
+            active={song.id === currentId}
+            playing={playing}
+            onPlay={() => onPlay(song.id)}
+          />
         );
-      })}
-    </div>
+      }}
+    />
   );
 }
