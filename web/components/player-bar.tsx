@@ -638,14 +638,32 @@ export function PlayerBar({
             shrinks the video rather than pushing it into the text below.
             clip-path rather than overflow-hidden, because border-radius alone
             does not reliably clip a nested iframe in WebKit. */}
+        {/* From md the picture sits in a CRT cabinet. The set is a background
+            layer and the video is placed over its screen, because the screen in
+            the artwork is opaque — putting the video behind would hide it.
+            Percentages come from measuring the screen rectangle in the image,
+            so the two stay registered at any size.
+            Below md the video still covers the whole display: a cabinet around
+            a phone-sized picture would leave almost nothing to watch. */}
         <div
           className={
             expanded
-              ? "video-stage absolute inset-0 bg-black md:relative md:inset-auto md:aspect-video md:h-full md:max-w-4xl md:rounded-xl md:[clip-path:inset(0_round_0.75rem)]"
+              ? "video-stage absolute inset-0 bg-black md:relative md:inset-auto md:aspect-square md:h-full md:max-h-[72vh] md:w-auto md:bg-transparent"
               : "size-full"
           }
         >
-          <div ref={hostRef} className="size-full" />
+          {expanded && (
+            <img
+              src="/tv.png"
+              alt=""
+              aria-hidden
+              className="pointer-events-none absolute inset-0 hidden size-full object-contain md:block"
+            />
+          )}
+          <div
+            ref={hostRef}
+            className="size-full md:absolute md:left-[15%] md:top-[16.4%] md:h-[51.1%] md:w-[75.6%]"
+          />
         </div>
       </div>
 
