@@ -79,8 +79,18 @@ export function useHistoryState<T>({
       return;
     }
 
-    const entry = { ...(window.history.state ?? {}), [namespace]: value };
-    if (isNewStep) window.history.pushState(entry, "");
-    else window.history.replaceState(entry, "");
+    if (isNewStep) {
+      // A push is a new step, so it starts clean. Carrying the previous
+      // entry's other keys forward would let a marker belonging to that entry
+      // — the expanded player's, say — appear to be set on this one, and
+      // whoever owns it would act on an entry it never created.
+      window.history.pushState({ [namespace]: value }, "");
+    } else {
+      // A replace refines the entry already there, so its other keys stay.
+      window.history.replaceState(
+        { ...(window.history.state ?? {}), [namespace]: value },
+        ""
+      );
+    }
   }, [value, namespace, enabled]);
 }
