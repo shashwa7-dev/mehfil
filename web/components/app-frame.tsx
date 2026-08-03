@@ -83,15 +83,27 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
   );
 
   const credit = (
-    <div className="shrink-0 border-t border-white/[0.06] px-4 py-2.5">
-      <a
-        href="https://shashwa7.in"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-[11px] text-muted-foreground transition hover:text-foreground"
-      >
-        Made with <span className="text-primary">♥</span> by shashwa7.in
-      </a>
+    <div className="shrink-0 space-y-1.5 border-t border-white/[0.06] px-4 py-3">
+      <p className="text-[11px] leading-relaxed text-muted-foreground">
+        Music streams from YouTube. Nothing is hosted here.
+      </p>
+      <div className="flex items-center gap-2 text-[11px]">
+        <Link
+          href="/about"
+          className="text-muted-foreground transition hover:text-foreground"
+        >
+          About &amp; credits
+        </Link>
+        <span className="text-white/15">·</span>
+        <a
+          href="https://shashwa7.in"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-muted-foreground transition hover:text-foreground"
+        >
+          Made with <span className="text-primary">♥</span> by shashwa7.in
+        </a>
+      </div>
     </div>
   );
 
