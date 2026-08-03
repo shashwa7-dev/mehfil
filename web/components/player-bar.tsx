@@ -440,7 +440,12 @@ export function PlayerBar({
    */
   useEffect(() => {
     if (!expanded) return;
-    window.history.pushState({ mehfilPlayer: true }, "");
+    // Preserve whatever else is on the entry (the view hook stores its state
+    // here too), so popping back to it does not lose the current filters.
+    window.history.pushState(
+      { ...(window.history.state ?? {}), mehfilPlayer: true },
+      ""
+    );
     const onPop = () => setExpanded(false);
     window.addEventListener("popstate", onPop);
     return () => {

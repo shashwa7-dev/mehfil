@@ -10,6 +10,13 @@ import { PlayerBar } from "@/components/player-bar";
 import { SongList } from "@/components/song-list";
 import { artwork, filterSongs, hydrate, type Catalogue, type RawSong } from "@/lib/catalogue";
 import { useCatalogue } from "@/lib/queries";
+import { useHistoryState } from "@/hooks/use-history-state";
+import {
+  deserialiseView,
+  serialiseView,
+  viewStepKey,
+  type ViewState,
+} from "@/lib/view-state";
 
 export default function Home() {
   const { data: catalogue, isLoading, isError, error } = useCatalogue();
@@ -51,6 +58,28 @@ export default function Home() {
   useEffect(() => {
     scrollEl?.scrollTo({ top: 0 });
   }, [filterKey, showList, scrollEl]);
+
+  // Back retraces filter and view changes instead of leaving the app. Held
+  // until the catalogue exists, or an entry could be restored against facets
+  // that are not loaded yet.
+  const view = useMemo(
+    () => serialiseView(selected, query, showList),
+    [selected, query, showList]
+  );
+
+  useHistoryState<ViewState>({
+    value: view,
+    stepKey: viewStepKey,
+    namespace: "mehfilView",
+    enabled: Boolean(catalogue),
+    onRestore: useCallback((restored: ViewState) => {
+      const { selection, query: q, list } = deserialiseView(restored);
+      setSelected(selection);
+      setQuery(q);
+      setShowList(list);
+    }, []),
+  });
+
 
   const queueRef = useRef<RawSong[]>([]);
   queueRef.current = results;
