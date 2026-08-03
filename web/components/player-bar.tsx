@@ -652,7 +652,7 @@ export function PlayerBar({
               // with h-full derives width from the available height, so on a
               // tall window the square grows wider than the column. Clamping
               // width makes the height give way instead.
-              ? "video-stage absolute inset-0 bg-black md:relative md:inset-auto md:aspect-[768/484] md:h-auto md:max-h-full md:w-full md:max-w-4xl md:bg-transparent"
+              ? "video-stage relative aspect-[768/484] max-h-full w-full max-w-4xl"
               : "size-full"
           }
         >
@@ -666,7 +666,7 @@ export function PlayerBar({
             alt=""
             aria-hidden
             className={`pointer-events-none absolute inset-0 z-10 size-full object-contain ${
-              expanded ? "hidden md:block" : "hidden"
+              expanded ? "block" : "hidden"
             }`}
           />
           {/* The screen opening. Positioning and clipping live here, not on the
@@ -676,7 +676,7 @@ export function PlayerBar({
               picture escape and fill the whole cabinet.
               overflow-hidden is the backstop. Whatever size the iframe ends up,
               it cannot paint outside the opening. */}
-          <div className="size-full overflow-hidden md:absolute md:left-[10.03%] md:top-[10.74%] md:h-[73.14%] md:w-[61.85%]">
+          <div className="absolute left-[10.03%] top-[10.74%] h-[73.14%] w-[61.85%] overflow-hidden">
             <div ref={hostRef} className="size-full" />
           </div>
         </div>
