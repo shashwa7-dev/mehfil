@@ -87,17 +87,20 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
     // sits directly behind this text. Without it the smallest type in the app
     // is the one competing with a busy image.
     <div className="shrink-0 space-y-1.5 border-t border-white/[0.06] bg-sidebar/95 px-4 py-3 backdrop-blur-sm">
-      <p className="text-[11px] leading-relaxed text-muted-foreground">
-        Music streams from YouTube. Nothing is hosted here.
+      <p className="text-[11px] leading-snug text-muted-foreground/70">
+        Music streams from YouTube.
+        <br />
+        Nothing is hosted here.
       </p>
-      <div className="flex items-center gap-2 text-[11px]">
+      {/* Stacked, not a row. The rail is 18rem wide and these two links do not
+          fit on one line at 11px, so side by side they wrapped mid-phrase. */}
+      <div className="flex flex-col gap-1 text-[11px]">
         <Link
           href="/about"
           className="text-muted-foreground transition hover:text-foreground"
         >
           About &amp; credits
         </Link>
-        <span className="text-white/15">·</span>
         <a
           href="https://shashwa7.in"
           target="_blank"
