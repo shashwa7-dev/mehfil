@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   ChevronDown,
   Loader2,
@@ -184,6 +185,9 @@ export function PlayerBar({
   const [loading, setLoading] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
+  // The video layer portals to <body>, which only exists after mount.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const [elapsed, setElapsed] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(0.8);
@@ -239,6 +243,9 @@ export function PlayerBar({
   };
 
   useEffect(() => {
+    // hostRef lives inside the portal, so there is nothing to attach to until
+    // the portal has rendered.
+    if (!mounted) return;
     let cancelled = false;
     loadYouTubeAPI().then(() => {
       if (cancelled || !hostRef.current || playerRef.current) return;
@@ -275,7 +282,7 @@ export function PlayerBar({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [mounted]);
 
   useEffect(() => {
     if (!ready || !song || !playerRef.current) return;
@@ -350,63 +357,146 @@ export function PlayerBar({
   const iconButton =
     "grid size-8 place-items-center rounded-full text-muted-foreground transition hover:text-foreground disabled:opacity-40 disabled:hover:text-muted-foreground";
 
-  return (
-    <footer className="z-50 shrink-0 border-t bg-card/80 backdrop-blur">
-      {/* Dim behind the expanded player. Rendered before it so it stacks under. */}
-      {expanded && (
-        <div
-          onClick={() => setExpanded(false)}
-          className="fixed inset-0 z-[55] bg-black/80 backdrop-blur-sm"
+  // Rendered in both the bar and the expanded view, so the controls are always
+  // reachable. `large` scales it up for the full-screen layout.
+  const transport = (large: boolean) => (
+    <div className="flex w-full flex-col items-center gap-1">
+      <div className={`flex items-center ${large ? "gap-4" : "gap-2"}`}>
+        <button
+          onClick={onToggleShuffle}
+          title="Shuffle"
+          className={`${iconButton} ${shuffle ? "text-primary hover:text-primary" : ""}`}
+        >
+          <Shuffle className={large ? "size-5" : "size-4"} />
+        </button>
+        <button onClick={onPrev} disabled={!song} className={iconButton} title="Previous">
+          <SkipBack className={`fill-current ${large ? "size-5" : "size-4"}`} />
+        </button>
+        <button
+          onClick={toggle}
+          disabled={!song || !ready}
+          title={playing ? "Pause" : "Play"}
+          className={`grid place-items-center rounded-full bg-foreground text-background transition hover:scale-105 disabled:opacity-40 disabled:hover:scale-100 ${
+            large ? "size-12" : "size-9"
+          }`}
+        >
+          {loading ? (
+            <Loader2 className={`animate-spin ${large ? "size-5" : "size-4"}`} />
+          ) : playing ? (
+            <Pause className={`fill-current ${large ? "size-5" : "size-4"}`} />
+          ) : (
+            <Play className={`translate-x-px fill-current ${large ? "size-5" : "size-4"}`} />
+          )}
+        </button>
+        <button onClick={onNext} disabled={!song} className={iconButton} title="Next">
+          <SkipForward className={`fill-current ${large ? "size-5" : "size-4"}`} />
+        </button>
+        <button
+          onClick={onToggleRepeat}
+          title="Repeat one"
+          className={`${iconButton} ${repeat ? "text-primary hover:text-primary" : ""}`}
+        >
+          <Repeat className={large ? "size-5" : "size-4"} />
+        </button>
+      </div>
+
+      <div
+        className={`w-full items-center gap-2 ${
+          large ? "flex max-w-2xl pt-1" : "hidden max-w-md md:flex"
+        }`}
+      >
+        <span className="w-9 text-right text-[11px] tabular-nums text-muted-foreground">
+          {formatTime(elapsed)}
+        </span>
+        <Scrubber
+          value={duration > 0 ? elapsed / duration : 0}
+          onCommit={seek}
+          disabled={!song || duration <= 0}
+          className="flex-1"
         />
+        <span className="w-9 text-[11px] tabular-nums text-muted-foreground">
+          {formatTime(duration)}
+        </span>
+      </div>
+    </div>
+  );
+
+  /**
+   * The video always lives in a portal on <body>.
+   *
+   * It cannot live in the footer: `backdrop-blur` there makes the footer a
+   * containing block for fixed-position descendants, so a "full screen"
+   * overlay would resolve against the bar and hang off the bottom. And the
+   * portal must be unconditional — toggling it would move the node, tearing
+   * down the iframe and restarting the song.
+   */
+  const videoLayer = (
+    <div
+      className={
+        expanded
+          ? "fixed inset-0 z-[70] flex flex-col bg-background"
+          : "pointer-events-none fixed -left-[9999px] top-0 h-36 w-64 overflow-hidden"
+      }
+    >
+      {expanded && (
+        <div className="flex shrink-0 items-center justify-between px-5 py-4">
+          <span className="text-[11px] uppercase tracking-widest text-muted-foreground">
+            Now playing
+          </span>
+          <button
+            onClick={() => setExpanded(false)}
+            title="Collapse"
+            className="rounded-full p-2 text-muted-foreground transition hover:bg-white/10 hover:text-foreground"
+          >
+            <ChevronDown className="size-5" />
+          </button>
+        </div>
       )}
 
+      <div
+        className={
+          expanded ? "flex min-h-0 flex-1 items-center justify-center px-5" : "size-full"
+        }
+      >
+        <div
+          className={
+            expanded
+              ? "aspect-video w-full max-w-4xl overflow-hidden rounded-xl bg-black shadow-2xl ring-1 ring-white/10"
+              : "size-full"
+          }
+        >
+          <div ref={hostRef} className="size-full" />
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="shrink-0 px-5 pb-8 pt-5">
+          <div className="mx-auto flex w-full max-w-4xl flex-col items-center gap-3">
+            {song && (
+              <div className="w-full text-center">
+                <h2 className="truncate text-2xl">{song.title}</h2>
+                <p className="truncate text-sm text-muted-foreground">
+                  {song.artists.join(", ") || "Unknown artist"}
+                  {song.film ? ` · ${song.film}` : ""}
+                </p>
+              </div>
+            )}
+            {transport(true)}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <footer className="z-50 shrink-0 border-t bg-card/80 backdrop-blur">
+      {mounted && createPortal(videoLayer, document.body)}
       <div className="grid h-[72px] grid-cols-[1fr_auto] items-center gap-4 px-4 md:grid-cols-3">
         {/* Now playing. The video host is rendered unconditionally: the player
             is constructed against it on mount, so gating it behind `song`
             would mean the player is never created at all. */}
         <div className="flex min-w-0 items-center gap-3">
-          {/* Collapsed shows the still; the live frame only appears on expand.
-              The iframe is never unmounted either way -- it is parked offscreen
-              when collapsed, because remounting it would restart playback.
-              Offscreen rather than display:none, which suspends media. */}
-          <div
-            className={
-              expanded
-                ? "fixed inset-x-0 top-1/2 z-[60] mx-auto h-fit w-[min(92vw,880px)] -translate-y-1/2 px-4"
-                : "pointer-events-none fixed -left-[9999px] top-0 size-px overflow-hidden"
-            }
-          >
-            <div
-              className={
-                expanded
-                  ? "aspect-video w-full overflow-hidden rounded-xl bg-black shadow-2xl ring-1 ring-white/10"
-                  : "size-px"
-              }
-            >
-              <div ref={hostRef} className="size-full" />
-            </div>
-
-            {expanded && song && (
-              <div className="flex items-start justify-between gap-4 pt-4">
-                <div className="min-w-0">
-                  <h2 className="truncate text-xl">{song.title}</h2>
-                  <p className="truncate text-sm text-muted-foreground">
-                    {song.artists.join(", ") || "Unknown artist"}
-                    {song.film ? ` · ${song.film}` : ""}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setExpanded(false)}
-                  title="Collapse"
-                  className="shrink-0 rounded-full p-2 text-muted-foreground transition hover:bg-white/10 hover:text-foreground"
-                >
-                  <ChevronDown className="size-5" />
-                </button>
-              </div>
-            )}
-          </div>
-
-          {song && !expanded && (
+          {song && (
             <button
               onClick={() => setExpanded(true)}
               title="Expand to video"
@@ -442,60 +532,7 @@ export function PlayerBar({
           )}
         </div>
 
-        {/* Transport */}
-        <div className="flex flex-col items-center gap-1">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onToggleShuffle}
-              title="Shuffle"
-              className={`${iconButton} ${shuffle ? "text-primary hover:text-primary" : ""}`}
-            >
-              <Shuffle className="size-4" />
-            </button>
-            <button onClick={onPrev} disabled={!song} className={iconButton} title="Previous">
-              <SkipBack className="size-4 fill-current" />
-            </button>
-            <button
-              onClick={toggle}
-              disabled={!song || !ready}
-              title={playing ? "Pause" : "Play"}
-              className="grid size-9 place-items-center rounded-full bg-foreground text-background transition hover:scale-105 disabled:opacity-40 disabled:hover:scale-100"
-            >
-              {loading ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : playing ? (
-                <Pause className="size-4 fill-current" />
-              ) : (
-                <Play className="size-4 translate-x-px fill-current" />
-              )}
-            </button>
-            <button onClick={onNext} disabled={!song} className={iconButton} title="Next">
-              <SkipForward className="size-4 fill-current" />
-            </button>
-            <button
-              onClick={onToggleRepeat}
-              title="Repeat one"
-              className={`${iconButton} ${repeat ? "text-primary hover:text-primary" : ""}`}
-            >
-              <Repeat className="size-4" />
-            </button>
-          </div>
-
-          <div className="hidden w-full max-w-md items-center gap-2 md:flex">
-            <span className="w-9 text-right text-[11px] tabular-nums text-muted-foreground">
-              {formatTime(elapsed)}
-            </span>
-            <Scrubber
-              value={duration > 0 ? elapsed / duration : 0}
-              onCommit={seek}
-              disabled={!song || duration <= 0}
-              className="flex-1"
-            />
-            <span className="w-9 text-[11px] tabular-nums text-muted-foreground">
-              {formatTime(duration)}
-            </span>
-          </div>
-        </div>
+        {transport(false)}
 
         {/* Volume */}
         <div className="hidden items-center justify-end gap-2 md:flex">
