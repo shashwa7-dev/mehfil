@@ -119,21 +119,75 @@ export function IOSInstallHelp({ onClose }: { onClose: () => void }) {
   );
 }
 
-/** Reusable install control for the sidebar or anywhere else. */
+/**
+ * Permanent install control for the drawer.
+ *
+ * Always rendered unless already installed. Gating it on `canInstall` meant it
+ * was invisible on any browser that had not fired `beforeinstallprompt`, which
+ * is most of them — so the entry point people look for simply was not there.
+ * Where no programmatic install exists, it explains the manual route instead
+ * of doing nothing.
+ */
 export function InstallButton({ className = "" }: { className?: string }) {
-  const { install, canInstall, showIOSHelp, dismissIOSHelp } = useInstall();
-  if (!canInstall) return null;
+  const { install, installed, isIOS, canInstall, showIOSHelp, dismissIOSHelp } =
+    useInstall();
+  const [showHelp, setShowHelp] = useState(false);
+
+  if (installed) return null;
 
   return (
     <>
       <button
-        onClick={install}
+        onClick={() => (canInstall ? install() : setShowHelp(true))}
         className={`flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground ${className}`}
       >
         <Download className="size-4" /> Install app
       </button>
       {showIOSHelp && <IOSInstallHelp onClose={dismissIOSHelp} />}
+      {showHelp && !isIOS && <ManualInstallHelp onClose={() => setShowHelp(false)} />}
     </>
+  );
+}
+
+/** Fallback for browsers with no install API and no prompt event. */
+function ManualInstallHelp({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[90] grid place-items-center bg-black/70 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-xl border border-white/10 bg-card p-5 shadow-2xl">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="" width={40} height={40} className="size-10 rounded-lg" />
+            <div>
+              <p className="text-sm font-medium">Install Mehfil</p>
+              <p className="text-xs text-muted-foreground">From your browser menu</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-full p-1.5 text-muted-foreground transition hover:bg-white/10 hover:text-foreground"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+
+        <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
+          <li>
+            <span className="text-foreground">Chrome / Edge</span> — the install icon
+            in the address bar, or menu → Install
+          </li>
+          <li>
+            <span className="text-foreground">Android</span> — menu → Add to Home screen
+          </li>
+          <li>
+            <span className="text-foreground">Firefox</span> — menu → Install
+          </li>
+        </ul>
+
+        <p className="mt-4 text-xs text-muted-foreground">
+          If none appear, the browser may not support installing web apps.
+        </p>
+      </div>
+    </div>
   );
 }
 
