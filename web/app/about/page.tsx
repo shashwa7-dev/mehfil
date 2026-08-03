@@ -33,7 +33,7 @@ export default function AboutPage() {
         src="/logo.png"
         alt=""
         aria-hidden
-        className="pointer-events-none fixed -bottom-16 -right-16 hidden w-[28rem] select-none opacity-[0.06] lg:block"
+        className="pointer-events-none fixed -bottom-16 -right-16 hidden w-[28rem] -rotate-12 select-none opacity-[0.06] lg:block"
       />
 
       <Link
