@@ -530,6 +530,14 @@ export function PlayerBar({
     </div>
   );
 
+  // The portal is rendered unconditionally while the bar itself only appears
+  // once something is playing. Unmounting the whole component instead would
+  // destroy the iframe — and repeat briefly sets the song to null, so that
+  // would tear the player down mid-track.
+  if (!song) {
+    return <>{mounted && createPortal(videoLayer, document.body)}</>;
+  }
+
   return (
     <footer className="z-50 shrink-0 border-t bg-card/80 backdrop-blur">
       {mounted && createPortal(videoLayer, document.body)}
@@ -556,22 +564,18 @@ export function PlayerBar({
             </button>
           )}
 
-          {song ? (
-            <div className="min-w-0">
-              <div className="truncate text-sm font-medium">{song.title}</div>
-              <div className="truncate text-xs text-muted-foreground">
-                {failure ? (
-                  <span className="text-destructive">{failure}</span>
-                ) : loading ? (
-                  "Loading…"
-                ) : (
-                  song.artists.join(", ") || "Unknown artist"
-                )}
-              </div>
+          <div className="min-w-0">
+            <div className="truncate text-sm font-medium">{song.title}</div>
+            <div className="truncate text-xs text-muted-foreground">
+              {failure ? (
+                <span className="text-destructive">{failure}</span>
+              ) : loading ? (
+                "Loading…"
+              ) : (
+                song.artists.join(", ") || "Unknown artist"
+              )}
             </div>
-          ) : (
-            <div className="text-xs text-muted-foreground">Nothing playing</div>
-          )}
+          </div>
         </div>
 
         {transport(false)}

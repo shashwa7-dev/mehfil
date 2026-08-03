@@ -304,6 +304,25 @@ export default function Home() {
               </SheetContent>
             </Sheet>
 
+            {/* The sidebar carries the brand on desktop but is hidden below lg,
+                so mobile needs its own mark. */}
+            <button
+              onClick={reset}
+              className="flex shrink-0 items-center gap-2 lg:hidden"
+              title="Mehfil"
+            >
+              <img
+                src="/logo.png"
+                alt=""
+                width={32}
+                height={32}
+                className="size-8 rounded-lg"
+              />
+              <span className="hidden text-base leading-none tracking-tight sm:inline">
+                Mehfil
+              </span>
+            </button>
+
             <div className="relative w-full max-w-md">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <input
