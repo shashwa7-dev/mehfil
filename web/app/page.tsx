@@ -416,7 +416,31 @@ export default function Home() {
           <div className="px-4 pb-10 sm:px-6">
             {!listing ? (
               <>
-                <h2 className="pb-4 pt-2 text-2xl">Browse</h2>
+                <h2 className="pb-3 pt-2 text-2xl">Browse</h2>
+
+                {/* Browsing by station or artist is the point of this screen,
+                    but the whole catalogue should still be one tap away. The
+                    rail offers this on desktop; below lg it needs saying here. */}
+                <button
+                  onClick={() => {
+                    setSelected({});
+                    setQuery("");
+                    setShowList(true);
+                  }}
+                  className="mb-4 flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/[0.05] p-3 text-left transition hover:bg-white/[0.09] lg:hidden"
+                >
+                  <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary">
+                    <ListMusic className="size-5" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-medium">All songs</span>
+                    <span className="block text-xs text-muted-foreground">
+                      {catalogue.songs.length.toLocaleString()} tracks · shuffle or search
+                    </span>
+                  </span>
+                  <Play className="size-4 shrink-0 fill-current text-muted-foreground" />
+                </button>
+
                 <BrowseGrid
                   catalogue={catalogue}
                   scrollParent={scrollEl}

@@ -257,6 +257,16 @@ export function PlayerBar({
   const retryTimerRef = useRef<number | null>(null);
   const [retrying, setRetrying] = useState(0);
 
+  // A pending retry outliving the component would call into a torn-down
+  // player. Cleared on the song change too, but that path never runs on
+  // unmount.
+  useEffect(
+    () => () => {
+      if (retryTimerRef.current) window.clearTimeout(retryTimerRef.current);
+    },
+    []
+  );
+
   /**
    * Single funnel for every failure: retry the ones that can plausibly
    * succeed on a second try, give up immediately on the ones that cannot.

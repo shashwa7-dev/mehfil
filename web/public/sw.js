@@ -62,6 +62,8 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  const isNavigation = request.mode === "navigate";
+
   // Network first: the network's answer always wins when it is reachable, so
   // a deploy is picked up on the next load rather than whenever a cache
   // happens to expire.
@@ -70,14 +72,16 @@ self.addEventListener("fetch", (event) => {
       .then((response) => {
         if (response.ok) {
           const copy = response.clone();
-          caches.open(CACHE).then((c) => c.put(request, copy));
+          // Navigations are stored under a fixed key. Keying them by URL would
+          // file "/?x=1" separately, and the offline fallback below — which
+          // can only ask for one thing — would then miss.
+          caches.open(CACHE).then((c) => c.put(isNavigation ? "/" : request, copy));
         }
         return response;
       })
       .catch(() =>
         caches
-          .match(request)
-          .then((hit) => hit ?? (request.mode === "navigate" ? caches.match("/") : undefined))
+          .match(isNavigation ? "/" : request)
           .then((hit) => hit ?? Response.error())
       )
   );
