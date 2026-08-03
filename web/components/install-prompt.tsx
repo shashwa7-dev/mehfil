@@ -11,6 +11,32 @@ type InstallEvent = Event & {
 };
 
 /**
+ * Module-level capture of `beforeinstallprompt`.
+ *
+ * The event fires once, and Chrome commonly fires it before React has
+ * hydrated. Listening from inside an effect therefore misses it outright, and
+ * Android falls back to manual instructions even though a real install was
+ * available. Listening at import time is early enough to catch it, and the
+ * event is stashed so any component mounting later can still use it.
+ */
+let capturedPrompt: InstallEvent | null = null;
+const promptListeners = new Set<(e: InstallEvent | null) => void>();
+
+function setCapturedPrompt(event: InstallEvent | null) {
+  capturedPrompt = event;
+  promptListeners.forEach((fn) => fn(event));
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeinstallprompt", (e) => {
+    // Held back so our own control can open the dialog on demand.
+    e.preventDefault();
+    setCapturedPrompt(e as InstallEvent);
+  });
+  window.addEventListener("appinstalled", () => setCapturedPrompt(null));
+}
+
+/**
  * Install state, shared by the banner and any other install control.
  *
  * Chromium fires `beforeinstallprompt` and lets us open the real dialog on
@@ -19,7 +45,9 @@ type InstallEvent = Event & {
  * one platform silently gets no prompt at all.
  */
 export function useInstall() {
-  const [deferred, setDeferred] = useState<InstallEvent | null>(null);
+  // Seeded from the module-level capture, so a prompt that arrived before this
+  // component mounted is still available.
+  const [deferred, setDeferred] = useState<InstallEvent | null>(capturedPrompt);
   const [isIOS, setIsIOS] = useState(false);
   const [installed, setInstalled] = useState(false);
   const [showIOSHelp, setShowIOSHelp] = useState(false);
@@ -40,17 +68,13 @@ export function useInstall() {
         (/macintosh/i.test(ua) && navigator.maxTouchPoints > 1)
     );
 
-    const onPrompt = (e: Event) => {
-      // Held back so our own control can open the dialog later.
-      e.preventDefault();
-      setDeferred(e as InstallEvent);
-    };
+    // Pick up a prompt that arrives after mount, and clear it once installed.
+    setDeferred(capturedPrompt);
+    promptListeners.add(setDeferred);
     const onInstalled = () => setInstalled(true);
-
-    window.addEventListener("beforeinstallprompt", onPrompt);
     window.addEventListener("appinstalled", onInstalled);
     return () => {
-      window.removeEventListener("beforeinstallprompt", onPrompt);
+      promptListeners.delete(setDeferred);
       window.removeEventListener("appinstalled", onInstalled);
     };
   }, []);
@@ -60,7 +84,7 @@ export function useInstall() {
       await deferred.prompt();
       const { outcome } = await deferred.userChoice;
       // The event is single-use; a declined prompt cannot be replayed.
-      setDeferred(null);
+      setCapturedPrompt(null);
       if (outcome === "accepted") setInstalled(true);
       return;
     }
