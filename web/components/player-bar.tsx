@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { Slider as SliderPrimitive } from "@base-ui/react/slider";
 import {
   ChevronDown,
   Loader2,
@@ -70,6 +71,37 @@ const RETRY_BACKOFF_MS = [600, 1800];
 // without a deadline. Long enough not to trip on a genuinely slow network.
 const STALL_MS = 15000;
 
+// Travel before a drag counts as a swipe rather than a tap.
+const SWIPE_THRESHOLD = 60;
+
+/**
+ * Vertical swipe detection.
+ *
+ * Hand-rolled rather than using a drawer library: every one of them unmounts
+ * its content when closed, which would tear down the player iframe and stop
+ * playback. Only the direction is needed here, not a full drag-to-dismiss.
+ */
+function useSwipe(onSwipe: (direction: "up" | "down") => void) {
+  const start = useRef<{ x: number; y: number } | null>(null);
+
+  return {
+    onTouchStart: (e: React.TouchEvent) => {
+      const t = e.touches[0];
+      start.current = { x: t.clientX, y: t.clientY };
+    },
+    onTouchEnd: (e: React.TouchEvent) => {
+      if (!start.current) return;
+      const t = e.changedTouches[0];
+      const dy = t.clientY - start.current.y;
+      const dx = t.clientX - start.current.x;
+      start.current = null;
+      // Ignore mostly-horizontal drags so this never fights a sideways scroll.
+      if (Math.abs(dy) < SWIPE_THRESHOLD || Math.abs(dy) < Math.abs(dx)) return;
+      onSwipe(dy < 0 ? "up" : "down");
+    },
+  };
+}
+
 let apiPromise: Promise<void> | null = null;
 
 function loadYouTubeAPI(): Promise<void> {
@@ -91,70 +123,74 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-/** Draggable bar used for both seek and volume. */
+/**
+ * Seek and volume control.
+ *
+ * Built on Base UI's slider rather than hand-rolled pointer maths. The custom
+ * version never worked on touch: without `touch-action: none` the browser
+ * claims the gesture as a scroll and stops sending move events, so a drag
+ * registered as a tap. This also brings keyboard and screen-reader support.
+ *
+ * `dragging` state exists so the displayed position follows the thumb rather
+ * than the player, which would otherwise keep overwriting it mid-drag.
+ */
 function Scrubber({
   value,
   onCommit,
   disabled,
   className = "",
+  large = false,
 }: {
   value: number; // 0..1
   onCommit: (fraction: number) => void;
   disabled?: boolean;
   className?: string;
+  large?: boolean;
 }) {
-  const trackRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const [preview, setPreview] = useState(0);
-
-  const fractionAt = useCallback((clientX: number) => {
-    const rect = trackRef.current?.getBoundingClientRect();
-    if (!rect || rect.width === 0) return 0;
-    return Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
-  }, []);
-
-  useEffect(() => {
-    if (!dragging) return;
-    const move = (e: PointerEvent) => setPreview(fractionAt(e.clientX));
-    const up = (e: PointerEvent) => {
-      setDragging(false);
-      onCommit(fractionAt(e.clientX));
-    };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
-    return () => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
-    };
-  }, [dragging, fractionAt, onCommit]);
-
   const shown = dragging ? preview : value;
 
   return (
-    <div
-      ref={trackRef}
-      onPointerDown={(e) => {
-        if (disabled) return;
+    <SliderPrimitive.Root
+      value={shown * 1000}
+      min={0}
+      max={1000}
+      disabled={disabled}
+      thumbAlignment="edge"
+      onValueChange={(v) => {
         setDragging(true);
-        setPreview(fractionAt(e.clientX));
+        setPreview((Array.isArray(v) ? v[0] : v) / 1000);
       }}
-      className={`group/scrub relative flex h-3 cursor-pointer items-center ${
-        disabled ? "pointer-events-none opacity-50" : ""
-      } ${className}`}
+      onValueCommitted={(v) => {
+        setDragging(false);
+        onCommit((Array.isArray(v) ? v[0] : v) / 1000);
+      }}
+      className={`w-full ${className}`}
     >
-      <div className="h-1 w-full overflow-hidden rounded-full bg-white/20">
-        <div
-          className="h-full rounded-full bg-foreground transition-colors group-hover/scrub:bg-primary"
-          style={{ width: `${shown * 100}%` }}
+      {/* Generous vertical padding gives the thumb a real touch target while
+          the visible track stays thin. */}
+      <SliderPrimitive.Control
+        className={`group/scrub relative flex w-full touch-none select-none items-center ${
+          large ? "py-3" : "py-2.5"
+        } data-disabled:opacity-50`}
+      >
+        <SliderPrimitive.Track
+          className={`relative w-full grow overflow-hidden rounded-full bg-white/25 transition-all ${
+            large ? "h-1.5 group-hover/scrub:h-2" : "h-1 group-hover/scrub:h-1.5"
+          }`}
+        >
+          <SliderPrimitive.Indicator className="h-full rounded-full bg-foreground transition-colors group-hover/scrub:bg-primary" />
+        </SliderPrimitive.Track>
+        <SliderPrimitive.Thumb
+          className={`block shrink-0 rounded-full bg-foreground shadow transition-opacity after:absolute after:-inset-3 ${
+            large
+              ? "size-4 opacity-100"
+              : "size-3 opacity-0 group-hover/scrub:opacity-100 data-dragging:opacity-100"
+          }`}
         />
-      </div>
-      <div
-        className={`absolute size-3 -translate-x-1/2 rounded-full bg-foreground shadow transition-opacity ${
-          dragging ? "opacity-100" : "opacity-0 group-hover/scrub:opacity-100"
-        }`}
-        style={{ left: `${shown * 100}%` }}
-      />
-    </div>
+      </SliderPrimitive.Control>
+    </SliderPrimitive.Root>
   );
 }
 
@@ -192,6 +228,8 @@ export function PlayerBar({
   const [loading, setLoading] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const barSwipe = useSwipe((d) => d === "up" && setExpanded(true));
+  const stageSwipe = useSwipe((d) => d === "down" && setExpanded(false));
   // The video layer portals to <body>, which only exists after mount.
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -316,6 +354,32 @@ export function PlayerBar({
     setLoading(true);
   }, [ready, song?.video]);
 
+  /**
+   * Re-issue the very first load if nothing has started.
+   *
+   * The API reports ready slightly before it will reliably accept a command,
+   * so the first loadVideoById after construction is sometimes swallowed
+   * outright — no error, no state change. It only affects the first play of a
+   * session, which is exactly the "first song fails, then it's fine" symptom.
+   * A single nudge well before the stall deadline recovers it invisibly.
+   */
+  const nudgedRef = useRef(false);
+  useEffect(() => {
+    if (!ready || !song || nudgedRef.current) return;
+    const timer = window.setTimeout(() => {
+      const player = playerRef.current;
+      if (!player || nudgedRef.current) return;
+      if (player.getCurrentTime() > 0) {
+        nudgedRef.current = true;
+        return;
+      }
+      nudgedRef.current = true;
+      player.loadVideoById(song.video);
+      player.playVideo();
+    }, 2500);
+    return () => window.clearTimeout(timer);
+  }, [ready, song]);
+
   // Some failures never fire onError -- the player just never starts. Give the
   // load a deadline so it reports rather than hanging at 0:00 indefinitely.
   useEffect(() => {
@@ -353,6 +417,26 @@ export function PlayerBar({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
+  }, [expanded]);
+
+  /**
+   * Back should close the expanded view, not leave the app.
+   *
+   * Expanding pushes a history entry, so the system back gesture pops it and
+   * collapses instead. Collapsing by any other route (chevron, Escape, swipe)
+   * pops that entry itself, so the stack never accumulates.
+   */
+  useEffect(() => {
+    if (!expanded) return;
+    window.history.pushState({ mehfilPlayer: true }, "");
+    const onPop = () => setExpanded(false);
+    window.addEventListener("popstate", onPop);
+    return () => {
+      window.removeEventListener("popstate", onPop);
+      // Only unwind the entry we added; if this cleanup ran *because* of a
+      // popstate, the entry is already gone.
+      if (window.history.state?.mehfilPlayer) window.history.back();
+    };
   }, [expanded]);
 
   const toggle = () => {
@@ -450,6 +534,7 @@ export function PlayerBar({
    */
   const videoLayer = (
     <div
+      {...(expanded ? stageSwipe : {})}
       className={
         expanded
           ? "fixed inset-0 z-[70] flex flex-col overflow-hidden bg-background"
@@ -566,28 +651,29 @@ export function PlayerBar({
         {/* Now playing. The video host is rendered unconditionally: the player
             is constructed against it on mount, so gating it behind `song`
             would mean the player is never created at all. */}
-        <div className="flex min-w-0 items-center gap-3">
-          {song && (
-            <button
-              onClick={() => setExpanded(true)}
-              title="Expand to video"
-              className="group/art relative size-11 shrink-0 overflow-hidden rounded"
-            >
-              <img
-                src={artwork(song.video)}
-                alt=""
-                loading="lazy"
-                className="size-full object-cover"
-              />
-              <span className="absolute inset-0 grid place-items-center bg-black/55 text-white opacity-0 transition group-hover/art:opacity-100 group-focus-visible/art:opacity-100">
-                <Maximize2 className="size-4" />
-              </span>
-            </button>
-          )}
+        {/* The whole now-playing region expands, not just the thumbnail, and
+            a swipe up does the same on touch. */}
+        <button
+          {...barSwipe}
+          onClick={() => setExpanded(true)}
+          title="Expand to video"
+          className="group/np flex min-w-0 items-center gap-3 text-left"
+        >
+          <span className="relative size-11 shrink-0 overflow-hidden rounded">
+            <img
+              src={artwork(song.video)}
+              alt=""
+              loading="lazy"
+              className="size-full object-cover"
+            />
+            <span className="absolute inset-0 grid place-items-center bg-black/55 text-white opacity-0 transition group-hover/np:opacity-100 group-focus-visible/np:opacity-100">
+              <Maximize2 className="size-4" />
+            </span>
+          </span>
 
-          <div className="min-w-0">
-            <div className="truncate text-sm font-medium">{song.title}</div>
-            <div className="truncate text-xs text-muted-foreground">
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-medium">{song.title}</span>
+            <span className="block truncate text-xs text-muted-foreground">
               {failure ? (
                 <span className="text-destructive">{failure}</span>
               ) : loading ? (
@@ -595,9 +681,9 @@ export function PlayerBar({
               ) : (
                 song.artists.join(", ") || "Unknown artist"
               )}
-            </div>
-          </div>
-        </div>
+            </span>
+          </span>
+        </button>
 
         {transport(false)}
 

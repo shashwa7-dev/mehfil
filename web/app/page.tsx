@@ -5,6 +5,7 @@ import { LayoutGrid, ListMusic, Menu, Play, Search, X } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { BrowseGrid } from "@/components/browse-grid";
 import { FacetPanel } from "@/components/facet-panel";
+import { InstallPrompt } from "@/components/install-prompt";
 import { PlayerBar } from "@/components/player-bar";
 import { SongList } from "@/components/song-list";
 import { artwork, filterSongs, hydrate, type Catalogue, type RawSong } from "@/lib/catalogue";
@@ -157,7 +158,7 @@ export default function Home() {
 
   if (isLoading) {
     return (
-      <div className="grid h-screen place-items-center text-sm text-muted-foreground">
+      <div className="grid h-[100dvh] place-items-center text-sm text-muted-foreground">
         Loading catalogue…
       </div>
     );
@@ -165,7 +166,7 @@ export default function Home() {
 
   if (isError || !catalogue) {
     return (
-      <div className="grid h-screen place-items-center px-6 text-center">
+      <div className="grid h-[100dvh] place-items-center px-6 text-center">
         <div>
           <p className="text-sm">Could not load the catalogue.</p>
           <p className="mt-1 text-xs text-muted-foreground">
@@ -256,7 +257,7 @@ export default function Home() {
   );
 
   return (
-    <div className="relative flex h-screen flex-col">
+    <div className="relative flex h-[100dvh] flex-col">
       {/* App-wide ambient wash, far subtler than the full-screen one: enough to
           tint the shell with the current song without disturbing text. */}
       {ambient && currentSong && (
@@ -440,6 +441,8 @@ export default function Home() {
         ambient={ambient}
         onToggleAmbient={() => setAmbient((v) => !v)}
       />
+
+      <InstallPrompt />
     </div>
   );
 }
