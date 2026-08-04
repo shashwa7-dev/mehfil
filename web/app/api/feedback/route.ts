@@ -121,6 +121,7 @@ export async function POST(request: Request) {
     suggestedVideoId: suggestedVideoId ?? "",
     suggestedUrl,
     note: clean(body.note, MAX_NOTE),
+    reporterName: clean(body.reporterName, 60),
     userAgent: clean(request.headers.get("user-agent"), 200),
   };
 

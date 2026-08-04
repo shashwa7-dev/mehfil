@@ -23,7 +23,8 @@ publishing its URL would publish a write endpoint to the sheet.
 ```javascript
 const HEADERS = [
   'at', 'kind', 'songId', 'songTitle', 'songFilm',
-  'currentVideoId', 'suggestedVideoId', 'suggestedUrl', 'note', 'userAgent',
+  'currentVideoId', 'suggestedVideoId', 'suggestedUrl', 'note',
+  'reporterName', 'userAgent',
 ];
 
 function doPost(e) {

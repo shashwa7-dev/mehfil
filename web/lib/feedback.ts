@@ -25,6 +25,8 @@ export type Report = {
   /** The link they suggest, as typed. */
   suggestedUrl?: string;
   note?: string;
+  /** Optional, for crediting. Blank means they would rather stay anonymous. */
+  reporterName?: string;
 };
 
 /**

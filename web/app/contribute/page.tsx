@@ -3,8 +3,11 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
+import { Virtuoso } from "react-virtuoso";
 import { ArrowLeft, ExternalLink, Search } from "lucide-react";
 import { ReportDialog } from "@/components/report-dialog";
+import { useFrame } from "@/components/app-frame";
+import { flattenPages, usePagedItems } from "@/lib/queries";
 
 type MissingSong = {
   id: number;
@@ -23,12 +26,13 @@ type MissingSong = {
  * are just phrased in a way no automatic query reaches, and somebody who knows
  * the song finds it immediately.
  *
- * A search box rather than a wall of four hundred: nobody scans that list, but
- * plenty of people will look for the one song they noticed was missing.
+ * The whole list is browsable, paged in as it is scrolled. Truncating it would
+ * hide the long tail, which is exactly the part nobody has looked at.
  */
 export default function ContributePage() {
   const [query, setQuery] = useState("");
   const [chosen, setChosen] = useState<MissingSong | null>(null);
+  const { scrollEl } = useFrame();
 
   const { data, isLoading } = useQuery<{ songs: MissingSong[] }>({
     queryKey: ["missing"],
@@ -39,19 +43,24 @@ export default function ContributePage() {
   });
 
   const songs = useMemo(() => data?.songs ?? [], [data]);
-  const shown = useMemo(() => {
+  const matching = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    const matches = needle
-      ? songs.filter(
-          (song) =>
-            song.t.toLowerCase().includes(needle) ||
-            song.f.toLowerCase().includes(needle) ||
-            song.a.some((name) => name.toLowerCase().includes(needle))
-        )
-      : songs;
-    // Capped when browsing, so an idle visit does not render four hundred rows.
-    return needle ? matches.slice(0, 100) : matches.slice(0, 60);
+    if (!needle) return songs;
+    return songs.filter(
+      (song) =>
+        song.t.toLowerCase().includes(needle) ||
+        song.f.toLowerCase().includes(needle) ||
+        song.a.some((name) => name.toLowerCase().includes(needle))
+    );
   }, [songs, query]);
+
+  // Keyed on the query so a new search starts from the first page rather than
+  // wherever the previous one had been scrolled to.
+  const paged = usePagedItems(matching, `missing:${query}`);
+  const loaded = useMemo(
+    () => flattenPages<MissingSong>(paged.data?.pages),
+    [paged.data]
+  );
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -78,6 +87,10 @@ export default function ContributePage() {
         two, because nothing automatic can tell a plausible match from a correct
         one.
       </p>
+      <p className="mt-3 text-sm leading-7 text-muted-foreground">
+        Leave your name if you would like to be credited on the song. Blank is
+        fine too.
+      </p>
 
       <div className="relative mt-8">
         <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -89,55 +102,60 @@ export default function ContributePage() {
         />
       </div>
 
-      {isLoading ? (
-        <p className="mt-8 text-sm text-muted-foreground">Loading…</p>
-      ) : (
-        <>
-          <ul className="mt-6 divide-y divide-white/[0.06]">
-            {shown.map((song) => (
-              <li
-                key={song.id}
-                className="flex items-center gap-3 py-2.5 text-sm"
-              >
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate">{song.t}</span>
-                  <span className="block truncate text-xs text-muted-foreground">
-                    {[song.f, song.a.join(", ")].filter(Boolean).join(" · ")}
-                  </span>
-                </span>
-                <a
-                  href={`https://www.youtube.com/results?search_query=${encodeURIComponent(
-                    `${song.t} ${song.f} ${song.a[0] ?? ""}`
-                  )}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title="Search YouTube for this song"
-                  className="shrink-0 rounded-full p-2 text-muted-foreground transition hover:bg-white/10 hover:text-foreground"
-                >
-                  <ExternalLink className="size-4" />
-                </a>
-                <button
-                  onClick={() => setChosen(song)}
-                  className="shrink-0 rounded-full border border-primary/30 bg-primary/15 px-3 py-1.5 text-xs font-medium text-primary transition hover:bg-primary/25"
-                >
-                  I have a link
-                </button>
-              </li>
-            ))}
-          </ul>
+      <p className="mt-4 text-xs text-muted-foreground">
+        {isLoading
+          ? "Loading…"
+          : query
+            ? `${matching.length.toLocaleString()} matching`
+            : `${songs.length.toLocaleString()} songs, oldest catalogue entries first`}
+      </p>
 
-          {!shown.length && (
-            <p className="mt-8 text-sm text-muted-foreground">
-              Nothing matching “{query}”. It may already be in the catalogue.
-            </p>
+      {!isLoading && !matching.length && (
+        <p className="mt-8 text-sm text-muted-foreground">
+          Nothing matching “{query}”. It may already be in the catalogue.
+        </p>
+      )}
+
+      {/* Measured against the page's own scroll container, so the list stays in
+          the document flow instead of owning a second scrollbar. */}
+      {scrollEl && matching.length > 0 && (
+        <Virtuoso
+          customScrollParent={scrollEl}
+          data={loaded}
+          endReached={() => {
+            if (paged.hasNextPage && !paged.isFetchingNextPage) {
+              paged.fetchNextPage();
+            }
+          }}
+          computeItemKey={(_, song) => song.id}
+          itemContent={(_, song) => (
+            <div className="flex items-center gap-3 border-b border-white/[0.06] py-2.5 text-sm">
+              <span className="min-w-0 flex-1">
+                <span className="block truncate">{song.t}</span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  {[song.f, song.a.join(", ")].filter(Boolean).join(" · ")}
+                </span>
+              </span>
+              <a
+                href={`https://www.youtube.com/results?search_query=${encodeURIComponent(
+                  `${song.t} ${song.f} ${song.a[0] ?? ""}`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Search YouTube for this song"
+                className="shrink-0 rounded-full p-2 text-muted-foreground transition hover:bg-white/10 hover:text-foreground"
+              >
+                <ExternalLink className="size-4" />
+              </a>
+              <button
+                onClick={() => setChosen(song)}
+                className="shrink-0 rounded-full border border-primary/30 bg-primary/15 px-3 py-1.5 text-xs font-medium text-primary transition hover:bg-primary/25"
+              >
+                I have a link
+              </button>
+            </div>
           )}
-          {!query && songs.length > shown.length && (
-            <p className="mt-6 text-xs text-muted-foreground">
-              Showing {shown.length} of {songs.length.toLocaleString()}. Search to
-              find a particular one.
-            </p>
-          )}
-        </>
+        />
       )}
 
       {chosen && (

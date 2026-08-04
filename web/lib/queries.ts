@@ -28,6 +28,20 @@ export function usePhotoManifest() {
   });
 }
 
+/** Who found or corrected a song, by song id. Empty until someone is credited. */
+export type CreditManifest = Record<string, { name: string; kind: string }>;
+
+export function useSongCredits() {
+  return useQuery<CreditManifest>({
+    queryKey: ["songCredits"],
+    queryFn: async () => {
+      const response = await fetch("/song-credits.json");
+      return response.ok ? response.json() : {};
+    },
+    staleTime: Infinity,
+  });
+}
+
 export type StationPosterManifest = Record<
   string,
   { file: string; title: string; license: string; source: string; creator: string }

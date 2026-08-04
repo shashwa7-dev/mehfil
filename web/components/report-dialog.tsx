@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Check, Loader2, X } from "lucide-react";
 import { sendReport, type Report, type ReportKind } from "@/lib/feedback";
 
@@ -30,12 +31,32 @@ export function ReportDialog({
 }) {
   const [url, setUrl] = useState("");
   const [note, setNote] = useState("");
+  const [name, setName] = useState("");
   const [trap, setTrap] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   const wrong = kind === "wrong-track";
+
+  // Portalled to the body. The player bar carries a backdrop-blur, which makes
+  // it the containing block for any fixed descendant — so rendered in place the
+  // dialog centred itself inside the bar and was clipped by it rather than
+  // covering the screen.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
+
+  // Escape closes it, as any dialog should.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -50,6 +71,7 @@ export function ReportDialog({
       currentVideoId,
       suggestedUrl: url,
       note,
+      reporterName: name,
     };
     const failure = await sendReport(report, trap);
     setSending(false);
@@ -61,7 +83,9 @@ export function ReportDialog({
     setTimeout(onClose, 1600);
   }
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div
       className="fixed inset-0 z-[95] grid place-items-center bg-black/70 p-4 backdrop-blur-sm"
       onClick={onClose}
@@ -127,6 +151,19 @@ export function ReportDialog({
               />
             </label>
 
+            <label className="block">
+              <span className="text-xs text-muted-foreground">
+                Your name (optional) — so we can credit you on the song
+              </span>
+              <input
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                maxLength={60}
+                placeholder="Leave blank to stay anonymous"
+                className="mt-1 w-full rounded-md border border-white/10 bg-white/[0.06] px-3 py-2 text-sm outline-none transition placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-4 focus:ring-primary/10"
+              />
+            </label>
+
             {/* Honeypot. Hidden from people and from screen readers; left in the
                 DOM because a bot that fills the form by field name fills it. */}
             <input
@@ -162,6 +199,7 @@ export function ReportDialog({
           </form>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

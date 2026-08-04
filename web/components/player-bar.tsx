@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { artwork, type Song } from "@/lib/catalogue";
 import { ReportDialog } from "@/components/report-dialog";
-import { useCatalogue } from "@/lib/queries";
+import { useCatalogue, useSongCredits } from "@/lib/queries";
 import { QueuePanel } from "@/components/queue-panel";
 
 type YTPlayer = {
@@ -257,6 +257,8 @@ export function PlayerBar({
   const [expanded, setExpanded] = useState(false);
   const [queueOpen, setQueueOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const { data: songCredits } = useSongCredits();
+  const credit = song ? songCredits?.[String(song.id)] : undefined;
   const { data: catalogue } = useCatalogue();
   const barSwipe = useSwipe((d) => d === "up" && setExpanded(true));
   const stageSwipe = useSwipe((d) => d === "down" && setExpanded(false));
@@ -761,6 +763,14 @@ export function PlayerBar({
                   {song.artists.join(", ") || "Unknown artist"}
                   {song.film ? ` · ${song.film}` : ""}
                 </p>
+                {/* Shown only where someone gave a name. Most will not, and an
+                    empty credit line reads worse than no credit at all. */}
+                {credit && (
+                  <p className="mt-1.5 truncate text-xs text-primary/80">
+                    {credit.kind === "corrected" ? "Corrected by" : "Found by"}{" "}
+                    {credit.name}
+                  </p>
+                )}
               </div>
             )}
             {transport()}
