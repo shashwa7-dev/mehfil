@@ -150,12 +150,15 @@ function Scrubber({
   disabled,
   className = "",
   large = false,
+  edge = false,
 }: {
   value: number; // 0..1
   onCommit: (fraction: number) => void;
   disabled?: boolean;
   className?: string;
   large?: boolean;
+  /** Hairline along the bar's top edge. Desktop only — see the bar below. */
+  edge?: boolean;
 }) {
   const [dragging, setDragging] = useState(false);
   const [preview, setPreview] = useState(0);
@@ -191,19 +194,31 @@ function Scrubber({
         // correct a mismatch — Tailwind v4 compiles those to the `translate`
         // property, which is the property Base UI sets inline, and inline wins.
         className={`group/scrub relative flex w-full cursor-pointer touch-none select-none items-center data-disabled:cursor-not-allowed data-disabled:opacity-50 ${
-          large ? "h-9" : "h-8"
+          edge ? "h-3" : large ? "h-9" : "h-8"
         }`}
       >
         <SliderPrimitive.Track
-          className={`relative w-full grow overflow-hidden rounded-full bg-white/25 transition-all ${
-            large ? "h-2 group-hover/scrub:h-2.5" : "h-1.5 group-hover/scrub:h-2"
+          className={`relative w-full grow overflow-hidden rounded-full transition-all ${
+            edge
+              ? "h-[3px] bg-white/15 group-hover/scrub:h-[5px]"
+              : `bg-white/25 ${
+                  large ? "h-2 group-hover/scrub:h-2.5" : "h-1.5 group-hover/scrub:h-2"
+                }`
           }`}
         >
-          <SliderPrimitive.Indicator className="h-full rounded-full bg-foreground transition-colors group-hover/scrub:bg-primary" />
+          <SliderPrimitive.Indicator
+            className={`h-full rounded-full transition-colors ${
+              edge ? "bg-primary" : "bg-foreground group-hover/scrub:bg-primary"
+            }`}
+          />
         </SliderPrimitive.Track>
         <SliderPrimitive.Thumb
-          className={`block shrink-0 cursor-grab rounded-full bg-foreground shadow transition-opacity after:absolute after:-inset-3 active:cursor-grabbing ${
-            large ? "size-4" : "size-3.5"
+          className={`block shrink-0 cursor-grab rounded-full shadow transition-opacity after:absolute after:-inset-3 active:cursor-grabbing ${
+            edge
+              // Revealed on point: a permanent dot on a hairline is clutter,
+              // and this variant only exists where there is a cursor to point.
+              ? "size-3 bg-primary opacity-0 group-hover/scrub:opacity-100"
+              : `bg-foreground ${large ? "size-4" : "size-3.5"}`
           }`}
         />
       </SliderPrimitive.Control>
@@ -687,7 +702,7 @@ export function PlayerBar({
               that order. */}
           <div className="mx-auto flex w-full max-w-xl flex-col gap-6">
             {song && (
-              <div className="min-w-0">
+              <div className="min-w-0 text-center">
                 <h2 className="truncate text-[22px] font-semibold leading-tight md:text-3xl">
                   {song.title}
                 </h2>
@@ -813,29 +828,43 @@ export function PlayerBar({
         </div>
       )}
 
-      {/* Progress only, not a control. As a slider it never worked on touch —
-          a tap landed beside a target too small for a fingertip, and enlarging
-          it put half the target over the list above the bar. A bar this thin is
-          the wrong shape to seek with, so it reports position and nothing else;
-          seeking belongs to the full player, where the scrubber has room. The
-          whole strip opens that view, so a tap on it still leads somewhere
-          sensible rather than doing nothing.
+      {/* Two treatments, because the two inputs are not comparable.
 
-          Inset from lg, where the bar takes a rounded corner and a square-ended
-          bar would overhang the curve. */}
+          A cursor can hit a three-pixel line, so the desktop keeps the real
+          scrubber: click anywhere to seek, drag the handle, exactly as before.
+
+          A fingertip cannot. Every attempt to make it touchable made something
+          else worse — enlarging the target put half of it over the scrolling
+          list, which is where a thumb aiming at the line actually lands. So on
+          a phone it reports position and nothing else, and tapping it opens the
+          full player, where the scrubber has the room to be dragged. */}
       <button
         onClick={() => setExpanded(true)}
         title="Open the full player"
         aria-label="Open the full player"
-        className="group/prog absolute inset-x-0 top-0 z-30 h-2.5 lg:inset-x-2"
+        className="group/prog absolute inset-x-0 top-0 z-30 h-2.5 md:hidden"
       >
-        <span className="absolute inset-x-0 top-0 h-[3px] overflow-hidden rounded-full bg-white/15 transition-all group-hover/prog:h-[5px]">
+        <span className="absolute inset-x-0 top-0 h-[3px] overflow-hidden rounded-full bg-white/15">
           <span
             className="block h-full rounded-full bg-primary transition-[width] duration-300 ease-linear"
             style={{ width: `${duration > 0 ? (elapsed / duration) * 100 : 0}%` }}
           />
         </span>
       </button>
+
+      {/* Pulled up by half the control less half the track, so the centred
+          track lands on the bar's top edge and the handle straddles it. Inset
+          from lg, where the bar takes a rounded corner a square-ended track
+          would overhang. */}
+      <div className="absolute inset-x-0 -top-[4.5px] z-30 hidden md:block lg:inset-x-2">
+        <Scrubber
+          value={duration > 0 ? elapsed / duration : 0}
+          onCommit={seek}
+          disabled={!song || duration <= 0}
+          className="w-full"
+          edge
+        />
+      </div>
 
       {/* 1fr on both sides and a fixed centre, so the now-playing block sits in
           the middle of the *bar* rather than the middle of whatever space the
