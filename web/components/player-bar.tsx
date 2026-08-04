@@ -212,9 +212,13 @@ function Scrubber({
         <SliderPrimitive.Thumb
           className={`block shrink-0 cursor-grab rounded-full shadow transition-opacity after:absolute after:-inset-3 active:cursor-grabbing ${
             edge
-              // Hidden until pointed at: a permanent dot on a hairline is
-              // clutter, but it has to exist to be grabbed.
-              ? "size-3 -translate-y-[3px] bg-primary opacity-0 group-hover/scrub:opacity-100"
+              // Sat on the line rather than under it. The control is 12px tall
+              // with the track pinned to its top, so a 12px thumb aligned to
+              // the start has its centre 6px down while the 3px track's centre
+              // is at 1.5px — hence 4.5px up, and 3.5px once hover thickens the
+              // track to 5px. Hidden until pointed at: a permanent dot on a
+              // hairline is clutter, but it has to exist to be grabbed.
+              ? "size-3 -translate-y-[4.5px] bg-primary opacity-0 group-hover/scrub:-translate-y-[3.5px] group-hover/scrub:opacity-100"
               : `bg-foreground ${large ? "size-4" : "size-3.5"}`
           }`}
         />
@@ -925,8 +929,16 @@ export function PlayerBar({
               unverified
             </span>
           )}
-          {/* Reporting sits next to the track it is about, which is the only
-              moment anyone knows the recording is wrong — hearing it. */}
+          {/* Credits and reporting sit next to the track they are about. The
+              bar has room for a title and a line of singers, so the composer
+              and lyricist are one press away rather than absent. */}
+          <button
+            onClick={() => setDetailsOpen(true)}
+            className={iconButton}
+            title="Credits for this song"
+          >
+            <Info className="size-4" />
+          </button>
           <button
             onClick={() => setReportOpen(true)}
             className={iconButton}
