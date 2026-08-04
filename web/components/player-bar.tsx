@@ -848,7 +848,11 @@ export function PlayerBar({
           {...barSwipe}
           onClick={() => setExpanded(true)}
           title="Expand to video"
-          className="group/np flex min-w-0 items-center gap-3 text-left"
+          // Centred in its column from md, where the flanking clusters exist to
+          // balance it. Left-aligned below that: with the right-hand controls
+          // hidden there is nothing on the other side, so centring would just
+          // look like a stray indent.
+          className="group/np flex min-w-0 items-center gap-3 text-left md:justify-center"
         >
           <span className="relative size-10 shrink-0 overflow-hidden rounded shadow-sm ring-1 ring-white/10">
             <img
