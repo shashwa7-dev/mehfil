@@ -12,6 +12,10 @@ export default function manifest(): MetadataRoute.Manifest {
     description:
       "Browse and play golden-era Hindi film music by singer, composer, lyricist, film and mood.",
     start_url: "/",
+    // Everything is under the origin root. Stated rather than left to default,
+    // so a link outside it opens in the browser instead of silently inside the
+    // installed app with no way back.
+    scope: "/",
     display: "standalone",
     // Matched to the app shell so the splash screen does not flash white.
     background_color: "#1a1613",

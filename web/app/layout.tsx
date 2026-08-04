@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Figtree } from "next/font/google";
 import { Providers } from "./providers";
 import { PlayerProvider } from "@/components/player-provider";
+import { OfflineNotice } from "@/components/offline-notice";
 import { AppFrame } from "@/components/app-frame";
 import "./globals.css";
 
@@ -88,6 +89,21 @@ export const metadata: Metadata = {
     title: "Mehfil — Retro Bollywood Songs",
     description: DESCRIPTION,
   },
+  // iOS ignores the manifest's display mode and reads these instead, so
+  // without them an installed app opens in a Safari chrome rather than
+  // standalone. black-translucent lets the dark shell run under the status
+  // bar, which is what the theme colour is for everywhere else.
+  appleWebApp: {
+    capable: true,
+    title: "Mehfil",
+    statusBarStyle: "black-translucent",
+  },
+  other: {
+    // Next emits the standardised `mobile-web-app-capable`, which Safari does
+    // not read. The Apple-prefixed name is deprecated everywhere else and is
+    // still the one iOS acts on, so both are present.
+    "apple-mobile-web-app-capable": "yes",
+  },
   // WhatsApp, Slack and iMessage read the OpenGraph tags above; no separate
   // markup is needed for them.
   robots: { index: false, follow: false },
@@ -117,6 +133,7 @@ export default function RootLayout({
         <Providers>
           <PlayerProvider>
             <AppFrame>{children}</AppFrame>
+            <OfflineNotice />
           </PlayerProvider>
         </Providers>
       </body>

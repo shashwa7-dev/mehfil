@@ -53,10 +53,36 @@ export function Providers({ children }: { children: React.ReactNode }) {
     };
 
     const register = () => {
+      // Versioned URL. A worker is only replaced when its own bytes change,
+      // and sw.js is static — identical between deploys — so without this the
+      // browser never installed a new one and never ran the activation that
+      // clears old caches. An installed app could stay on a stale build
+      // indefinitely while looking perfectly healthy.
+      const url = `/sw.js?v=${process.env.NEXT_PUBLIC_BUILD_ID ?? "dev"}`;
       navigator.serviceWorker
-        .register("/sw.js", { updateViaCache: "none" })
+        .register(url, { updateViaCache: "none" })
         .then((reg) => {
           registration = reg;
+
+          // controllerchange alone only fires once a new worker has taken
+          // over, which needs the old one to release. Watching the incoming
+          // worker reach "installed" while a controller exists is what
+          // actually says a newer build is ready and waiting.
+          reg.addEventListener("updatefound", () => {
+            const incoming = reg.installing;
+            if (!incoming) return;
+            incoming.addEventListener("statechange", () => {
+              if (
+                incoming.state === "installed" &&
+                navigator.serviceWorker.controller
+              ) {
+                // skipWaiting in the worker means it takes over on its own,
+                // and controllerchange below does the reload. Asking again is
+                // harmless and covers a worker that somehow stayed waiting.
+                incoming.postMessage?.({ type: "SKIP_WAITING" });
+              }
+            });
+          });
         })
         .catch(() => {});
     };
