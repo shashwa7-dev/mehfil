@@ -18,42 +18,9 @@ publishing its URL would publish a write endpoint to the sheet.
 
 **1. Create the sheet.** A new Google Sheet; the tab name does not matter.
 
-**2. Add the script.** Extensions → Apps Script, and replace the contents with:
-
-```javascript
-const HEADERS = [
-  'at', 'kind', 'songId', 'songTitle', 'songFilm',
-  'currentVideoId', 'suggestedVideoId', 'suggestedUrl', 'note',
-  'reporterName', 'userAgent',
-];
-
-function doPost(e) {
-  try {
-    const report = JSON.parse(e.postData.contents);
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
-
-    // First write lays down the header row, so the sheet starts empty.
-    if (sheet.getLastRow() === 0) sheet.appendRow(HEADERS);
-
-    sheet.appendRow(HEADERS.map(function (key) {
-      const value = report[key];
-      // Leading apostrophe keeps Sheets from reading a video id such as
-      // "3gADoivNR-U" as a formula or reformatting it.
-      return key === 'suggestedVideoId' || key === 'currentVideoId'
-        ? (value ? "'" + value : '')
-        : (value === undefined || value === null ? '' : value);
-    }));
-
-    return ContentService
-      .createTextOutput(JSON.stringify({ ok: true }))
-      .setMimeType(ContentService.MimeType.JSON);
-  } catch (err) {
-    return ContentService
-      .createTextOutput(JSON.stringify({ ok: false, error: String(err) }))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-}
-```
+**2. Add the script.** Extensions → Apps Script, then paste the whole of
+`docs/feedback-apps-script.gs` over what is there. It carries its own notes,
+including why the header row must match the fields `/api/feedback` sends.
 
 **3. Deploy it.** Deploy → New deployment → type **Web app**.
 
