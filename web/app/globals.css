@@ -285,6 +285,24 @@
     display: none;
   }
 
+  /* Overlong text dissolves at the right edge instead of ending in an ellipsis.
+     Short text is untouched: the gradient only starts near the edge of the box,
+     and a line that stops before it never reaches the transparent part. */
+  .fade-r {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      #000 0,
+      #000 calc(100% - 2rem),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      #000 0,
+      #000 calc(100% - 2rem),
+      transparent 100%
+    );
+  }
+
   .fade-x {
     -webkit-mask-image: linear-gradient(
       to right,

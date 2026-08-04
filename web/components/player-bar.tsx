@@ -809,7 +809,11 @@ export function PlayerBar({
         />
       </div>
 
-      <div className="relative grid grid-cols-[auto_1fr] items-center gap-3 px-3 py-2.5 md:grid-cols-[auto_1fr_auto] md:gap-4 md:px-4 md:py-3">
+      {/* 1fr on both sides and a fixed centre, so the now-playing block sits in
+          the middle of the *bar* rather than the middle of whatever space the
+          controls leave over. With a flexible centre column the thumbnail slid
+          left and right as titles changed length, which is the jumping. */}
+      <div className="relative grid grid-cols-[auto_1fr] items-center gap-3 px-3 py-2.5 md:grid-cols-[1fr_auto_1fr] md:gap-4 md:px-4 md:py-3">
         {/* Transport, at the left edge where the hand goes first. */}
         <div className="flex items-center gap-0.5 md:gap-1">
           <button onClick={onPrev} disabled={!song} className={iconButton} title="Previous">
@@ -834,7 +838,9 @@ export function PlayerBar({
           </button>
           {/* Elapsed and total together, beside the controls rather than under
               the scrubber — the scrubber has no labels now that it is an edge. */}
-          <span className="ml-1 hidden whitespace-nowrap text-xs tabular-nums text-muted-foreground lg:block">
+          {/* Fixed width as well as tabular figures: the digits are even, but
+              crossing ten minutes adds one, which would nudge everything. */}
+          <span className="ml-1 hidden w-[6.5rem] whitespace-nowrap text-xs tabular-nums text-muted-foreground lg:block">
             {formatTime(elapsed)} / {formatTime(duration)}
           </span>
         </div>
@@ -848,11 +854,12 @@ export function PlayerBar({
           {...barSwipe}
           onClick={() => setExpanded(true)}
           title="Expand to video"
-          // Centred in its column from md, where the flanking clusters exist to
-          // balance it. Left-aligned below that: with the right-hand controls
-          // hidden there is nothing on the other side, so centring would just
-          // look like a stray indent.
-          className="group/np flex min-w-0 items-center gap-3 text-left md:justify-center"
+          // A fixed width, so the block occupies the same space whatever is
+          // playing. Titles here range from "Aa" to a full line of Devanagari,
+          // and letting the box follow them is what moved the thumbnail around
+          // between tracks. Full width below md, where it is the only thing on
+          // the row.
+          className="group/np flex min-w-0 items-center gap-3 text-left md:w-[19rem] lg:w-[24rem]"
         >
           <span className="relative size-10 shrink-0 overflow-hidden rounded shadow-sm ring-1 ring-white/10">
             <img
@@ -866,9 +873,14 @@ export function PlayerBar({
             </span>
           </span>
 
-          <span className="min-w-0">
-            <span className="block truncate text-sm font-medium">{song.title}</span>
-            <span className="block truncate text-xs text-muted-foreground">
+          {/* Overflow dissolves rather than ending in an ellipsis. The mask
+              covers the box, so a title short enough to stop before the
+              gradient is left alone — only the ones that run on get faded. */}
+          <span className="fade-r min-w-0 flex-1 overflow-hidden">
+            <span className="block whitespace-nowrap text-sm font-medium">
+              {song.title}
+            </span>
+            <span className="block whitespace-nowrap text-xs text-muted-foreground">
               {failure ? (
                 <span className="text-destructive">{failure}</span>
               ) : loading ? (
