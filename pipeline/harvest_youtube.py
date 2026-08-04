@@ -19,10 +19,30 @@ import store
 
 BATCH = 200
 
+# Saregama's own channels, verified by resolving each handle rather than
+# assumed: @SaregamaClassics no longer exists, and @FilmiGaane — which reads
+# like a Saregama property — belongs to Shemaroo. Carvaan and Hindustani
+# Classical were missing entirely, and Carvaan is this catalogue's own channel.
+#
+# Karaoke is deliberately absent. It is genuinely Saregama's, and publishes
+# backing tracks rather than recordings, so being official makes it worse
+# rather than better.
 SOURCES = [
     ("saregama_music", "https://www.youtube.com/@saregamamusic/videos"),
-    ("saregama_classics", "https://www.youtube.com/@SaregamaClassics/videos"),
+    # By id: Saregama Carvaan has no @handle that resolves.
+    ("saregama_carvaan",
+     "https://www.youtube.com/channel/UCFIMVKiJIEXCciTXqcF727Q/videos"),
+    ("saregama_classical", "https://www.youtube.com/@SaregamaHindustaniClassical/videos"),
     ("saregama_bhakti", "https://www.youtube.com/@saregamabhakti/videos"),
+    ("saregama_ghazal", "https://www.youtube.com/@saregamaghazal/videos"),
+    ("saregama_sufi", "https://www.youtube.com/@saregamasufi/videos"),
+    ("saregama_mix", "https://www.youtube.com/@SaregamaMixStation/videos"),
+    ("saregama_marathi", "https://www.youtube.com/@SaregamaMarathi/videos"),
+    ("saregama_bengali", "https://www.youtube.com/@SaregamaBengali/videos"),
+    ("saregama_punjabi", "https://www.youtube.com/@SaregamaPunjabi/videos"),
+    ("saregama_gujarati", "https://www.youtube.com/@SaregamaGujarati/videos"),
+    ("saregama_tamil", "https://www.youtube.com/@SaregamaTamil/videos"),
+    ("saregama_malayalam", "https://www.youtube.com/@SaregamaMalayalam/videos"),
 ]
 
 
@@ -35,7 +55,10 @@ def harvest(conn, name, url, limit=None):
 
     cmd = [
         "yt-dlp", "--flat-playlist", "--skip-download", "--ignore-errors",
-        "--no-warnings", "--print", "%(id)s|%(title)s",
+        # Duration costs nothing here and is what lets the matcher tell a
+        # recording from a jukebox. Harvesting without it is why entire films
+        # ended up in the catalogue.
+        "--no-warnings", "--print", "%(id)s|%(duration)s|%(title)s",
         "--playlist-start", str(offset + 1),
     ]
     if limit:
@@ -52,10 +75,18 @@ def harvest(conn, name, url, limit=None):
             line = line.strip()
             if "|" not in line:
                 continue
-            video_id, _, title = line.partition("|")
+            parts = line.split("|", 2)
+            if len(parts) != 3:
+                continue
+            video_id, raw_duration, title = parts
             if len(video_id) != 11 or not title:
                 continue
-            batch.append({"video_id": video_id, "title": title, "channel_id": name})
+            try:
+                duration = int(float(raw_duration))
+            except (TypeError, ValueError):
+                duration = None
+            batch.append({"video_id": video_id, "title": title,
+                          "channel_id": name, "duration": duration})
 
             if len(batch) >= BATCH:
                 offset += len(batch)
