@@ -42,7 +42,6 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
   const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null);
   const [filterSlot, setFilterSlot] = useState<HTMLElement | null>(null);
   const [query, setQuery] = useState("");
-  const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const playerBar = usePlayerBar();
@@ -210,7 +209,13 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
                 </button>
               )}
 
-              <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+              {/* Keyed on the route, and otherwise uncontrolled. Navigating
+                  changes the key, React discards this Sheet and mounts a fresh
+                  one, and a fresh one is closed — so following a link closes
+                  the drawer without anything here having to drive its open
+                  state. Driving it was the previous attempt and it stopped the
+                  trigger opening at all. */}
+              <Sheet key={pathname}>
                 <SheetTrigger
                   render={
                     <button
@@ -233,16 +238,7 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
                   <SheetTitle className="sr-only">Menu</SheetTitle>
                   {railTexture}
 
-                  {/* Anything actioned in here closes the drawer. It covers
-                      the page it navigates to, so staying open would hide the
-                      thing just asked for. Delegated from the wrapper rather
-                      than attached per link, because brandAndNav and credit are
-                      the same markup rendered in the rail as well, where there
-                      is nothing to close. */}
-                  <div
-                    onClick={() => setMenuOpen(false)}
-                    className="relative z-10 flex min-h-0 flex-1 flex-col"
-                  >
+                  <div className="relative z-10 flex min-h-0 flex-1 flex-col">
                     {brandAndNav}
                     <div className="min-h-0 flex-1" />
                     {credit}
