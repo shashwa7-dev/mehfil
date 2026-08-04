@@ -264,6 +264,15 @@ export function PlayerBar({
   const [reportOpen, setReportOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  /**
+   * Artwork by default, video on request.
+   *
+   * The player is a 256px frame offscreen until expanded. Showing the video
+   * full-screen makes YouTube fetch a higher-quality stream, and that rebuffer
+   * lands exactly when a song is starting — which is why expanding felt slow.
+   * Nearly all of the listening here does not want the picture anyway.
+   */
+  const [videoMode, setVideoMode] = useState(false);
   const { data: songCredits } = useSongCredits();
   const credit = song ? songCredits?.[String(song.id)] : undefined;
   const { data: catalogue } = useCatalogue();
@@ -671,21 +680,61 @@ export function PlayerBar({
             Now playing
           </span>
 
-          {/* Balances the collapse button so "Now playing" sits centred. */}
-          <span className="size-9 shrink-0" aria-hidden />
+          {/* Two states shown at once rather than one label that changes, so
+              it reads as a switch between two things and not as a button whose
+              effect has to be guessed at. */}
+          <div className="flex shrink-0 items-center rounded-full border border-white/10 bg-white/[0.06] p-0.5 backdrop-blur">
+            <button
+              onClick={() => setVideoMode(false)}
+              aria-pressed={!videoMode}
+              title="Show the artwork"
+              className={`rounded-full px-3 py-1 text-[11px] font-medium transition ${
+                !videoMode
+                  ? "bg-white/[0.14] text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Song
+            </button>
+            <button
+              onClick={() => setVideoMode(true)}
+              aria-pressed={videoMode}
+              title="Show the video"
+              className={`rounded-full px-3 py-1 text-[11px] font-medium transition ${
+                videoMode
+                  ? "bg-white/[0.14] text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Video
+            </button>
+          </div>
         </div>
       )}
 
       <div
         className={
           expanded
-            // Padding from the smallest size up, not only from md. The cabinet
-            // ran edge to edge on a phone, so its sides were cut off by the
+            // Padding from the smallest size up, not only from md, or the stage
+            // runs edge to edge on a phone and its sides are cut off by the
             // viewport rather than sitting within it.
-            ? "flex min-h-0 flex-1 items-center justify-center md:px-10 md:py-4"
+            ? "flex min-h-0 flex-1 items-center justify-center px-6 md:px-10 md:py-4"
             : "size-full"
         }
       >
+        {/* Artwork stands in for the picture unless video is asked for. The
+            player itself is not unmounted to achieve this — it keeps playing
+            from offscreen, exactly as it does while the bar is collapsed. */}
+        {expanded && !videoMode && song && (
+          <div className="flex aspect-square w-full max-w-sm items-center justify-center overflow-hidden rounded-2xl bg-black shadow-2xl ring-1 ring-white/10 md:max-w-md">
+            <img
+              src={artwork(song.video, "hq")}
+              alt=""
+              className="size-full object-cover"
+            />
+          </div>
+        )}
+
         {/* Below md the stage covers the whole screen (see .video-stage); from
             md it is a plain 16:9 card, height-driven so a short viewport
             shrinks the video rather than pushing it into the text below.
@@ -697,9 +746,15 @@ export function PlayerBar({
             thing being watched. */}
         <div
           className={
-            expanded
+            expanded && videoMode
               ? "video-stage absolute inset-0 bg-black md:relative md:inset-auto md:aspect-video md:h-full md:max-h-full md:w-auto md:max-w-full md:overflow-hidden md:rounded-2xl md:bg-black md:shadow-2xl md:ring-1 md:ring-white/10"
-              : "size-full"
+              : expanded
+                // Expanded but showing artwork: the player is parked offscreen
+                // at its small size rather than hidden. display:none stops
+                // playback in some browsers, and shrinking the frame is also
+                // what keeps YouTube from fetching a stream nobody is watching.
+                ? "pointer-events-none fixed -left-[9999px] top-0 h-36 w-64 overflow-hidden"
+                : "size-full"
           }
         >
           {/* Positioning and clipping live on this wrapper, not on the host
@@ -719,7 +774,7 @@ export function PlayerBar({
           scrubber, the transport and a row of secondary actions. Solid under
           the text and easing away well before the middle, so the picture is
           still the picture. */}
-      {expanded && (
+      {expanded && videoMode && (
         <>
           <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-background via-background/80 to-transparent md:hidden" />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[60%] bg-gradient-to-t from-background from-35% via-background/90 to-transparent md:hidden" />
