@@ -380,11 +380,16 @@ export function PlayerBar({
           onReady: () => setReady(true),
           onStateChange: (event: { data: number }) => {
             const state = window.YT!.PlayerState;
-            if (event.data === state.ENDED) endedRef.current();
 
             const isPlaying = event.data === state.PLAYING;
             setPlaying(isPlaying);
             playingRef.current(isPlaying);
+
+            // Advancing happens after the state is reported, not before. Run
+            // first, its play() set the provider playing while the lines below
+            // immediately set it back to false for the track that had just
+            // ended — the new song inherited the outgoing one's state.
+            if (event.data === state.ENDED) endedRef.current();
 
             // Buffering and unstarted both mean "not audible yet". Anything
             // else means the load resolved one way or the other.
@@ -415,11 +420,23 @@ export function PlayerBar({
     attemptsRef.current = 1;
     setRetrying(0);
     playerRef.current.loadVideoById(song.video);
+    // loadVideoById is documented to start playback, and mostly does. After a
+    // track ends it sometimes loads and waits instead, which reads as the queue
+    // stopping — the next song is cued, the bar shows it, and nothing plays
+    // until Next is pressed, which does no more than this line. Asking costs
+    // nothing when it was going to play anyway.
+    playerRef.current.playVideo();
     setElapsed(0);
     setDuration(0);
     setFailure(null);
     setLoading(true);
-  }, [ready, song?.video]);
+    // Keyed on the song as well as the video. Seventeen videos legitimately
+    // serve two catalogue entries — the songlist repeats a title across
+    // stations — and advancing between two of those changes the song without
+    // changing the video, so keying on the video alone left the queue sitting
+    // there having loaded nothing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, song?.id, song?.video]);
 
   /**
    * Re-issue the very first load if nothing has started.
