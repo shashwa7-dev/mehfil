@@ -75,7 +75,7 @@ export function SongDetails({
         >
           <img
             key={song.video}
-            src={artwork(song.video, "hq")}
+            src={artwork(song.video)}
             alt=""
             className="size-full object-cover opacity-[0.09] saturate-[1.3]"
           />

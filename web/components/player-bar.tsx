@@ -630,11 +630,21 @@ export function PlayerBar({
           gives the same bloom for nothing — no pixel access, no timers. */}
       {expanded && ambient && song && (
         <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+          {/* Blurred small and then scaled up, rather than blurred at full
+              size. A 100px blur across a full-screen element is a filter over
+              two million pixels every frame it is composited; the same look
+              comes from blurring a 320px square and scaling it, which is a
+              fraction of the work and indistinguishable once out of focus.
+
+              No key, so changing songs swaps the src on one element instead of
+              tearing down an image and mounting another — the old frame stays
+              up until the new one has decoded, rather than leaving a gap. And
+              the source is the small thumbnail: it is about to be destroyed by
+              a blur, so the larger one only costs decode time. */}
           <img
-            key={song.video}
-            src={artwork(song.video, "hq")}
+            src={artwork(song.video)}
             alt=""
-            className="absolute left-1/2 top-1/2 h-[135%] w-[135%] -translate-x-1/2 -translate-y-1/2 object-cover opacity-60 blur-[100px] saturate-[1.8] transition-opacity duration-700"
+            className="absolute left-1/2 top-1/2 size-80 -translate-x-1/2 -translate-y-1/2 scale-[4] object-cover opacity-60 blur-2xl saturate-[1.8] transition-opacity duration-700"
           />
           {/* Keeps text legible over whatever the artwork happens to be, while
               leaving the middle open so the video sits inside its own glow. */}
@@ -840,11 +850,12 @@ export function PlayerBar({
           aria-hidden
           className="pointer-events-none absolute inset-0 overflow-hidden lg:rounded-lg"
         >
+          {/* Same reasoning as the expanded wash: small source, no key, and
+              the blur kept off a full-width element. */}
           <img
-            key={song.video}
-            src={artwork(song.video, "hq")}
+            src={artwork(song.video)}
             alt=""
-            className="size-full object-cover opacity-40 blur-3xl saturate-[1.6] transition-opacity duration-700"
+            className="size-full object-cover opacity-40 blur-2xl saturate-[1.6] transition-opacity duration-700"
           />
           <div className="absolute inset-0 bg-card/70" />
         </div>
