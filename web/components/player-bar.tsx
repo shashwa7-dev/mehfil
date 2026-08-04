@@ -516,6 +516,11 @@ export function PlayerBar({
   // A faint disc appears under the icon on hover, so the secondary controls
   // acknowledge the pointer without competing with the play button, which is
   // the only one that carries a fill at rest.
+  // Secondary actions in the expanded view: labelled from sm, icon-only on a
+  // narrow phone where four labels would not fit on one line.
+  const secondaryAction =
+    "flex items-center gap-1.5 rounded-full px-3 py-2 text-xs text-muted-foreground transition hover:bg-white/[0.07] hover:text-foreground active:scale-95";
+
   const iconButton =
     "grid size-9 place-items-center rounded-full text-muted-foreground transition-all duration-200 hover:bg-white/[0.08] hover:text-foreground active:scale-90 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground";
 
@@ -524,8 +529,10 @@ export function PlayerBar({
   // Only the expanded view uses this now: the compact bar lays its controls
   // out along the left edge instead, so there is no shared shape to abstract.
   const transport = () => (
-    <div className="flex w-full flex-col items-center gap-0.5">
-      <div className="flex items-center gap-4">
+    <div className="flex w-full flex-col items-center">
+      {/* Generous gaps and a large play button: this is the one surface with
+          room for the controls to be sized for a thumb rather than a cursor. */}
+      <div className="flex items-center gap-5 sm:gap-7">
         <button
           onClick={onToggleShuffle}
           title="Shuffle"
@@ -543,14 +550,14 @@ export function PlayerBar({
           // The one filled control, so it carries the weight: a soft brass ring
           // and a lift on hover rather than a flat disc. active:scale keeps the
           // press physical instead of instantaneous.
-          className="grid size-12 place-items-center rounded-full bg-foreground text-background shadow-[0_2px_10px_-2px_rgba(0,0,0,0.5)] ring-1 ring-primary/20 transition-all duration-200 hover:scale-105 hover:shadow-[0_4px_18px_-2px_rgba(214,168,84,0.45)] hover:ring-primary/40 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:hover:scale-100"
+          className="grid size-16 place-items-center rounded-full bg-foreground text-background shadow-[0_4px_20px_-4px_rgba(0,0,0,0.6)] ring-1 ring-primary/20 transition-all duration-200 hover:scale-105 hover:shadow-[0_6px_26px_-4px_rgba(214,168,84,0.5)] hover:ring-primary/40 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:hover:scale-100"
         >
           {loading ? (
-            <Loader2 className="size-5 animate-spin" />
+            <Loader2 className="size-6 animate-spin" />
           ) : playing ? (
-            <Pause className="size-5 fill-current" />
+            <Pause className="size-6 fill-current" />
           ) : (
-            <Play className="size-5 translate-x-px fill-current" />
+            <Play className="size-6 translate-x-0.5 fill-current" />
           )}
         </button>
         <button onClick={onNext} disabled={!song} className={iconButton} title="Next">
@@ -565,21 +572,6 @@ export function PlayerBar({
         </button>
       </div>
 
-      <div className="flex w-full max-w-2xl items-center gap-2 pt-1">
-        <span className="w-9 text-right text-[11px] tabular-nums text-muted-foreground">
-          {formatTime(elapsed)}
-        </span>
-        <Scrubber
-          value={duration > 0 ? elapsed / duration : 0}
-          onCommit={seek}
-          disabled={!song || duration <= 0}
-          className="flex-1"
-          large
-        />
-        <span className="w-9 text-[11px] tabular-nums text-muted-foreground">
-          {formatTime(duration)}
-        </span>
-      </div>
     </div>
   );
 
@@ -637,30 +629,8 @@ export function PlayerBar({
             Now playing
           </span>
 
-          {/* Labelled and visibly two-state. As a bare icon that only changed
-              colour, there was nothing to say it was a toggle, what it
-              controlled, or which way it was set. */}
-          <button
-            onClick={onToggleAmbient}
-            role="switch"
-            aria-checked={ambient}
-            title={ambient ? "Turn ambient off" : "Turn ambient on"}
-            className={`flex shrink-0 items-center gap-1.5 rounded-full border py-1.5 pl-2 pr-3 text-[11px] font-medium backdrop-blur transition ${
-              ambient
-                ? "border-primary/40 bg-primary/20 text-primary"
-                : "border-white/10 bg-white/[0.06] text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Sparkles
-              className={`size-3.5 transition-transform ${ambient ? "scale-110" : ""}`}
-            />
-            <span className="hidden sm:inline">Ambient</span>
-            <span
-              className={`ml-0.5 size-1.5 rounded-full transition-colors ${
-                ambient ? "bg-primary" : "bg-white/25"
-              }`}
-            />
-          </button>
+          {/* Balances the collapse button so "Now playing" sits centred. */}
+          <span className="size-9 shrink-0" aria-hidden />
         </div>
       )}
 
@@ -710,26 +680,27 @@ export function PlayerBar({
       )}
 
       {expanded && (
-        <div className="relative z-10 shrink-0 px-5 pb-[max(2rem,env(safe-area-inset-bottom))] pt-7 md:pt-8">
-          <div className="mx-auto flex w-full max-w-2xl flex-col items-center gap-5">
+        <div className="relative z-10 shrink-0 px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-6 md:pt-8">
+          {/* One column, read top to bottom: what is playing, how far through
+              it is, the controls, then everything secondary. Narrow enough that
+              the eye does not have to travel across a wide screen to follow
+              that order. */}
+          <div className="mx-auto flex w-full max-w-xl flex-col gap-6">
             {song && (
-              <div className="w-full text-center">
-                <h2 className="truncate text-2xl leading-tight md:text-3xl">
+              <div className="min-w-0">
+                <h2 className="truncate text-[22px] font-semibold leading-tight md:text-3xl">
                   {song.title}
                 </h2>
-                <p className="mt-1.5 truncate text-sm text-muted-foreground">
+                {/* The singers are the second thing anyone reads, so they get
+                    body size; the film is context and is set back from it. */}
+                <p className="mt-1.5 truncate text-sm text-foreground/70 md:text-base">
                   {song.artists.join(", ") || "Unknown artist"}
-                  {song.film ? ` · ${song.film}` : ""}
                 </p>
-                {/* Shown only where someone gave a name. Most will not, and an
-                    empty credit line reads worse than no credit at all. */}
-                <button
-                  onClick={() => setDetailsOpen(true)}
-                  className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-white/[0.07] px-3 py-1 text-xs text-muted-foreground transition hover:bg-white/[0.14] hover:text-foreground"
-                >
-                  <Info className="size-3.5" />
-                  Credits
-                </button>
+                {song.film && (
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground md:text-sm">
+                    {song.film}
+                  </p>
+                )}
                 {credit && (
                   <p className="mt-2 truncate text-xs text-primary/80">
                     {credit.kind === "corrected" ? "Corrected by" : "Found by"}{" "}
@@ -738,7 +709,67 @@ export function PlayerBar({
                 )}
               </div>
             )}
+
+            {/* Seeking lives here, where the scrubber has the width to be
+                dragged accurately — the bar upstairs only reports position. */}
+            <div className="flex items-center gap-3">
+              <span className="w-10 shrink-0 text-right text-[11px] tabular-nums text-muted-foreground">
+                {formatTime(elapsed)}
+              </span>
+              <Scrubber
+                value={duration > 0 ? elapsed / duration : 0}
+                onCommit={seek}
+                disabled={!song || duration <= 0}
+                className="flex-1"
+                large
+              />
+              <span className="w-10 shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                {formatTime(duration)}
+              </span>
+            </div>
+
             {transport()}
+
+            {/* Everything that is not playback, on one line and set quietly.
+                Above they competed with the controls; the ambient toggle in
+                particular sat in the header as though it were a way out of the
+                view. */}
+            <div className="flex items-center justify-center gap-1">
+              <button
+                onClick={() => setDetailsOpen(true)}
+                title="Credits for this song"
+                className={secondaryAction}
+              >
+                <Info className="size-4" />
+                <span className="hidden sm:inline">Credits</span>
+              </button>
+              <button
+                onClick={() => setQueueOpen(true)}
+                title="Queue"
+                className={secondaryAction}
+              >
+                <ListVideo className="size-4" />
+                <span className="hidden sm:inline">Queue</span>
+              </button>
+              <button
+                onClick={onToggleAmbient}
+                role="switch"
+                aria-checked={ambient}
+                title={ambient ? "Turn ambient off" : "Turn ambient on"}
+                className={`${secondaryAction} ${ambient ? "text-primary hover:text-primary" : ""}`}
+              >
+                <Sparkles className="size-4" />
+                <span className="hidden sm:inline">Ambient</span>
+              </button>
+              <button
+                onClick={() => setReportOpen(true)}
+                title="Wrong recording? Tell us"
+                className={secondaryAction}
+              >
+                <Flag className="size-4" />
+                <span className="hidden sm:inline">Report</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -810,11 +841,11 @@ export function PlayerBar({
           the middle of the *bar* rather than the middle of whatever space the
           controls leave over. With a flexible centre column the thumbnail slid
           left and right as titles changed length, which is the jumping. */}
-      {/* Top padding clears the scrubber, which is absolutely positioned and so
-          takes no space of its own: on a phone it occupies the first 20px
-          inside the bar, leaving the controls sitting right under the line.
-          Asymmetric on purpose, since the room is needed above and not below. */}
-      <div className="relative grid grid-cols-[1fr_auto] items-center gap-2 pb-2 pl-0 pr-2 pt-6 md:grid-cols-[1fr_auto_1fr] md:gap-4 md:px-4 md:pb-3 md:pt-4">
+      {/* Even padding. The progress is a 10px strip at the top now rather than
+          the 20px control it replaced, so the row no longer needs to be pushed
+          clear of it — and pushing it left the controls against the bottom
+          instead of centred in the bar. */}
+      <div className="relative grid grid-cols-[1fr_auto] items-center gap-2 py-3 pl-0 pr-2 md:grid-cols-[1fr_auto_1fr] md:gap-4 md:px-4">
         {/* Transport, at the left edge where the hand goes first. Desktop
             only: the phone puts the title first and the controls after it. */}
         <div className="hidden items-center gap-0.5 md:flex md:gap-1">
