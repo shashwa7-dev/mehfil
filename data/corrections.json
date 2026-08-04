@@ -4,5 +4,10 @@
   "Ek Anar Do Bimar | Baazi": {
     "video_id": "OVnbcB6phag",
     "note": "Resolver matched a web series episode of the same name (Bakkbenchers). The commonly cited upload for the real song has embedding disabled; this one is the Kalyanji-Anandji Classics copy and does embed."
+  },
+
+  "Ankhon Ankhon Mein Hum Tum | Mahal": {
+    "video_id": "3gADoivNR-U",
+    "note": "The resolver's pick was titled correctly for this song and film and passed every check, so nothing automated could have caught it. Replaced with the 'Kishore Kumar - Topic' upload, which YouTube generates from the rights holder's own audio."
   }
 }
