@@ -64,19 +64,29 @@ EXTRA_REJECT = re.compile(
     r"video jukebox|all time hits|superhit collection|golden collection|"
     r"lyrical video jukebox|one hour|1 hour|hour long|marathon|"
     # "5 Top Songs of ..." — the shared list catches "top 5" and misses this.
-    r"\d+\s*top songs|top songs|geetmala|vol\.?\s*\d+|volume\s*\d+)\b",
+    r"\d+\s*top songs|top songs|geetmala|vol\.?\s*\d+|volume\s*\d+|"
+    # Reworkings that keep the song's name and replace its recording. The
+    # shared list has "remix", which does not catch "Trap Mix" — and Saregama
+    # publishes a great many of these under the original title.
+    r"\bmix\b|trap|house mix|chill|lofi|lo-fi|slowed|reverb|refix|flip|"
+    r"synthwave|electro|bass boost|revisited|recreation)\b",
     re.I,
 )
 
 # Channels that publish something other than the recording, whoever owns them.
 # Checked before the tier bonus: "Saregama Karaoke" is an official channel and
 # still the wrong one, and being official was actively promoting it.
-WRONG_KIND = ("karaoke", "instrumental", "cover", "remix", "lyrics only",
+WRONG_KIND = ("karaoke", "instrumental", "cover", "lyrics only",
               "sing along", "backing track", "ringtone",
               # Jhankar Beats are the originals re-mastered with added
               # percussion. Saregama publishes them, so the tier bonus was
               # recommending them over the recording they are derived from.
-              "jhankar")
+              "jhankar",
+              # Catches "remix" and "Saregama Mix Station", a channel whose
+              # entire output is reworkings published under the original song's
+              # name. Being Saregama's own was promoting it, not disqualifying
+              # it, and "Aap Ke Kamre Mein" ended up as a trap mix.
+              "mix")
 
 # Saregama owns this catalogue, so its channels rank first. "Filmigaane" was
 # here on the assumption that it was one of them; resolving the handle shows it
