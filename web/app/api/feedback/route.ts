@@ -56,8 +56,29 @@ function rateLimited(key: string): boolean {
   return recent.length > MAX_PER_WINDOW;
 }
 
+/**
+ * Everything reaching the sheet is plain text, trimmed and bounded.
+ *
+ * Numbers are stringified rather than dropped; anything else — objects,
+ * arrays, null — becomes empty, so a nested payload cannot arrive as
+ * "[object Object]" or as a structure the sheet has no column for.
+ *
+ * Control characters go, newlines included. A newline inside a cell is not
+ * dangerous but it breaks the one row per report shape that makes the sheet
+ * readable, and a stray NUL or escape sequence is nothing anyone typed.
+ */
 function clean(value: unknown, max: number): string {
-  return typeof value === "string" ? value.trim().slice(0, max) : "";
+  let text: string;
+  if (typeof value === "string") text = value;
+  else if (typeof value === "number" && Number.isFinite(value)) text = String(value);
+  else return "";
+
+  return text
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\u0000-\u001f\u007f]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, max);
 }
 
 export async function POST(request: Request) {
@@ -112,7 +133,7 @@ export async function POST(request: Request) {
   const row = {
     at: new Date().toISOString(),
     kind,
-    songId: Number.isFinite(body.songId) ? body.songId : "",
+    songId: clean(body.songId, 20),
     songTitle,
     songFilm: clean(body.songFilm, MAX_TITLE),
     currentVideoId: clean(body.currentVideoId, 20),
@@ -142,8 +163,27 @@ export async function POST(request: Request) {
       body: JSON.stringify(row),
       signal: AbortSignal.timeout(10_000),
     });
+    // The status alone is not the answer. Apps Script replies 200 even when
+    // its own handler threw, reporting the failure in the body — so trusting
+    // response.ok told people their report was recorded when nothing had been
+    // written. The body is what says whether a row exists.
     if (!response.ok) {
       console.error("[feedback] webhook rejected", response.status, row);
+      return NextResponse.json(
+        { error: "Could not record that just now. Please try again." },
+        { status: 502 }
+      );
+    }
+
+    const replied = await response.text();
+    let acknowledged = false;
+    try {
+      acknowledged = JSON.parse(replied)?.ok === true;
+    } catch {
+      acknowledged = false;
+    }
+    if (!acknowledged) {
+      console.error("[feedback] webhook did not confirm", replied.slice(0, 300), row);
       return NextResponse.json(
         { error: "Could not record that just now. Please try again." },
         { status: 502 }

@@ -49,6 +49,13 @@ const HEADERS = [
 // "3gADoivNR-U" as something to reformat, and the id you need is destroyed.
 const TEXT_COLUMNS = ['suggestedVideoId', 'currentVideoId', 'songId'];
 
+// A cell beginning with any of these is a formula, not a note. Reports come
+// from strangers, so a note reading =IMPORTXML("http://…","//a") would be
+// evaluated by the sheet on open — fetching a URL of their choosing under the
+// account that owns it. Everything written here is text, whatever it starts
+// with.
+const FORMULA_PREFIX = /^[=+\-@\t\r]/;
+
 function doPost(e) {
   try {
     if (!e || !e.postData || !e.postData.contents) {
@@ -72,7 +79,14 @@ function doPost(e) {
         if (value === undefined || value === null || value === '') {
           return '';
         }
-        return TEXT_COLUMNS.indexOf(key) === -1 ? value : "'" + value;
+        const text = String(value);
+        // A leading apostrophe is how Sheets is told "this is text". Applied to
+        // the id columns always, and to anything that would otherwise be read
+        // as a formula.
+        if (TEXT_COLUMNS.indexOf(key) !== -1 || FORMULA_PREFIX.test(text)) {
+          return "'" + text;
+        }
+        return text;
       })
     );
 

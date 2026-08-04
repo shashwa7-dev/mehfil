@@ -38,24 +38,47 @@ export type Report = {
  * it by hand later, so it is reduced to the id at the point of entry, where it
  * can also be checked.
  */
+/** Hosts a YouTube video can legitimately be linked from. */
+const YOUTUBE_HOSTS = new Set([
+  "youtube.com",
+  "www.youtube.com",
+  "m.youtube.com",
+  "music.youtube.com",
+  "youtube-nocookie.com",
+  "www.youtube-nocookie.com",
+  "youtu.be",
+  "www.youtu.be",
+]);
+
 export function youtubeId(input: string): string | null {
-  const url = (input || "").trim();
-  if (!url) return null;
+  const raw = (input || "").trim();
+  if (!raw) return null;
 
   // A bare id, pasted without the surrounding link.
-  if (/^[\w-]{11}$/.test(url)) return url;
+  if (/^[\w-]{11}$/.test(raw)) return raw;
 
-  const patterns = [
-    /[?&]v=([\w-]{11})/,        // watch?v=ID
-    /youtu\.be\/([\w-]{11})/,   // youtu.be/ID
-    /\/embed\/([\w-]{11})/,     // /embed/ID
-    /\/shorts\/([\w-]{11})/,    // /shorts/ID
-    /\/live\/([\w-]{11})/,      // /live/ID
-  ];
-  for (const pattern of patterns) {
-    const found = url.match(pattern);
-    if (found) return found[1];
+  // Parsed rather than pattern-matched, so the host is actually checked. A
+  // regex looking for "?v=" anywhere accepts https://evil.example.com/?v=ID —
+  // it finds a real-looking id in a URL pointing somewhere else entirely, and
+  // that URL is what gets stored and later opened. An exact host match also
+  // rejects youtube.com.attacker.net, which a substring test would not.
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    return null;
   }
+  if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+  if (!YOUTUBE_HOSTS.has(url.hostname.toLowerCase())) return null;
+
+  const fromQuery = url.searchParams.get("v");
+  if (fromQuery && /^[\w-]{11}$/.test(fromQuery)) return fromQuery;
+
+  // youtu.be/ID, /embed/ID, /shorts/ID, /live/ID — the id is the path segment.
+  const path = url.pathname.split("/").filter(Boolean);
+  const last = path[path.length - 1];
+  if (last && /^[\w-]{11}$/.test(last)) return last;
+
   return null;
 }
 
