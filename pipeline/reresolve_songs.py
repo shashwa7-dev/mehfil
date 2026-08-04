@@ -47,6 +47,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import store
 from match_videos import REJECT_RE, RANGE_RE, segments
 from titlematch import names_song, opens_with_song, fold
+from verify_embeddable import check as check_embeddable
 
 # A single recording. The lower bound cuts trailers and fragments, the upper
 # bound is generous enough for a qawwali or a classical piece while still
@@ -91,6 +92,8 @@ ESTABLISHED = (
 WORKERS = 5
 SEARCH_TIMEOUT = 90
 RESULTS = 8
+# How far down the ranking to keep trying when uploads refuse to embed.
+MAX_EMBED_CHECKS = 6
 
 
 def tier(channel):
@@ -215,7 +218,20 @@ def best_for(song):
     if not pool:
         return None
     pool.sort(key=lambda item: (-item[0], item[1]))
-    return pool[0]
+
+    # Being the best candidate is not enough — the player has to be allowed to
+    # show it. Many uploads disable embedding, Saregama's own among them, and
+    # accepting one produces a song that looks resolved and plays nothing. Walk
+    # down the ranking until one is actually embeddable.
+    for candidate in pool[:MAX_EMBED_CHECKS]:
+        if playable(candidate[2][0]):
+            return candidate
+    return None
+
+
+def playable(video_id):
+    """True only if YouTube will embed this id. None (unreachable) is not True."""
+    return check_embeddable(video_id)[1] == 1
 
 
 def load_targets(conn, mode, limit, ids_file=None):

@@ -41,6 +41,7 @@ from reresolve_songs import (
     MIN_SECONDS, MAX_SECONDS, TYPICAL, EXTRA_REJECT, WRONG_KIND, tier,
 )
 from fetch_video_meta import fetch_batch, BATCH
+from verify_embeddable import check as check_embeddable
 
 # Below this a title fragment matches too much to mean anything.
 MIN_KEY = 6
@@ -71,12 +72,17 @@ def current_state(conn):
 
 
 def needs_upgrade(song, current):
-    """Is the existing match worse than an official one would be?"""
+    """Only replace a match that is missing or actually faulty.
+
+    Preferring Saregama used to be reason enough to displace anything else,
+    which cost more than it bought: Saregama disables embedding on many of its
+    uploads, so "Aa Mere Humjoli Aa" was moved off a Rajshri video that played
+    to an official one that would not. A working, correct match is the goal;
+    where it came from is a tiebreaker for choosing between candidates, never a
+    fault in a match that already works.
+    """
     if current is None or not current["embeddable"]:
         return True
-    channel = f"{current['channel_id'] or ''} {current['channel_title'] or ''}"
-    if tier(channel) != 0:
-        return True  # not official: an official upload is preferable
     duration = current["duration"]
     if duration is not None and not MIN_SECONDS <= duration <= MAX_SECONDS:
         return True
@@ -174,6 +180,11 @@ def main(db_path, dry_run=False):
             continue
         if TYPICAL[0] <= duration <= TYPICAL[1]:
             confidence = min(confidence + 0.02, 0.98)
+        # Saregama disables embedding on a good many of its uploads. Taking one
+        # on trust is how a working song became a silent one.
+        if check_embeddable(video["video_id"])[1] != 1:
+            rejected += 1
+            continue
         applied += 1
         if applied <= 15:
             print(f"  {video['title'][:58]:<60} {duration//60}:{duration%60:02d}")
