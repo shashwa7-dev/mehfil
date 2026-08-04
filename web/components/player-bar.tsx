@@ -496,14 +496,17 @@ export function PlayerBar({
     [duration]
   );
 
+  // A faint disc appears under the icon on hover, so the secondary controls
+  // acknowledge the pointer without competing with the play button, which is
+  // the only one that carries a fill at rest.
   const iconButton =
-    "grid size-8 place-items-center rounded-full text-muted-foreground transition hover:text-foreground disabled:opacity-40 disabled:hover:text-muted-foreground";
+    "grid size-9 place-items-center rounded-full text-muted-foreground transition-all duration-200 hover:bg-white/[0.08] hover:text-foreground active:scale-90 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground";
 
   // Rendered in both the bar and the expanded view, so the controls are always
   // reachable. `large` scales it up for the full-screen layout.
   const transport = (large: boolean) => (
     <div className="flex w-full flex-col items-center gap-0.5">
-      <div className={`flex items-center ${large ? "gap-4" : "gap-2"}`}>
+      <div className={`flex items-center ${large ? "gap-4" : "gap-2.5"}`}>
         <button
           onClick={onToggleShuffle}
           title="Shuffle"
@@ -518,8 +521,11 @@ export function PlayerBar({
           onClick={toggle}
           disabled={!song || !ready}
           title={playing ? "Pause" : "Play"}
-          className={`grid place-items-center rounded-full bg-foreground text-background transition hover:scale-105 disabled:opacity-40 disabled:hover:scale-100 ${
-            large ? "size-12" : "size-9"
+          // The one filled control, so it carries the weight: a soft brass ring
+          // and a lift on hover rather than a flat disc. active:scale keeps the
+          // press physical instead of instantaneous.
+          className={`grid place-items-center rounded-full bg-foreground text-background shadow-[0_2px_10px_-2px_rgba(0,0,0,0.5)] ring-1 ring-primary/20 transition-all duration-200 hover:scale-105 hover:shadow-[0_4px_18px_-2px_rgba(214,168,84,0.45)] hover:ring-primary/40 active:scale-95 disabled:opacity-40 disabled:shadow-none disabled:hover:scale-100 ${
+            large ? "size-12" : "size-10"
           }`}
         >
           {loading ? (
