@@ -63,18 +63,21 @@ export function SongDetails({
         className="relative max-h-[85vh] w-full max-w-md overflow-hidden rounded-xl border border-white/10 bg-card shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
-        {/* The song's own artwork behind the credits, bled from the corner and
-            masked away before it reaches the text. Decorative: it gives the
-            panel the record's colour without becoming something to look at. */}
+        {/* The song's own artwork behind the credits, radiating out of the top
+            corner. A radial mask rather than a diagonal one: the fade then ends
+            at a constant distance from the corner in every direction, so it
+            reads as the corner glowing rather than as a rectangle dissolving.
+            The box is square so that distance really is constant — in an oblong
+            the circle stretches to an ellipse and the corner looks lopsided. */}
         <span
           aria-hidden
-          className="pointer-events-none absolute left-0 top-0 h-56 w-64 overflow-hidden [mask-image:linear-gradient(to_bottom_right,#000_0%,rgba(0,0,0,0.5)_45%,transparent_78%)] [-webkit-mask-image:linear-gradient(to_bottom_right,#000_0%,rgba(0,0,0,0.5)_45%,transparent_78%)]"
+          className="pointer-events-none absolute -left-8 -top-8 size-[150px] overflow-hidden [mask-image:radial-gradient(circle_at_top_left,#000_0%,#000_38%,transparent_72%)] [-webkit-mask-image:radial-gradient(circle_at_top_left,#000_0%,#000_38%,transparent_72%)]"
         >
           <img
             key={song.video}
             src={artwork(song.video, "hq")}
             alt=""
-            className="size-full object-cover opacity-25 saturate-[1.3]"
+            className="size-full object-cover opacity-[0.09] saturate-[1.3]"
           />
         </span>
 
