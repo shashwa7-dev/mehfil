@@ -150,15 +150,12 @@ function Scrubber({
   disabled,
   className = "",
   large = false,
-  edge = false,
 }: {
   value: number; // 0..1
   onCommit: (fraction: number) => void;
   disabled?: boolean;
   className?: string;
   large?: boolean;
-  /** Hairline across the bar's top edge, the way a player's progress reads. */
-  edge?: boolean;
 }) {
   const [dragging, setDragging] = useState(false);
   const [preview, setPreview] = useState(0);
@@ -188,47 +185,25 @@ function Scrubber({
           height is also the real hit target — the finger and cursor land here,
           not on the thin visible track. */}
       <SliderPrimitive.Control
+        // items-center matters: Base UI positions the thumb at `top: 50%` of
+        // this control as an inline style, so the track has to sit at the
+        // control's middle for the two to meet. No translate utility can
+        // correct a mismatch — Tailwind v4 compiles those to the `translate`
+        // property, which is the property Base UI sets inline, and inline wins.
         className={`group/scrub relative flex w-full cursor-pointer touch-none select-none items-center data-disabled:cursor-not-allowed data-disabled:opacity-50 ${
-          // Always items-center, including the edge variant. Base UI positions
-          // the thumb at `top: 50%` of this control as an inline style, so the
-          // only way to put the thumb on the track is to have the track sit at
-          // the control's middle. Pinning the track to the top instead left the
-          // thumb 4.5px below it, and no translate utility could correct that:
-          // Tailwind v4 compiles those to the `translate` property, which is
-          // the same property Base UI sets inline, and inline wins.
-          // Taller on a phone. Twelve pixels is a fine target for a cursor and
-          // not one for a fingertip, which is why seeking from the bar felt
-          // broken on touch while working on a desktop.
-          edge ? "h-5 md:h-3" : large ? "h-9" : "h-8"
+          large ? "h-9" : "h-8"
         }`}
       >
         <SliderPrimitive.Track
-          className={`relative w-full grow overflow-hidden rounded-full transition-all ${
-            edge
-              ? "h-[3px] bg-white/15 group-hover/scrub:h-[5px]"
-              : `bg-white/25 ${
-                  large ? "h-2 group-hover/scrub:h-2.5" : "h-1.5 group-hover/scrub:h-2"
-                }`
+          className={`relative w-full grow overflow-hidden rounded-full bg-white/25 transition-all ${
+            large ? "h-2 group-hover/scrub:h-2.5" : "h-1.5 group-hover/scrub:h-2"
           }`}
         >
-          <SliderPrimitive.Indicator
-            className={`h-full rounded-full transition-colors ${
-              edge ? "bg-primary" : "bg-foreground group-hover/scrub:bg-primary"
-            }`}
-          />
+          <SliderPrimitive.Indicator className="h-full rounded-full bg-foreground transition-colors group-hover/scrub:bg-primary" />
         </SliderPrimitive.Track>
         <SliderPrimitive.Thumb
-          className={`block shrink-0 cursor-grab rounded-full shadow transition-opacity after:absolute after:-inset-3 active:cursor-grabbing ${
-            edge
-              // No vertical offset of its own: Base UI centres it on the
-              // control, and the control now centres the track, so the two
-              // agree. Always visible on a phone — hiding it until hover means
-              // hiding it forever on touch, which left the progress bar looking
-              // like a decoration rather than something to drag. On a desktop
-              // it still waits to be pointed at, where a permanent dot on a
-              // hairline is clutter.
-              ? "size-3 bg-primary md:opacity-0 md:group-hover/scrub:opacity-100"
-              : `bg-foreground ${large ? "size-4" : "size-3.5"}`
+          className={`block shrink-0 cursor-grab rounded-full bg-foreground shadow transition-opacity after:absolute after:-inset-3 active:cursor-grabbing ${
+            large ? "size-4" : "size-3.5"
           }`}
         />
       </SliderPrimitive.Control>
@@ -700,62 +675,26 @@ export function PlayerBar({
         }
       >
         {/* Below md the stage covers the whole screen (see .video-stage); from
-            md it returns to a centred card, height-driven so a short viewport
+            md it is a plain 16:9 card, height-driven so a short viewport
             shrinks the video rather than pushing it into the text below.
-            clip-path rather than overflow-hidden, because border-radius alone
-            does not reliably clip a nested iframe in WebKit. */}
-        {/* From md the picture sits in a CRT cabinet. The set is a background
-            layer and the video is placed over its screen, because the screen in
-            the artwork is opaque — putting the video behind would hide it.
-            Percentages come from measuring the screen rectangle in the image,
-            so the two stay registered at any size.
-            Below md the video still covers the whole display: a cabinet around
-            a phone-sized picture would leave almost nothing to watch. */}
-        {/* The cabinet is sized by its own artwork rather than by a box the
-            artwork is fitted into. With object-contain the image letterboxes
-            inside whatever box it is given, so the moment a height or width
-            limit changed the box's aspect, the image no longer filled it — and
-            the screen percentages, which are measured against the box, pointed
-            somewhere the screen was not. That is what put the picture outside
-            the cabinet. Letting the image define the box makes the two
-            impossible to disagree. */}
-        {/* Height-driven: the cabinet takes the row's full height and derives
-            its width from the artwork's ratio, shrinking only when width is
-            the tighter constraint. Sizing it by the image's own width instead
-            left it small on a large screen with the spare height showing
-            underneath. */}
+
+            The CRT cabinet is gone. It was a picture the video had to be
+            registered against by measured percentages, which meant every change
+            to the surrounding box risked putting the two out of alignment —
+            and it spent most of a wide screen on furniture rather than on the
+            thing being watched. */}
         <div
           className={
             expanded
-              ? "video-stage absolute inset-0 bg-black md:relative md:inset-auto md:aspect-[768/484] md:h-full md:max-w-full md:bg-transparent md:leading-none"
+              ? "video-stage absolute inset-0 bg-black md:relative md:inset-auto md:aspect-video md:h-full md:max-h-full md:w-auto md:max-w-full md:overflow-hidden md:rounded-2xl md:bg-black md:shadow-2xl md:ring-1 md:ring-white/10"
               : "size-full"
           }
         >
-          {/* Stretched to the box rather than fitted inside it. object-contain
-              letterboxes when the two ratios differ, and the screen offsets
-              below are measured against the box — so any letterboxing puts
-              them off the artwork, which is what threw the picture outside the
-              cabinet before. Filling guarantees they agree; the ratio is
-              already pinned above, so there is nothing to distort.
-              Always mounted and hidden with CSS, because the player replaces
-              the host node below with an iframe and inserting or removing a
-              sibling beside it breaks reconciliation. */}
-          <img
-            src="/tv.png"
-            alt=""
-            aria-hidden
-            className={`pointer-events-none absolute inset-0 z-10 size-full ${
-              expanded ? "hidden md:block" : "hidden"
-            }`}
-          />
-          {/* The screen opening. Positioning and clipping live here, not on the
-              host below: the player replaces that node with an iframe and the
+          {/* Positioning and clipping live on this wrapper, not on the host
+              below: the player replaces that node with an iframe and the
               replacement keeps none of its classes, so anything set there is
-              destroyed the moment playback attaches — which is what let the
-              picture escape and fill the whole cabinet.
-              overflow-hidden is the backstop. Whatever size the iframe ends up,
-              it cannot paint outside the opening. */}
-          <div className="size-full overflow-hidden md:absolute md:left-[10.03%] md:top-[10.74%] md:h-[73.14%] md:w-[61.85%]">
+              destroyed the moment playback attaches. */}
+          <div className="size-full overflow-hidden">
             <div ref={hostRef} className="size-full" />
           </div>
         </div>
@@ -771,12 +710,14 @@ export function PlayerBar({
       )}
 
       {expanded && (
-        <div className="relative z-10 shrink-0 px-5 pb-[max(2rem,env(safe-area-inset-bottom))] pt-6">
-          <div className="mx-auto flex w-full max-w-4xl flex-col items-center gap-4">
+        <div className="relative z-10 shrink-0 px-5 pb-[max(2rem,env(safe-area-inset-bottom))] pt-7 md:pt-8">
+          <div className="mx-auto flex w-full max-w-2xl flex-col items-center gap-5">
             {song && (
               <div className="w-full text-center">
-                <h2 className="truncate text-2xl">{song.title}</h2>
-                <p className="truncate text-sm text-muted-foreground">
+                <h2 className="truncate text-2xl leading-tight md:text-3xl">
+                  {song.title}
+                </h2>
+                <p className="mt-1.5 truncate text-sm text-muted-foreground">
                   {song.artists.join(", ") || "Unknown artist"}
                   {song.film ? ` · ${song.film}` : ""}
                 </p>
@@ -841,34 +782,39 @@ export function PlayerBar({
         </div>
       )}
 
-      {/* Progress across the bar's own top edge, full width and full bleed.
-          Above the row rather than inside it, so nothing constrains its span. */}
-      {/* Pulled up by half the control less half the track, so the centred
-          track lands on the bar's top edge while the handle — centred on that
-          track — straddles it. The footer deliberately does not clip, or the
-          half above the edge would be cut away.
+      {/* Progress only, not a control. As a slider it never worked on touch —
+          a tap landed beside a target too small for a fingertip, and enlarging
+          it put half the target over the list above the bar. A bar this thin is
+          the wrong shape to seek with, so it reports position and nothing else;
+          seeking belongs to the full player, where the scrubber has room. The
+          whole strip opens that view, so a tap on it still leads somewhere
+          sensible rather than doing nothing.
 
-          Inset from lg, where the bar acquires a rounded corner: a track that
-          runs square-ended to the edge overhangs that curve, and the two shapes
-          visibly disagree. Inset by the radius it sits inside the corner
-          instead, and its own rounded ends finish it. */}
-      {/* The offset is half the control less half the track, so it has to
-          follow the control's height: 20px on a phone, 12px from md. */}
-      <div className="absolute inset-x-0 -top-[8.5px] z-30 md:-top-[4.5px] lg:inset-x-2">
-        <Scrubber
-          value={duration > 0 ? elapsed / duration : 0}
-          onCommit={seek}
-          disabled={!song || duration <= 0}
-          className="w-full"
-          edge
-        />
-      </div>
+          Inset from lg, where the bar takes a rounded corner and a square-ended
+          bar would overhang the curve. */}
+      <button
+        onClick={() => setExpanded(true)}
+        title="Open the full player"
+        aria-label="Open the full player"
+        className="group/prog absolute inset-x-0 top-0 z-30 h-2.5 lg:inset-x-2"
+      >
+        <span className="absolute inset-x-0 top-0 h-[3px] overflow-hidden rounded-full bg-white/15 transition-all group-hover/prog:h-[5px]">
+          <span
+            className="block h-full rounded-full bg-primary transition-[width] duration-300 ease-linear"
+            style={{ width: `${duration > 0 ? (elapsed / duration) * 100 : 0}%` }}
+          />
+        </span>
+      </button>
 
       {/* 1fr on both sides and a fixed centre, so the now-playing block sits in
           the middle of the *bar* rather than the middle of whatever space the
           controls leave over. With a flexible centre column the thumbnail slid
           left and right as titles changed length, which is the jumping. */}
-      <div className="relative grid grid-cols-[1fr_auto] items-center gap-2 py-2 pl-0 pr-2 md:grid-cols-[1fr_auto_1fr] md:gap-4 md:px-4 md:py-3">
+      {/* Top padding clears the scrubber, which is absolutely positioned and so
+          takes no space of its own: on a phone it occupies the first 20px
+          inside the bar, leaving the controls sitting right under the line.
+          Asymmetric on purpose, since the room is needed above and not below. */}
+      <div className="relative grid grid-cols-[1fr_auto] items-center gap-2 pb-2 pl-0 pr-2 pt-6 md:grid-cols-[1fr_auto_1fr] md:gap-4 md:px-4 md:pb-3 md:pt-4">
         {/* Transport, at the left edge where the hand goes first. Desktop
             only: the phone puts the title first and the controls after it. */}
         <div className="hidden items-center gap-0.5 md:flex md:gap-1">
