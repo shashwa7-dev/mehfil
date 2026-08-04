@@ -196,7 +196,10 @@ function Scrubber({
           // thumb 4.5px below it, and no translate utility could correct that:
           // Tailwind v4 compiles those to the `translate` property, which is
           // the same property Base UI sets inline, and inline wins.
-          edge ? "h-3" : large ? "h-9" : "h-8"
+          // Taller on a phone. Twelve pixels is a fine target for a cursor and
+          // not one for a fingertip, which is why seeking from the bar felt
+          // broken on touch while working on a desktop.
+          edge ? "h-5 md:h-3" : large ? "h-9" : "h-8"
         }`}
       >
         <SliderPrimitive.Track
@@ -219,9 +222,12 @@ function Scrubber({
             edge
               // No vertical offset of its own: Base UI centres it on the
               // control, and the control now centres the track, so the two
-              // agree. Hidden until pointed at, since a permanent dot on a
+              // agree. Always visible on a phone — hiding it until hover means
+              // hiding it forever on touch, which left the progress bar looking
+              // like a decoration rather than something to drag. On a desktop
+              // it still waits to be pointed at, where a permanent dot on a
               // hairline is clutter.
-              ? "size-3 bg-primary opacity-0 group-hover/scrub:opacity-100"
+              ? "size-3 bg-primary md:opacity-0 md:group-hover/scrub:opacity-100"
               : `bg-foreground ${large ? "size-4" : "size-3.5"}`
           }`}
         />
@@ -846,7 +852,9 @@ export function PlayerBar({
           runs square-ended to the edge overhangs that curve, and the two shapes
           visibly disagree. Inset by the radius it sits inside the corner
           instead, and its own rounded ends finish it. */}
-      <div className="absolute inset-x-0 -top-[4.5px] z-30 lg:inset-x-2">
+      {/* The offset is half the control less half the track, so it has to
+          follow the control's height: 20px on a phone, 12px from md. */}
+      <div className="absolute inset-x-0 -top-[8.5px] z-30 md:-top-[4.5px] lg:inset-x-2">
         <Scrubber
           value={duration > 0 ? elapsed / duration : 0}
           onCommit={seek}
