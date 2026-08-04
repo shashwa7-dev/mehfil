@@ -32,7 +32,10 @@ import { QueuePanel } from "@/components/queue-panel";
 type YTPlayer = {
   playVideo(): void;
   pauseVideo(): void;
-  loadVideoById(id: string): void;
+  loadVideoById(
+    id: string | { videoId: string; suggestedQuality?: string }
+  ): void;
+  setPlaybackQuality?(quality: string): void;
   getCurrentTime(): number;
   getDuration(): number;
   seekTo(seconds: number, allowSeekAhead: boolean): void;
@@ -83,6 +86,20 @@ const STALL_MS = 15000;
 
 // Travel before a drag counts as a swipe rather than a tap.
 const SWIPE_THRESHOLD = 60;
+
+/**
+ * Quality asked for on every load. "large" is 480p.
+ *
+ * This is a music player: the picture is incidental and the audio is identical
+ * at every rung, so a higher one buys nothing and costs buffering — which is
+ * felt most when a track ends and the next has to start without anybody having
+ * touched the page.
+ *
+ * A request, not a setting. YouTube has ignored playback-quality control since
+ * 2019 and picks by bandwidth and player size, so this nudges the initial
+ * choice and cannot pin it.
+ */
+const SUGGESTED_QUALITY = "large";
 
 /**
  * Vertical swipe detection.
@@ -340,7 +357,10 @@ export function PlayerBar({
           if (songRef.current?.id !== failed.id) return;
           setFailure(null);
           setLoading(true);
-          playerRef.current?.loadVideoById(failed.video);
+          playerRef.current?.loadVideoById({
+            videoId: failed.video,
+            suggestedQuality: SUGGESTED_QUALITY,
+          });
         }, delay);
         return;
       }
@@ -377,14 +397,24 @@ export function PlayerBar({
         width: "100%",
         playerVars: { autoplay: 0, controls: 0, rel: 0, playsinline: 1 },
         events: {
-          onReady: () => setReady(true),
+          onReady: () => {
+            // Ignored by the player more often than not, but free to ask and
+            // it does take effect on some clients.
+            playerRef.current?.setPlaybackQuality?.(SUGGESTED_QUALITY);
+            setReady(true);
+          },
           onStateChange: (event: { data: number }) => {
             const state = window.YT!.PlayerState;
-            if (event.data === state.ENDED) endedRef.current();
 
             const isPlaying = event.data === state.PLAYING;
             setPlaying(isPlaying);
             playingRef.current(isPlaying);
+
+            // Advancing happens after the state is reported, not before. Run
+            // first, its play() set the provider playing while the lines below
+            // immediately set it back to false for the track that had just
+            // ended — the new song inherited the outgoing one's state.
+            if (event.data === state.ENDED) endedRef.current();
 
             // Buffering and unstarted both mean "not audible yet". Anything
             // else means the load resolved one way or the other.
@@ -414,12 +444,27 @@ export function PlayerBar({
     if (retryTimerRef.current) window.clearTimeout(retryTimerRef.current);
     attemptsRef.current = 1;
     setRetrying(0);
-    playerRef.current.loadVideoById(song.video);
+    playerRef.current.loadVideoById({
+      videoId: song.video,
+      suggestedQuality: SUGGESTED_QUALITY,
+    });
+    // loadVideoById is documented to start playback, and mostly does. After a
+    // track ends it sometimes loads and waits instead, which reads as the queue
+    // stopping — the next song is cued, the bar shows it, and nothing plays
+    // until Next is pressed, which does no more than this line. Asking costs
+    // nothing when it was going to play anyway.
+    playerRef.current.playVideo();
     setElapsed(0);
     setDuration(0);
     setFailure(null);
     setLoading(true);
-  }, [ready, song?.video]);
+    // Keyed on the song as well as the video. Seventeen videos legitimately
+    // serve two catalogue entries — the songlist repeats a title across
+    // stations — and advancing between two of those changes the song without
+    // changing the video, so keying on the video alone left the queue sitting
+    // there having loaded nothing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, song?.id, song?.video]);
 
   /**
    * Re-issue the very first load if nothing has started.
@@ -441,7 +486,10 @@ export function PlayerBar({
         return;
       }
       nudgedRef.current = true;
-      player.loadVideoById(song.video);
+      player.loadVideoById({
+        videoId: song.video,
+        suggestedQuality: SUGGESTED_QUALITY,
+      });
       player.playVideo();
     }, 2500);
     return () => window.clearTimeout(timer);
@@ -613,11 +661,21 @@ export function PlayerBar({
           gives the same bloom for nothing — no pixel access, no timers. */}
       {expanded && ambient && song && (
         <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+          {/* Blurred small and then scaled up, rather than blurred at full
+              size. A 100px blur across a full-screen element is a filter over
+              two million pixels every frame it is composited; the same look
+              comes from blurring a 320px square and scaling it, which is a
+              fraction of the work and indistinguishable once out of focus.
+
+              No key, so changing songs swaps the src on one element instead of
+              tearing down an image and mounting another — the old frame stays
+              up until the new one has decoded, rather than leaving a gap. And
+              the source is the small thumbnail: it is about to be destroyed by
+              a blur, so the larger one only costs decode time. */}
           <img
-            key={song.video}
-            src={artwork(song.video, "hq")}
+            src={artwork(song.video)}
             alt=""
-            className="absolute left-1/2 top-1/2 h-[135%] w-[135%] -translate-x-1/2 -translate-y-1/2 object-cover opacity-60 blur-[100px] saturate-[1.8] transition-opacity duration-700"
+            className="absolute left-1/2 top-1/2 size-80 -translate-x-1/2 -translate-y-1/2 scale-[4] object-cover opacity-60 blur-2xl saturate-[1.8] transition-opacity duration-700"
           />
           {/* Keeps text legible over whatever the artwork happens to be, while
               leaving the middle open so the video sits inside its own glow. */}
@@ -823,11 +881,12 @@ export function PlayerBar({
           aria-hidden
           className="pointer-events-none absolute inset-0 overflow-hidden lg:rounded-lg"
         >
+          {/* Same reasoning as the expanded wash: small source, no key, and
+              the blur kept off a full-width element. */}
           <img
-            key={song.video}
-            src={artwork(song.video, "hq")}
+            src={artwork(song.video)}
             alt=""
-            className="size-full object-cover opacity-40 blur-3xl saturate-[1.6] transition-opacity duration-700"
+            className="size-full object-cover opacity-40 blur-2xl saturate-[1.6] transition-opacity duration-700"
           />
           <div className="absolute inset-0 bg-card/70" />
         </div>

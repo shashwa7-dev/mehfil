@@ -16,11 +16,26 @@
  *                    first would strand installed users on a stale catalogue
  *                    with no way to recover.
  *
- * The cache is also wiped on activation, so a new worker never inherits
- * entries written by an older one.
+ * Caches are named for the build, and every other build's cache is dropped on
+ * activation, so a new worker never inherits entries written by an older one.
+ *
+ * The worker is registered at /sw.js?v=<build> for that to work at all: a
+ * service worker is only replaced when its own bytes change, and this file is
+ * static. Without the query the browser found no difference between deploys,
+ * never installed a new worker, and so never ran the activation that clears
+ * anything — leaving installed apps on a complete, working, stale build.
  */
 
-const CACHE = "mehfil";
+/**
+ * Cache named for the build that created it.
+ *
+ * The worker is registered as /sw.js?v=<build>, so this script's own URL
+ * carries the version. That gives two things: the browser sees a different
+ * worker on every deploy and therefore actually installs one, and each build's
+ * entries are segregated rather than sharing a name across versions.
+ */
+const VERSION = new URL(self.location.href).searchParams.get("v") || "dev";
+const CACHE = `mehfil-${VERSION}`;
 const IMMUTABLE = /^\/_next\/static\//;
 
 self.addEventListener("install", () => {
@@ -32,9 +47,19 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+      // Every cache but this build's. Dropping ours too would throw away
+      // entries this worker has just been serving from.
+      .then((keys) =>
+        Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key)))
+      )
       .then(() => self.clients.claim())
   );
+});
+
+// A waiting worker can be told to take over. skipWaiting on install already
+// does this, so it is a backstop for the case where one is left waiting.
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("fetch", (event) => {

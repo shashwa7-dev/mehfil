@@ -209,7 +209,13 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
                 </button>
               )}
 
-              <Sheet>
+              {/* Keyed on the route, and otherwise uncontrolled. Navigating
+                  changes the key, React discards this Sheet and mounts a fresh
+                  one, and a fresh one is closed — so following a link closes
+                  the drawer without anything here having to drive its open
+                  state. Driving it was the previous attempt and it stopped the
+                  trigger opening at all. */}
+              <Sheet key={pathname}>
                 <SheetTrigger
                   render={
                     <button

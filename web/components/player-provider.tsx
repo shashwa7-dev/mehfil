@@ -99,7 +99,14 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       const queue = queueRef.current;
       if (queue.length === 0) return;
       if (shuffle && delta > 0) {
-        play(queue[Math.floor(Math.random() * queue.length)].id);
+        // Anything but the song already playing. Picking it again sets
+        // currentId to the value it already holds, which changes nothing, so
+        // the load effect never runs: the player stops while the bar goes on
+        // showing it as playing. Shuffling onto the current track would be
+        // wrong even if it did work.
+        const elsewhere = queue.filter((s) => s.id !== currentId);
+        const pool = elsewhere.length > 0 ? elsewhere : queue;
+        play(pool[Math.floor(Math.random() * pool.length)].id);
         return;
       }
       const at = queue.findIndex((s) => s.id === currentId);
