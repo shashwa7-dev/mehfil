@@ -914,12 +914,16 @@ export function PlayerBar({
               tile with the title beside it. From md it goes back to a tile: the
               transport occupies that edge there, and the two cannot both have
               it. Padding on the button keeps the text clear of the bleed. */}
-          <span className="pointer-events-none absolute inset-y-0 left-0 w-[4.75rem] overflow-hidden [mask-image:linear-gradient(to_right,#000_0%,#000_55%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,#000_0%,#000_55%,transparent_100%)] md:hidden">
+          <span className="pointer-events-none absolute inset-y-0 left-0 w-[4.75rem] overflow-hidden [mask-image:linear-gradient(to_right,#000_0%,rgba(0,0,0,0.75)_30%,transparent_88%)] [-webkit-mask-image:linear-gradient(to_right,#000_0%,rgba(0,0,0,0.75)_30%,transparent_88%)] md:hidden">
+            {/* The fade begins early and the picture is held back, because the
+                title crosses it. Two gentle reductions rather than one steep
+                one: a hard edge in the mask is as visible as the artwork it was
+                meant to hide. */}
             <img
               src={artwork(song.video)}
               alt=""
               loading="lazy"
-              className="size-full object-cover"
+              className="size-full object-cover opacity-70"
             />
           </span>
 
