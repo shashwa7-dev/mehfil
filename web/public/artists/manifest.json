@@ -83,13 +83,6 @@
   "author": "Unknown authorUnknown author",
   "source": "https://commons.wikimedia.org/wiki/File:LeelaChitnis.jpg"
  },
- "Lata mangeshkar": {
-  "file": "lata-mangeshkar.jpg",
-  "qid": "Q156347",
-  "license": "CC BY 3.0",
-  "author": "Bollywood Hungama",
-  "source": "https://commons.wikimedia.org/wiki/File:Lata_Mangeshkar_-_still_29065_crop.jpg"
- },
  "Sahir Ludhianvi": {
   "file": "sahir-ludhianvi.jpg",
   "qid": "Q1102757",
@@ -1740,7 +1733,6 @@
   "width": 300,
   "height": 350
  },
- "Various Artists(Dialogue)": null,
  "Various Artists (Dialogue)": null,
  "Vandana Shastri": {
   "file": "vandana-shastri.jpg",
@@ -2219,15 +2211,6 @@
   "image": "https://www.mohammadayaz.com/_next/image?url=%2Fprofile%2FWhatsApp%20Image%202026-01-22%20at%2011.47.46%20(2).jpeg&w=2048&q=75",
   "width": 1574,
   "height": 1600
- },
- "Moha mmed Rafi": {
-  "file": "moha-mmed-rafi.jpg",
-  "provenance": "web",
-  "query": "Moha mmed Rafi Hindi film playback singer",
-  "page": "https://www.tallengestore.com/products/mohammad-rafi-legendary-indian-playback-singer-poster-4-posters",
-  "image": "https://cdn.shopify.com/s/files/1/0969/9128/products/MohammadRafi-LegendaryIndianPlaybackSinger-Poster4_0742db86-e06f-4814-9e64-72996d8d47ac.jpg?v=1627651758",
-  "width": 1100,
-  "height": 1552
  },
  "Master Ravi": {
   "file": "master-ravi.jpg",
