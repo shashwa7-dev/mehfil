@@ -20,7 +20,12 @@ Three things make that harder than a substring test, none of them errors:
   song name. "Aaj Unse Pehli Mulaqat" is a correct title for "Aaj Unse Pehli
   Mulaqat Hogi", so a solid prefix counts as present.
 
-What survives all three and still does not match is a genuinely different song.
+Comparison is word by word rather than over a flattened string. Folding is
+lossy by design — it has to be, to make two spellings meet — and on a short
+title it can leave very little: "Aa Aa Bhi Ja" reduces to "abhija", six
+characters that duly turned up inside "Mer-a Bhi Ja-gjit" and replaced a
+correct match with a Jagjit Singh ghazal. Words keep the boundaries that make
+a short name mean something.
 """
 
 import difflib
@@ -38,7 +43,7 @@ DEVANAGARI = {
     'ष': 'sh', 'स': 's', 'ह': 'h', 'ळ': 'l',
     'क़': 'k', 'ख़': 'kh', 'ग़': 'g', 'ज़': 'z', 'ड़': 'r', 'ढ़': 'rh', 'फ़': 'f',
     'अ': 'a', 'आ': 'aa', 'इ': 'i', 'ई': 'ee', 'उ': 'u', 'ऊ': 'oo',
-    'ए': 'e', 'ऐ': 'ai', 'ओ': 'o', 'औ': 'au',
+    'ए': 'e', 'ऐ': 'ai', 'ओ': 'o', 'औ': 'au', 'ॐ': 'om',
     'ा': 'aa', 'ि': 'i', 'ी': 'ee', 'ु': 'u', 'ू': 'oo',
     'े': 'e', 'ै': 'ai', 'ो': 'o', 'ौ': 'au',
     'ं': 'n', 'ँ': 'n', 'ः': 'h', 'ृ': 'ri', '्': '', '़': '',
@@ -50,9 +55,14 @@ FOLD = (
     ('q', 'k'), ('w', 'v'), ('y', 'i'), ('z', 'j'), ('ph', 'f'),
 )
 
-MIN_RATIO = 0.80
-# Below this a "prefix" is too short to mean anything.
-MIN_PROBE = 10
+WORD_RATIO = 0.75
+# Comparing a whole run at once, spacing removed; needs to be tighter than the
+# per-word ratio because there is more text for coincidence to hide in.
+JOINED_RATIO = 0.86
+# A song named in one or two words gives so little to match on that a prefix of
+# it is meaningless; those must match in full.
+MIN_PREFIX_WORDS = 3
+SPLIT = re.compile(r'[^0-9A-Za-zऀ-ॿ]+')
 
 
 def fold(text):
@@ -65,41 +75,95 @@ def fold(text):
     return re.sub(r'(.)\1+', r'\1', folded)
 
 
-def opens_with_song(song_title, video_title, threshold=MIN_RATIO):
+def tokens(text):
+    """Folded words, in order. Empty folds (stray punctuation) are dropped."""
+    return [f for f in (fold(word) for word in SPLIT.split(text or '')) if f]
+
+
+def _skeleton(word):
+    return re.sub(r'[aeiou]', '', word)
+
+
+def _same_word(want, got):
+    if want == got:
+        return True
+
+    # Devanagari does not write the inherent vowel, so हद transliterates to
+    # "hd" against a romanised "had", and में to "men" against "mein". The
+    # consonants are what survive both scripts intact; two or more of them
+    # agreeing is a real match, one is a coincidence waiting to happen.
+    skeletons = (_skeleton(want), _skeleton(got))
+    if skeletons[0] == skeletons[1] and len(skeletons[0]) >= 2:
+        return True
+
+    # Short words are mostly vowels once folded; a fuzzy ratio over two or
+    # three characters says almost nothing, so they must match exactly.
+    if min(len(want), len(got)) <= 3:
+        return False
+    return difflib.SequenceMatcher(None, want, got).ratio() >= WORD_RATIO
+
+
+def _run_at(probe, hay, start):
+    """Match probe against hay[start:], allowing the two to word-break apart.
+
+    Where a name is divided is not information. "Aap Ke Haseen Rukh Pe" and
+    "Aapke Haseen Rukh Pe" are the same title, as are "Jan E Man" and "Janeman",
+    so a word-for-word comparison rejects correct matches. Joining both sides
+    and comparing the run is indifferent to internal spacing — while still
+    starting and ending on a word boundary, which is the part that matters: it
+    is what stops "abhija" from being found inside "Mer-a Bhi Ja-gjit".
+    """
+    if all(_same_word(probe[i], hay[start + i]) for i in range(len(probe))
+           if start + i < len(hay)) and start + len(probe) <= len(hay):
+        return True
+
+    want = ''.join(probe)
+    joined = ''
+    for index in range(start, len(hay)):
+        joined += hay[index]
+        if len(joined) > len(want) + 2:
+            return False
+        if joined == want:
+            return True
+        if len(joined) >= len(want) - 2 and \
+                difflib.SequenceMatcher(None, want, joined).ratio() >= JOINED_RATIO:
+            return True
+    return False
+
+
+def _probes(song_tokens):
+    """The full name, then a leading part of it for truncated video titles."""
+    yield song_tokens
+    if len(song_tokens) > MIN_PREFIX_WORDS:
+        cut = max(MIN_PREFIX_WORDS, int(len(song_tokens) * 0.65))
+        if cut < len(song_tokens):
+            yield song_tokens[:cut]
+
+
+def names_song(song_title, video_title):
+    """True when the video title names this song anywhere in it."""
+    want, hay = tokens(song_title), tokens(video_title)
+    if not want or not hay:
+        return False
+    for probe in _probes(want):
+        # Every start, not just those with room for one video word per song
+        # word: a joined title spends fewer words on the same name.
+        for start in range(len(hay)):
+            if _run_at(probe, hay, start):
+                return True
+    return False
+
+
+def opens_with_song(song_title, video_title):
     """True when the video title *begins* with the song's name.
 
     Needed where merely containing the name proves nothing. A title song shares
     its name with its film, so every upload from that film carries it somewhere:
     "Din Jawani Ke Char Yaar - Pyar Kiye Jaa 1966" contains "Pyar Kiye Ja" and is
     a different song, while "Love In Tokyo - Mohammed Rafi" opens with it and is
-    the right one. Splitting on separators is not enough — the deciding case has
-    none.
+    the right one.
     """
-    want, hay = fold(song_title), fold(video_title)
+    want, hay = tokens(song_title), tokens(video_title)
     if not want or not hay:
         return False
-    head = hay[:len(want)]
-    if head == want:
-        return True
-    return difflib.SequenceMatcher(None, want, head).ratio() >= threshold
-
-
-def names_song(song_title, video_title, threshold=MIN_RATIO):
-    """True when the video title plausibly names this song."""
-    want, hay = fold(song_title), fold(video_title)
-    if not want or not hay:
-        return False
-
-    probes = [want]
-    if len(want) > 12:
-        probes.append(want[:max(MIN_PROBE, int(len(want) * 0.65))])
-
-    for probe in probes:
-        if probe in hay:
-            return True
-        width = len(probe)
-        for start in range(0, max(1, len(hay) - width + 1)):
-            window = hay[start:start + width]
-            if difflib.SequenceMatcher(None, probe, window).ratio() >= threshold:
-                return True
-    return False
+    return any(_run_at(probe, hay, 0) for probe in _probes(want))

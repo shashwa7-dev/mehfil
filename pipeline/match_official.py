@@ -35,7 +35,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import store
-from titlematch import fold, names_song
+from titlematch import fold, names_song, opens_with_song
 from match_videos import REJECT_RE, RANGE_RE
 from reresolve_songs import (
     MIN_SECONDS, MAX_SECONDS, TYPICAL, EXTRA_REJECT, WRONG_KIND, tier,
@@ -108,10 +108,21 @@ def main(db_path, dry_run=False):
             continue
 
         film_key = store.normalise(song["film"] or "")
+        title_song = fold(song["title"])[:10] == fold(song["film"] or "")[:10]
         for folded, video in corpus:
+            # Cheap reject first, then the real test. The substring alone is not
+            # the test: folding is lossy, so "Aa Aa Bhi Ja" reduces to "abhija"
+            # and turned up inside "Mer-a Bhi Ja-gjit", replacing a correct match
+            # with an unrelated ghazal. names_song compares whole words.
             if key not in folded:
                 continue
             title = video["title"]
+            if not names_song(song["title"], title):
+                continue
+            # A title song shares its name with its film, so every upload from
+            # that film contains it; it has to lead the title to mean this song.
+            if title_song and not opens_with_song(song["title"], title):
+                continue
             if REJECT_RE.search(title) or RANGE_RE.search(title) \
                     or EXTRA_REJECT.search(title):
                 continue
