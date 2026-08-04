@@ -212,14 +212,15 @@ function Scrubber({
         <SliderPrimitive.Thumb
           className={`block shrink-0 cursor-grab rounded-full shadow transition-opacity after:absolute after:-inset-3 active:cursor-grabbing ${
             edge
-              // The control is 12px tall with the track pinned to its top, so a
-              // 12px thumb aligned to the start has its centre 6px down while
-              // the 3px track's centre is at 1.5px: 4.5px up would sit it on
-              // the line, and half again lifts it to straddle the line rather
-              // than rest on it. Hover thickens the track to 5px, so its offset
-              // is a pixel less. Hidden until pointed at — a permanent dot on a
-              // hairline is clutter, but it has to exist to be grabbed.
-              ? "size-3 -translate-y-[6.75px] bg-primary opacity-0 group-hover/scrub:-translate-y-[5.75px] group-hover/scrub:opacity-100"
+              // Centred on the line, half above and half below, which is what
+              // it should always have been — it only looked low because the
+              // footer was clipping the half above. The control is 12px tall
+              // with the track pinned to its top, so a 12px thumb aligned to
+              // the start has its centre 6px down while the 3px track's centre
+              // is at 1.5px: hence 4.5px up, and a pixel less on hover where
+              // the track thickens to 5px. Hidden until pointed at, since a
+              // permanent dot on a hairline is clutter.
+              ? "size-3 -translate-y-[4.5px] bg-primary opacity-0 group-hover/scrub:-translate-y-[3.5px] group-hover/scrub:opacity-100"
               : `bg-foreground ${large ? "size-4" : "size-3.5"}`
           }`}
         />
