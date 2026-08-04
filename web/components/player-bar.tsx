@@ -32,7 +32,10 @@ import { QueuePanel } from "@/components/queue-panel";
 type YTPlayer = {
   playVideo(): void;
   pauseVideo(): void;
-  loadVideoById(id: string): void;
+  loadVideoById(
+    id: string | { videoId: string; suggestedQuality?: string }
+  ): void;
+  setPlaybackQuality?(quality: string): void;
   getCurrentTime(): number;
   getDuration(): number;
   seekTo(seconds: number, allowSeekAhead: boolean): void;
@@ -83,6 +86,20 @@ const STALL_MS = 15000;
 
 // Travel before a drag counts as a swipe rather than a tap.
 const SWIPE_THRESHOLD = 60;
+
+/**
+ * Quality asked for on every load. "large" is 480p.
+ *
+ * This is a music player: the picture is incidental and the audio is identical
+ * at every rung, so a higher one buys nothing and costs buffering — which is
+ * felt most when a track ends and the next has to start without anybody having
+ * touched the page.
+ *
+ * A request, not a setting. YouTube has ignored playback-quality control since
+ * 2019 and picks by bandwidth and player size, so this nudges the initial
+ * choice and cannot pin it.
+ */
+const SUGGESTED_QUALITY = "large";
 
 /**
  * Vertical swipe detection.
@@ -340,7 +357,10 @@ export function PlayerBar({
           if (songRef.current?.id !== failed.id) return;
           setFailure(null);
           setLoading(true);
-          playerRef.current?.loadVideoById(failed.video);
+          playerRef.current?.loadVideoById({
+            videoId: failed.video,
+            suggestedQuality: SUGGESTED_QUALITY,
+          });
         }, delay);
         return;
       }
@@ -377,7 +397,12 @@ export function PlayerBar({
         width: "100%",
         playerVars: { autoplay: 0, controls: 0, rel: 0, playsinline: 1 },
         events: {
-          onReady: () => setReady(true),
+          onReady: () => {
+            // Ignored by the player more often than not, but free to ask and
+            // it does take effect on some clients.
+            playerRef.current?.setPlaybackQuality?.(SUGGESTED_QUALITY);
+            setReady(true);
+          },
           onStateChange: (event: { data: number }) => {
             const state = window.YT!.PlayerState;
 
@@ -419,7 +444,10 @@ export function PlayerBar({
     if (retryTimerRef.current) window.clearTimeout(retryTimerRef.current);
     attemptsRef.current = 1;
     setRetrying(0);
-    playerRef.current.loadVideoById(song.video);
+    playerRef.current.loadVideoById({
+      videoId: song.video,
+      suggestedQuality: SUGGESTED_QUALITY,
+    });
     // loadVideoById is documented to start playback, and mostly does. After a
     // track ends it sometimes loads and waits instead, which reads as the queue
     // stopping — the next song is cued, the bar shows it, and nothing plays
@@ -458,7 +486,10 @@ export function PlayerBar({
         return;
       }
       nudgedRef.current = true;
-      player.loadVideoById(song.video);
+      player.loadVideoById({
+        videoId: song.video,
+        suggestedQuality: SUGGESTED_QUALITY,
+      });
       player.playVideo();
     }, 2500);
     return () => window.clearTimeout(timer);
