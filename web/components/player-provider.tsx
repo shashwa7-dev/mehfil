@@ -94,50 +94,31 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     [play, setQueue]
   );
 
-  /**
-   * Play a song from the start, even if it is the one already loaded.
-   *
-   * setCurrentId with the value it already holds changes nothing, so the load
-   * effect never runs and the player sits where it stopped. Clearing first
-   * makes the id genuinely change, which is what re-triggers the load.
-   */
-  const restart = useCallback((id: number) => {
-    setCurrentId(null);
-    setPlaying(true);
-    window.setTimeout(() => setCurrentId(id), 0);
-  }, []);
-
   const step = useCallback(
     (delta: number) => {
       const queue = queueRef.current;
       if (queue.length === 0) return;
-      const target =
-        shuffle && delta > 0
-          ? queue[Math.floor(Math.random() * queue.length)]
-          : queue[
-              (queue.findIndex((s) => s.id === currentId) + delta + queue.length) %
-                queue.length
-            ] ?? queue[0];
-
-      // Landing on the song already playing is not a no-op, it is a restart.
-      // A queue of one wraps to itself, and shuffle can pick the same track;
-      // both used to leave the player stopped while the bar showed it playing.
-      if (target.id === currentId) {
-        restart(target.id);
+      if (shuffle && delta > 0) {
+        play(queue[Math.floor(Math.random() * queue.length)].id);
         return;
       }
-      play(target.id);
+      const at = queue.findIndex((s) => s.id === currentId);
+      const next = queue[(at + delta + queue.length) % queue.length] ?? queue[0];
+      play(next.id);
     },
-    [currentId, play, restart, shuffle]
+    [currentId, play, shuffle]
   );
 
   const onEnded = useCallback(() => {
     if (repeat && currentId !== null) {
-      restart(currentId);
+      // Clearing then restoring re-triggers the load effect for the same id.
+      const id = currentId;
+      setCurrentId(null);
+      window.setTimeout(() => setCurrentId(id), 0);
       return;
     }
     step(1);
-  }, [repeat, currentId, restart, step]);
+  }, [repeat, currentId, step]);
 
   const handleUnplayable = useCallback(
     (songId: number, reason: string) => {
