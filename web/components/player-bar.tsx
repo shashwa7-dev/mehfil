@@ -186,10 +186,15 @@ function Scrubber({
           height is also the real hit target — the finger and cursor land here,
           not on the thin visible track. */}
       <SliderPrimitive.Control
-        className={`group/scrub relative flex w-full cursor-pointer touch-none select-none data-disabled:cursor-not-allowed data-disabled:opacity-50 ${
-          // The edge variant hugs the top of its hit area, so the visible line
-          // sits on the bar's border while the grab target extends below it.
-          edge ? "h-3 items-start" : `items-center ${large ? "h-9" : "h-8"}`
+        className={`group/scrub relative flex w-full cursor-pointer touch-none select-none items-center data-disabled:cursor-not-allowed data-disabled:opacity-50 ${
+          // Always items-center, including the edge variant. Base UI positions
+          // the thumb at `top: 50%` of this control as an inline style, so the
+          // only way to put the thumb on the track is to have the track sit at
+          // the control's middle. Pinning the track to the top instead left the
+          // thumb 4.5px below it, and no translate utility could correct that:
+          // Tailwind v4 compiles those to the `translate` property, which is
+          // the same property Base UI sets inline, and inline wins.
+          edge ? "h-3" : large ? "h-9" : "h-8"
         }`}
       >
         <SliderPrimitive.Track
@@ -212,15 +217,11 @@ function Scrubber({
         <SliderPrimitive.Thumb
           className={`block shrink-0 cursor-grab rounded-full shadow transition-opacity after:absolute after:-inset-3 active:cursor-grabbing ${
             edge
-              // Centred on the line, half above and half below, which is what
-              // it should always have been — it only looked low because the
-              // footer was clipping the half above. The control is 12px tall
-              // with the track pinned to its top, so a 12px thumb aligned to
-              // the start has its centre 6px down while the 3px track's centre
-              // is at 1.5px: hence 4.5px up, and a pixel less on hover where
-              // the track thickens to 5px. Hidden until pointed at, since a
-              // permanent dot on a hairline is clutter.
-              ? "size-3 -translate-y-[4.5px] bg-primary opacity-0 group-hover/scrub:-translate-y-[3.5px] group-hover/scrub:opacity-100"
+              // No vertical offset of its own: Base UI centres it on the
+              // control, and the control now centres the track, so the two
+              // agree. Hidden until pointed at, since a permanent dot on a
+              // hairline is clutter.
+              ? "size-3 bg-primary opacity-0 group-hover/scrub:opacity-100"
               : `bg-foreground ${large ? "size-4" : "size-3.5"}`
           }`}
         />
@@ -835,7 +836,11 @@ export function PlayerBar({
 
       {/* Progress across the bar's own top edge, full width and full bleed.
           Above the row rather than inside it, so nothing constrains its span. */}
-      <div className="absolute inset-x-0 top-0 z-30">
+      {/* Pulled up by half the control less half the track, so the centred
+          track lands on the bar's top edge while the handle — centred on that
+          track — straddles it. The footer deliberately does not clip, or the
+          half above the edge would be cut away. */}
+      <div className="absolute inset-x-0 -top-[4.5px] z-30">
         <Scrubber
           value={duration > 0 ? elapsed / duration : 0}
           onCommit={seek}
