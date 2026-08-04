@@ -685,12 +685,17 @@ export function PlayerBar({
         </div>
       </div>
 
-      {/* Scrims keep the header and controls legible over the picture. Only
-          needed where the video runs edge to edge. */}
+      {/* Scrims keep the header and controls legible over the picture, and are
+          only needed where the video runs edge to edge. The lower one covers
+          three-fifths of the screen: it was sized for a title and a row of
+          controls, and the view below now carries a title, the credits, a
+          scrubber, the transport and a row of secondary actions. Solid under
+          the text and easing away well before the middle, so the picture is
+          still the picture. */}
       {expanded && (
         <>
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-background via-background/70 to-transparent md:hidden" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-background via-background/85 to-transparent md:hidden" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-background via-background/80 to-transparent md:hidden" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[60%] bg-gradient-to-t from-background from-35% via-background/90 to-transparent md:hidden" />
         </>
       )}
 

@@ -271,6 +271,11 @@
     height: 56.25vw;
     min-width: 177.7778vh;
     min-height: 100%;
+    /* Held back a little. On a phone the picture is behind the whole interface
+       rather than beside it, so at full strength it competes with the title and
+       the controls sitting on top of it. The scrims do most of the work; this
+       takes the edge off the part of the frame they do not reach. */
+    opacity: 0.75;
   }
 }
 
