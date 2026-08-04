@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ExternalLink, X } from "lucide-react";
 import { collectionHref } from "@/lib/routes";
 import { useSongCredits } from "@/lib/queries";
-import type { Song } from "@/lib/catalogue";
+import { artwork, type Song } from "@/lib/catalogue";
 
 /**
  * Everything the catalogue knows about one song.
@@ -60,98 +60,98 @@ export function SongDetails({
       onClick={onClose}
     >
       <div
-        className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-xl border border-white/10 bg-card p-5 shadow-2xl"
+        className="relative max-h-[85vh] w-full max-w-md overflow-hidden rounded-xl border border-white/10 bg-card shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-base leading-tight">{song.title}</p>
-            {song.film && (
-              <Link
-                href={collectionHref("films", song.film)}
-                onClick={onClose}
-                className="text-xs text-muted-foreground transition hover:text-foreground"
-              >
-                {song.film}
-              </Link>
-            )}
+        {/* The song's own artwork behind the credits, bled from the corner and
+            masked away before it reaches the text. Decorative: it gives the
+            panel the record's colour without becoming something to look at. */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute left-0 top-0 h-56 w-64 overflow-hidden [mask-image:linear-gradient(to_bottom_right,#000_0%,rgba(0,0,0,0.5)_45%,transparent_78%)] [-webkit-mask-image:linear-gradient(to_bottom_right,#000_0%,rgba(0,0,0,0.5)_45%,transparent_78%)]"
+        >
+          <img
+            key={song.video}
+            src={artwork(song.video, "hq")}
+            alt=""
+            className="size-full object-cover opacity-25 saturate-[1.3]"
+          />
+        </span>
+
+        <div className="relative max-h-[85vh] overflow-y-auto p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-base leading-tight">{song.title}</p>
+              {song.film && (
+                <Link
+                  href={collectionHref("films", song.film)}
+                  onClick={onClose}
+                  className="text-xs text-muted-foreground transition hover:text-foreground"
+                >
+                  {song.film}
+                </Link>
+              )}
+            </div>
+            <button
+              onClick={onClose}
+              title="Close"
+              className="shrink-0 rounded-full p-1.5 text-muted-foreground transition hover:bg-white/10 hover:text-foreground"
+            >
+              <X className="size-4" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            title="Close"
-            className="shrink-0 rounded-full p-1.5 text-muted-foreground transition hover:bg-white/10 hover:text-foreground"
-          >
-            <X className="size-4" />
-          </button>
-        </div>
 
-        <dl className="mt-5 space-y-3">
-          {rows.map((row) => (
-            <div key={row.label} className="grid grid-cols-[6.5rem_1fr] gap-3">
-              <dt className="text-xs text-muted-foreground">{row.label}</dt>
-              <dd className="flex flex-wrap gap-x-1.5 gap-y-1 text-sm">
-                {row.names.map((name, index) => (
-                  <span key={name}>
-                    <Link
-                      href={collectionHref(row.kind!, name)}
-                      onClick={onClose}
-                      className="transition hover:text-primary hover:underline"
-                    >
-                      {name}
-                    </Link>
-                    {index < row.names.length - 1 && ","}
-                  </span>
-                ))}
-              </dd>
-            </div>
-          ))}
+          <dl className="mt-5 space-y-3">
+            {rows.map((row) => (
+              <div key={row.label} className="grid grid-cols-[6.5rem_1fr] gap-3">
+                <dt className="text-xs text-muted-foreground">{row.label}</dt>
+                <dd className="flex flex-wrap gap-x-1.5 gap-y-1 text-sm">
+                  {row.names.map((name, index) => (
+                    <span key={name}>
+                      <Link
+                        href={collectionHref(row.kind!, name)}
+                        onClick={onClose}
+                        className="transition hover:text-primary hover:underline"
+                      >
+                        {name}
+                      </Link>
+                      {index < row.names.length - 1 && ","}
+                    </span>
+                  ))}
+                </dd>
+              </div>
+            ))}
 
-          {song.stations.length > 0 && (
-            <div className="grid grid-cols-[6.5rem_1fr] gap-3">
-              <dt className="text-xs text-muted-foreground">Stations</dt>
-              <dd className="flex flex-wrap gap-1.5">
-                {song.stations.map((station) => (
-                  <Link
-                    key={station}
-                    href={collectionHref("stations", station)}
-                    onClick={onClose}
-                    className="rounded-full bg-white/[0.07] px-2 py-0.5 text-xs transition hover:bg-white/[0.14]"
-                  >
-                    {station}
-                  </Link>
-                ))}
-              </dd>
-            </div>
+          </dl>
+
+          {/* The one line here that is not from the songlist. Shown only when
+              somebody asked to be named. */}
+          {credit && (
+            <p className="mt-5 border-t border-white/[0.06] pt-4 text-xs text-primary/80">
+              {credit.kind === "corrected" ? "Corrected by" : "Found by"}{" "}
+              {credit.name}
+            </p>
           )}
-        </dl>
 
-        {/* The one line here that is not from the songlist. Shown only when
-            somebody asked to be named. */}
-        {credit && (
-          <p className="mt-5 border-t border-white/[0.06] pt-4 text-xs text-primary/80">
-            {credit.kind === "corrected" ? "Corrected by" : "Found by"}{" "}
-            {credit.name}
-          </p>
-        )}
-
-        <div className="mt-5 flex items-center justify-between gap-3 border-t border-white/[0.06] pt-4">
-          {/* Confidence is worth surfacing where the credits are: a weak match
-              is exactly the case where someone should check the recording. */}
-          <span className="text-[11px] text-muted-foreground">
-            {song.confidence >= 0.9
-              ? "Recording matched on title, film and singer"
-              : song.confidence >= 0.85
-                ? "Recording matched on title and film"
-                : "Matched on limited information, may be the wrong recording"}
-          </span>
-          <a
-            href={`https://www.youtube.com/watch?v=${song.video}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground transition hover:text-foreground"
-          >
-            YouTube <ExternalLink className="size-3" />
-          </a>
+          <div className="mt-5 flex items-center justify-between gap-3 border-t border-white/[0.06] pt-4">
+            {/* Confidence is worth surfacing where the credits are: a weak match
+                is exactly the case where someone should check the recording. */}
+            <span className="text-[11px] text-muted-foreground">
+              {song.confidence >= 0.9
+                ? "Recording matched on title, film and singer"
+                : song.confidence >= 0.85
+                  ? "Recording matched on title and film"
+                  : "Matched on limited information, may be the wrong recording"}
+            </span>
+            <a
+              href={`https://www.youtube.com/watch?v=${song.video}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground transition hover:text-foreground"
+            >
+              YouTube <ExternalLink className="size-3" />
+            </a>
+        </div>
         </div>
       </div>
     </div>,
