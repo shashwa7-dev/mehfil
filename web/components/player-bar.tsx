@@ -860,9 +860,10 @@ export function PlayerBar({
           the middle of the *bar* rather than the middle of whatever space the
           controls leave over. With a flexible centre column the thumbnail slid
           left and right as titles changed length, which is the jumping. */}
-      <div className="relative grid grid-cols-[auto_1fr_auto] items-center gap-2 px-3 py-2.5 md:grid-cols-[1fr_auto_1fr] md:gap-4 md:px-4 md:py-3">
-        {/* Transport, at the left edge where the hand goes first. */}
-        <div className="flex items-center gap-0.5 md:gap-1">
+      <div className="relative grid grid-cols-[1fr_auto] items-center gap-2 py-2 pl-0 pr-2 md:grid-cols-[1fr_auto_1fr] md:gap-4 md:px-4 md:py-3">
+        {/* Transport, at the left edge where the hand goes first. Desktop
+            only: the phone puts the title first and the controls after it. */}
+        <div className="hidden items-center gap-0.5 md:flex md:gap-1">
           <button onClick={onPrev} disabled={!song} className={iconButton} title="Previous">
             <SkipBack className="size-4 fill-current" />
           </button>
@@ -906,9 +907,23 @@ export function PlayerBar({
           // and letting the box follow them is what moved the thumbnail around
           // between tracks. Full width below md, where it is the only thing on
           // the row.
-          className="group/np flex min-w-0 items-center gap-3 text-left md:w-[19rem] lg:w-[24rem]"
+          className="group/np flex min-w-0 items-center gap-0 pl-[4.25rem] text-left md:w-[19rem] md:gap-3 md:pl-0 lg:w-[24rem]"
         >
-          <span className="relative size-10 shrink-0 overflow-hidden rounded shadow-sm ring-1 ring-white/10">
+          {/* On a phone the artwork bleeds off the bar's left edge and fades
+              into it, so the picture reads as the bar's surface rather than a
+              tile with the title beside it. From md it goes back to a tile: the
+              transport occupies that edge there, and the two cannot both have
+              it. Padding on the button keeps the text clear of the bleed. */}
+          <span className="pointer-events-none absolute inset-y-0 left-0 w-[4.75rem] overflow-hidden [mask-image:linear-gradient(to_right,#000_0%,#000_55%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,#000_0%,#000_55%,transparent_100%)] md:hidden">
+            <img
+              src={artwork(song.video)}
+              alt=""
+              loading="lazy"
+              className="size-full object-cover"
+            />
+          </span>
+
+          <span className="relative hidden size-10 shrink-0 overflow-hidden rounded shadow-sm ring-1 ring-white/10 md:block">
             <img
               src={artwork(song.video)}
               alt=""
@@ -939,15 +954,67 @@ export function PlayerBar({
           </span>
         </button>
 
-        {/* Below md the right-hand cluster does not fit, so one button opens
-            it as a sheet rather than the controls simply being absent. */}
-        <button
-          onClick={() => setMenuOpen(true)}
-          title="More"
-          className={`${iconButton} justify-self-end md:hidden`}
-        >
-          <MoreVertical className="size-5" />
-        </button>
+        {/* The phone's transport, after the title rather than before it. Its
+            own cluster instead of reordering the desktop one: the two hold
+            different controls, and shuffle and repeat belong on the bar here
+            because there is no room for them anywhere else. */}
+        <div className="flex items-center justify-self-end md:hidden">
+          <button
+            onClick={onToggleShuffle}
+            title="Shuffle"
+            className={`grid size-8 place-items-center rounded-full transition active:scale-90 ${
+              shuffle ? "text-primary" : "text-muted-foreground"
+            }`}
+          >
+            <Shuffle className="size-[18px]" />
+          </button>
+          <button
+            onClick={onPrev}
+            disabled={!song}
+            title="Previous"
+            className="grid size-8 place-items-center rounded-full text-foreground transition active:scale-90 disabled:opacity-40"
+          >
+            <SkipBack className="size-[18px] fill-current" />
+          </button>
+          <button
+            onClick={toggle}
+            disabled={!song || !ready}
+            title={playing ? "Pause" : "Play"}
+            className="mx-0.5 grid size-11 place-items-center rounded-full bg-foreground text-background shadow-[0_2px_10px_-2px_rgba(0,0,0,0.5)] transition active:scale-95 disabled:opacity-40"
+          >
+            {loading ? (
+              <Loader2 className="size-5 animate-spin" />
+            ) : playing ? (
+              <Pause className="size-5 fill-current" />
+            ) : (
+              <Play className="size-5 translate-x-px fill-current" />
+            )}
+          </button>
+          <button
+            onClick={onNext}
+            disabled={!song}
+            title="Next"
+            className="grid size-8 place-items-center rounded-full text-foreground transition active:scale-90 disabled:opacity-40"
+          >
+            <SkipForward className="size-[18px] fill-current" />
+          </button>
+          <button
+            onClick={onToggleRepeat}
+            title="Repeat one"
+            className={`grid size-8 place-items-center rounded-full transition active:scale-90 ${
+              repeat ? "text-primary" : "text-muted-foreground"
+            }`}
+          >
+            <Repeat className="size-[18px]" />
+          </button>
+          <button
+            onClick={() => setMenuOpen(true)}
+            title="More"
+            className="grid size-8 place-items-center rounded-full text-muted-foreground transition active:scale-90"
+          >
+            <MoreVertical className="size-[18px]" />
+          </button>
+        </div>
 
         {/* Everything that modifies playback rather than driving it. */}
         <div className="hidden items-center justify-end gap-1 md:flex">
