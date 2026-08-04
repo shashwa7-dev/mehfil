@@ -18,9 +18,18 @@ publishing its URL would publish a write endpoint to the sheet.
 
 **1. Create the sheet.** A new Google Sheet; the tab name does not matter.
 
+Note its id — the long segment in its URL, `docs.google.com/spreadsheets/d/<ID>/edit`.
+You need it in step 2 unless you create the script from inside the sheet.
+
 **2. Add the script.** Extensions → Apps Script, then paste the whole of
 `docs/feedback-apps-script.gs` over what is there. It carries its own notes,
 including why the header row must match the fields `/api/feedback` sends.
+
+Then set `SHEET_ID` at the top to the id from step 1. It can stay blank only if
+you opened the editor from inside the sheet via Extensions → Apps Script, which
+binds the two; a script created at script.google.com is standalone and has no
+active spreadsheet, which fails as
+`Cannot read properties of null (reading 'getSheets')`.
 
 **3. Deploy it.** Deploy → New deployment → type **Web app**.
 

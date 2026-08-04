@@ -17,6 +17,20 @@
  * rather than shifting the row.
  */
 
+/**
+ * The spreadsheet to write to, by id.
+ *
+ * Leave blank only if this script was created from inside the sheet
+ * (Extensions > Apps Script), which binds the two. A standalone script created
+ * at script.google.com has no "active" spreadsheet, and
+ * getActiveSpreadsheet() returns null there — which surfaces as
+ * "Cannot read properties of null (reading 'getSheets')".
+ *
+ * The id is the long segment in the sheet's own URL:
+ *   https://docs.google.com/spreadsheets/d/THIS_PART_HERE/edit
+ */
+const SHEET_ID = '';
+
 const HEADERS = [
   'at',                // ISO timestamp, set on our server
   'kind',              // 'wrong-track' | 'missing-song'
@@ -42,7 +56,7 @@ function doPost(e) {
     }
 
     const report = JSON.parse(e.postData.contents);
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+    const sheet = targetSheet();
 
     // The first write lays down the header, so the sheet can start empty and
     // nobody has to type eleven column names correctly.
@@ -69,6 +83,28 @@ function doPost(e) {
     // reports that were never sent.
     return json({ ok: false, error: String(err) });
   }
+}
+
+/**
+ * The first tab of the target spreadsheet.
+ *
+ * By id when one is given, which works whether or not this script is bound to
+ * a sheet. Falling back to the active spreadsheet keeps a bound script working
+ * with no id set, and says plainly what is wrong when there is neither — the
+ * raw failure is a null dereference that names none of this.
+ */
+function targetSheet() {
+  const book = SHEET_ID
+    ? SpreadsheetApp.openById(SHEET_ID)
+    : SpreadsheetApp.getActiveSpreadsheet();
+
+  if (!book) {
+    throw new Error(
+      'No spreadsheet. This script is not bound to one, so set SHEET_ID to ' +
+      'the id from your sheet URL: docs.google.com/spreadsheets/d/<ID>/edit'
+    );
+  }
+  return book.getSheets()[0];
 }
 
 /** A GET is not how reports arrive; answering one confirms the deployment. */
