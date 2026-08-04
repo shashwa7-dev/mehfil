@@ -164,95 +164,65 @@ function Scrubber({
   const [preview, setPreview] = useState(0);
   const shown = dragging ? preview : value;
 
-  // Tap-to-seek, added on top of the slider rather than relying on it. Dragging
-  // the handle commits on touch; a plain tap on the track does not, and chasing
-  // that through the library was not worth the time when the arithmetic here is
-  // three lines. Movement disqualifies it, so a drag is left entirely to the
-  // slider, and seeking twice to the same position would be harmless anyway.
-  const boxRef = useRef<HTMLDivElement | null>(null);
-  const tapFrom = useRef<{ x: number; y: number } | null>(null);
-
-  const onPointerDown = (event: React.PointerEvent) => {
-    tapFrom.current = { x: event.clientX, y: event.clientY };
-  };
-
-  const onPointerUp = (event: React.PointerEvent) => {
-    const from = tapFrom.current;
-    tapFrom.current = null;
-    if (!from || disabled) return;
-    if (Math.hypot(event.clientX - from.x, event.clientY - from.y) > 8) return;
-
-    const rect = boxRef.current?.getBoundingClientRect();
-    if (!rect || rect.width === 0) return;
-    const fraction = (event.clientX - rect.left) / rect.width;
-    onCommit(Math.min(1, Math.max(0, fraction)));
-  };
-
   return (
-    <div
-      ref={boxRef}
-      onPointerDown={onPointerDown}
-      onPointerUp={onPointerUp}
+    <SliderPrimitive.Root
+      value={shown * 1000}
+      min={0}
+      max={1000}
+      disabled={disabled}
+      thumbAlignment="edge"
+      onValueChange={(v) => {
+        setDragging(true);
+        setPreview((Array.isArray(v) ? v[0] : v) / 1000);
+      }}
+      onValueCommitted={(v) => {
+        setDragging(false);
+        onCommit((Array.isArray(v) ? v[0] : v) / 1000);
+      }}
+      // Width comes entirely from the caller. Defaulting to w-full here made
+      // the volume control ignore its own w-24 and stretch across the bar.
       className={className}
     >
-      <SliderPrimitive.Root
-        value={shown * 1000}
-        min={0}
-        max={1000}
-        disabled={disabled}
-        thumbAlignment="edge"
-        onValueChange={(v) => {
-          setDragging(true);
-          setPreview((Array.isArray(v) ? v[0] : v) / 1000);
-        }}
-        onValueCommitted={(v) => {
-          setDragging(false);
-          onCommit((Array.isArray(v) ? v[0] : v) / 1000);
-        }}
-        // The caller's width is on the wrapper above; this fills it.
-        className="w-full"
+      {/* Fixed height, not padding: the track thickens on hover, and without a
+          locked height that growth reflows everything above the bar. The extra
+          height is also the real hit target — the finger and cursor land here,
+          not on the thin visible track. */}
+      <SliderPrimitive.Control
+        // items-center matters: Base UI positions the thumb at `top: 50%` of
+        // this control as an inline style, so the track has to sit at the
+        // control's middle for the two to meet. No translate utility can
+        // correct a mismatch — Tailwind v4 compiles those to the `translate`
+        // property, which is the property Base UI sets inline, and inline wins.
+        className={`group/scrub relative flex w-full cursor-pointer touch-none select-none items-center data-disabled:cursor-not-allowed data-disabled:opacity-50 ${
+          edge ? "h-3" : large ? "h-9" : "h-8"
+        }`}
       >
-        {/* Fixed height, not padding: the track thickens on hover, and without a
-            locked height that growth reflows everything above the bar. The extra
-            height is also the real hit target — the finger and cursor land here,
-            not on the thin visible track. */}
-        <SliderPrimitive.Control
-          // items-center matters: Base UI positions the thumb at `top: 50%` of
-          // this control as an inline style, so the track has to sit at the
-          // control's middle for the two to meet. No translate utility can
-          // correct a mismatch — Tailwind v4 compiles those to the `translate`
-          // property, which is the property Base UI sets inline, and inline wins.
-          className={`group/scrub relative flex w-full cursor-pointer touch-none select-none items-center data-disabled:cursor-not-allowed data-disabled:opacity-50 ${
-            edge ? "h-3" : large ? "h-9" : "h-8"
+        <SliderPrimitive.Track
+          className={`relative w-full grow overflow-hidden rounded-full transition-all ${
+            edge
+              ? "h-[3px] bg-white/15 group-hover/scrub:h-[5px]"
+              : `bg-white/25 ${
+                  large ? "h-2 group-hover/scrub:h-2.5" : "h-1.5 group-hover/scrub:h-2"
+                }`
           }`}
         >
-          <SliderPrimitive.Track
-            className={`relative w-full grow overflow-hidden rounded-full transition-all ${
-              edge
-                ? "h-[3px] bg-white/15 group-hover/scrub:h-[5px]"
-                : `bg-white/25 ${
-                    large ? "h-2 group-hover/scrub:h-2.5" : "h-1.5 group-hover/scrub:h-2"
-                  }`
-            }`}
-          >
-            <SliderPrimitive.Indicator
-              className={`h-full rounded-full transition-colors ${
-                edge ? "bg-primary" : "bg-foreground group-hover/scrub:bg-primary"
-              }`}
-            />
-          </SliderPrimitive.Track>
-          <SliderPrimitive.Thumb
-            className={`block shrink-0 cursor-grab rounded-full shadow transition-opacity after:absolute after:-inset-3 active:cursor-grabbing ${
-              edge
-                // Revealed on point: a permanent dot on a hairline is clutter,
-                // and this variant only exists where there is a cursor to point.
-                ? "size-3 bg-primary opacity-0 group-hover/scrub:opacity-100"
-                : `bg-foreground ${large ? "size-4" : "size-3.5"}`
+          <SliderPrimitive.Indicator
+            className={`h-full rounded-full transition-colors ${
+              edge ? "bg-primary" : "bg-foreground group-hover/scrub:bg-primary"
             }`}
           />
-        </SliderPrimitive.Control>
-      </SliderPrimitive.Root>
-    </div>
+        </SliderPrimitive.Track>
+        <SliderPrimitive.Thumb
+          className={`block shrink-0 cursor-grab rounded-full shadow transition-opacity after:absolute after:-inset-3 active:cursor-grabbing ${
+            edge
+              // Revealed on point: a permanent dot on a hairline is clutter,
+              // and this variant only exists where there is a cursor to point.
+              ? "size-3 bg-primary opacity-0 group-hover/scrub:opacity-100"
+              : `bg-foreground ${large ? "size-4" : "size-3.5"}`
+          }`}
+        />
+      </SliderPrimitive.Control>
+    </SliderPrimitive.Root>
   );
 }
 
