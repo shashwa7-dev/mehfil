@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { Slider as SliderPrimitive } from "@base-ui/react/slider";
 import {
   ChevronDown,
+  ChevronUp,
   Loader2,
   Maximize2,
   Pause,
@@ -143,12 +144,15 @@ function Scrubber({
   disabled,
   className = "",
   large = false,
+  edge = false,
 }: {
   value: number; // 0..1
   onCommit: (fraction: number) => void;
   disabled?: boolean;
   className?: string;
   large?: boolean;
+  /** Hairline across the bar's top edge, the way a player's progress reads. */
+  edge?: boolean;
 }) {
   const [dragging, setDragging] = useState(false);
   const [preview, setPreview] = useState(0);
@@ -178,20 +182,36 @@ function Scrubber({
           height is also the real hit target — the finger and cursor land here,
           not on the thin visible track. */}
       <SliderPrimitive.Control
-        className={`group/scrub relative flex w-full touch-none select-none items-center data-disabled:opacity-50 ${
-          large ? "h-9" : "h-8"
+        className={`group/scrub relative flex w-full cursor-pointer touch-none select-none data-disabled:cursor-not-allowed data-disabled:opacity-50 ${
+          // The edge variant hugs the top of its hit area, so the visible line
+          // sits on the bar's border while the grab target extends below it.
+          edge ? "h-3 items-start" : `items-center ${large ? "h-9" : "h-8"}`
         }`}
       >
         <SliderPrimitive.Track
-          className={`relative w-full grow overflow-hidden rounded-full bg-white/25 transition-all ${
-            large ? "h-2 group-hover/scrub:h-2.5" : "h-1.5 group-hover/scrub:h-2"
+          className={`relative w-full grow overflow-hidden transition-all ${
+            edge
+              ? "h-[3px] bg-white/15 group-hover/scrub:h-[5px]"
+              : `rounded-full bg-white/25 ${
+                  large ? "h-2 group-hover/scrub:h-2.5" : "h-1.5 group-hover/scrub:h-2"
+                }`
           }`}
         >
-          <SliderPrimitive.Indicator className="h-full rounded-full bg-foreground transition-colors group-hover/scrub:bg-primary" />
+          <SliderPrimitive.Indicator
+            className={`h-full transition-colors ${
+              edge
+                ? "bg-primary"
+                : "rounded-full bg-foreground group-hover/scrub:bg-primary"
+            }`}
+          />
         </SliderPrimitive.Track>
         <SliderPrimitive.Thumb
-          className={`block shrink-0 rounded-full bg-foreground shadow transition-opacity after:absolute after:-inset-3 ${
-            large ? "size-4" : "size-3.5"
+          className={`block shrink-0 cursor-grab rounded-full shadow transition-opacity after:absolute after:-inset-3 active:cursor-grabbing ${
+            edge
+              // Hidden until pointed at: a permanent dot on a hairline is
+              // clutter, but it has to exist to be grabbed.
+              ? "size-3 -translate-y-[3px] bg-primary opacity-0 group-hover/scrub:opacity-100"
+              : `bg-foreground ${large ? "size-4" : "size-3.5"}`
           }`}
         />
       </SliderPrimitive.Control>
@@ -504,18 +524,20 @@ export function PlayerBar({
 
   // Rendered in both the bar and the expanded view, so the controls are always
   // reachable. `large` scales it up for the full-screen layout.
-  const transport = (large: boolean) => (
+  // Only the expanded view uses this now: the compact bar lays its controls
+  // out along the left edge instead, so there is no shared shape to abstract.
+  const transport = () => (
     <div className="flex w-full flex-col items-center gap-0.5">
-      <div className={`flex items-center ${large ? "gap-4" : "gap-2.5"}`}>
+      <div className="flex items-center gap-4">
         <button
           onClick={onToggleShuffle}
           title="Shuffle"
           className={`${iconButton} ${shuffle ? "text-primary hover:text-primary" : ""}`}
         >
-          <Shuffle className={large ? "size-5" : "size-4"} />
+          <Shuffle className="size-5" />
         </button>
         <button onClick={onPrev} disabled={!song} className={iconButton} title="Previous">
-          <SkipBack className={`fill-current ${large ? "size-5" : "size-4"}`} />
+          <SkipBack className="size-5 fill-current" />
         </button>
         <button
           onClick={toggle}
@@ -524,35 +546,29 @@ export function PlayerBar({
           // The one filled control, so it carries the weight: a soft brass ring
           // and a lift on hover rather than a flat disc. active:scale keeps the
           // press physical instead of instantaneous.
-          className={`grid place-items-center rounded-full bg-foreground text-background shadow-[0_2px_10px_-2px_rgba(0,0,0,0.5)] ring-1 ring-primary/20 transition-all duration-200 hover:scale-105 hover:shadow-[0_4px_18px_-2px_rgba(214,168,84,0.45)] hover:ring-primary/40 active:scale-95 disabled:opacity-40 disabled:shadow-none disabled:hover:scale-100 ${
-            large ? "size-12" : "size-10"
-          }`}
+          className="grid size-12 place-items-center rounded-full bg-foreground text-background shadow-[0_2px_10px_-2px_rgba(0,0,0,0.5)] ring-1 ring-primary/20 transition-all duration-200 hover:scale-105 hover:shadow-[0_4px_18px_-2px_rgba(214,168,84,0.45)] hover:ring-primary/40 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:hover:scale-100"
         >
           {loading ? (
-            <Loader2 className={`animate-spin ${large ? "size-5" : "size-4"}`} />
+            <Loader2 className="size-5 animate-spin" />
           ) : playing ? (
-            <Pause className={`fill-current ${large ? "size-5" : "size-4"}`} />
+            <Pause className="size-5 fill-current" />
           ) : (
-            <Play className={`translate-x-px fill-current ${large ? "size-5" : "size-4"}`} />
+            <Play className="size-5 translate-x-px fill-current" />
           )}
         </button>
         <button onClick={onNext} disabled={!song} className={iconButton} title="Next">
-          <SkipForward className={`fill-current ${large ? "size-5" : "size-4"}`} />
+          <SkipForward className="size-5 fill-current" />
         </button>
         <button
           onClick={onToggleRepeat}
           title="Repeat one"
           className={`${iconButton} ${repeat ? "text-primary hover:text-primary" : ""}`}
         >
-          <Repeat className={large ? "size-5" : "size-4"} />
+          <Repeat className="size-5" />
         </button>
       </div>
 
-      <div
-        className={`w-full items-center gap-2 ${
-          large ? "flex max-w-2xl pt-1" : "hidden max-w-md md:flex"
-        }`}
-      >
+      <div className="flex w-full max-w-2xl items-center gap-2 pt-1">
         <span className="w-9 text-right text-[11px] tabular-nums text-muted-foreground">
           {formatTime(elapsed)}
         </span>
@@ -561,6 +577,7 @@ export function PlayerBar({
           onCommit={seek}
           disabled={!song || duration <= 0}
           className="flex-1"
+          large
         />
         <span className="w-9 text-[11px] tabular-nums text-muted-foreground">
           {formatTime(duration)}
@@ -743,7 +760,7 @@ export function PlayerBar({
                 </p>
               </div>
             )}
-            {transport(true)}
+            {transport()}
           </div>
         </div>
       )}
@@ -780,24 +797,47 @@ export function PlayerBar({
         </div>
       )}
 
-      <div className="relative grid grid-cols-[1fr_auto] items-center gap-4 px-4 py-2.5 md:grid-cols-3 md:px-5 md:py-3">
-        {/* Artwork, bled off the bar's left edge rather than sat inside it as a
-            tile. Absolute so it can reach past the row's padding to the very
-            edge, and masked so it dissolves into the bar instead of ending on a
-            hard line. Decorative and non-interactive: the button below covers
-            the same area and stays the thing you click. */}
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-y-0 left-0 w-28 overflow-hidden [mask-image:linear-gradient(to_right,#000_0%,#000_35%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,#000_0%,#000_35%,transparent_100%)] md:w-36"
-        >
-          <img
-            key={song.video}
-            src={artwork(song.video)}
-            alt=""
-            loading="lazy"
-            className="size-full object-cover"
-          />
-        </span>
+      {/* Progress across the bar's own top edge, full width and full bleed.
+          Above the row rather than inside it, so nothing constrains its span. */}
+      <div className="absolute inset-x-0 top-0 z-30">
+        <Scrubber
+          value={duration > 0 ? elapsed / duration : 0}
+          onCommit={seek}
+          disabled={!song || duration <= 0}
+          className="w-full"
+          edge
+        />
+      </div>
+
+      <div className="relative grid grid-cols-[auto_1fr] items-center gap-3 px-3 py-2.5 md:grid-cols-[auto_1fr_auto] md:gap-4 md:px-4 md:py-3">
+        {/* Transport, at the left edge where the hand goes first. */}
+        <div className="flex items-center gap-0.5 md:gap-1">
+          <button onClick={onPrev} disabled={!song} className={iconButton} title="Previous">
+            <SkipBack className="size-4 fill-current" />
+          </button>
+          <button
+            onClick={toggle}
+            disabled={!song || !ready}
+            title={playing ? "Pause" : "Play"}
+            className="grid size-10 place-items-center rounded-full bg-foreground text-background shadow-[0_2px_10px_-2px_rgba(0,0,0,0.5)] ring-1 ring-primary/20 transition-all duration-200 hover:scale-105 hover:shadow-[0_4px_18px_-2px_rgba(214,168,84,0.45)] hover:ring-primary/40 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:hover:scale-100"
+          >
+            {loading ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : playing ? (
+              <Pause className="size-4 fill-current" />
+            ) : (
+              <Play className="size-4 translate-x-px fill-current" />
+            )}
+          </button>
+          <button onClick={onNext} disabled={!song} className={iconButton} title="Next">
+            <SkipForward className="size-4 fill-current" />
+          </button>
+          {/* Elapsed and total together, beside the controls rather than under
+              the scrubber — the scrubber has no labels now that it is an edge. */}
+          <span className="ml-1 hidden whitespace-nowrap text-xs tabular-nums text-muted-foreground lg:block">
+            {formatTime(elapsed)} / {formatTime(duration)}
+          </span>
+        </div>
 
         {/* Now playing. The video host is rendered unconditionally: the player
             is constructed against it on mount, so gating it behind `song`
@@ -808,12 +848,18 @@ export function PlayerBar({
           {...barSwipe}
           onClick={() => setExpanded(true)}
           title="Expand to video"
-          className="group/np relative flex min-w-0 items-center gap-3 pl-24 text-left md:pl-32"
+          className="group/np flex min-w-0 items-center gap-3 text-left"
         >
-          {/* Sits over the bled artwork, so the expand affordance still appears
-              where the picture is. */}
-          <span className="pointer-events-none absolute inset-y-0 left-0 grid w-24 place-items-center text-white opacity-0 transition group-hover/np:opacity-100 group-focus-visible/np:opacity-100 md:w-32">
-            <Maximize2 className="size-4 drop-shadow" />
+          <span className="relative size-10 shrink-0 overflow-hidden rounded shadow-sm ring-1 ring-white/10">
+            <img
+              src={artwork(song.video)}
+              alt=""
+              loading="lazy"
+              className="size-full object-cover"
+            />
+            <span className="absolute inset-0 grid place-items-center bg-black/55 text-white opacity-0 transition group-hover/np:opacity-100 group-focus-visible/np:opacity-100">
+              <Maximize2 className="size-4" />
+            </span>
           </span>
 
           <span className="min-w-0">
@@ -830,10 +876,8 @@ export function PlayerBar({
           </span>
         </button>
 
-        {transport(false)}
-
-        {/* Volume */}
-        <div className="hidden items-center justify-end gap-2 md:flex">
+        {/* Everything that modifies playback rather than driving it. */}
+        <div className="hidden items-center justify-end gap-1 md:flex">
           {song && song.confidence < 0.85 && (
             <span
               title="Matched on singer alone — this may not be the catalogue recording"
@@ -864,6 +908,27 @@ export function PlayerBar({
             }}
             className="w-24"
           />
+          <button
+            onClick={onToggleRepeat}
+            title="Repeat one"
+            className={`${iconButton} ${repeat ? "text-primary hover:text-primary" : ""}`}
+          >
+            <Repeat className="size-4" />
+          </button>
+          <button
+            onClick={onToggleShuffle}
+            title="Shuffle"
+            className={`${iconButton} ${shuffle ? "text-primary hover:text-primary" : ""}`}
+          >
+            <Shuffle className="size-4" />
+          </button>
+          <button
+            onClick={() => setExpanded(true)}
+            title="Expand"
+            className={iconButton}
+          >
+            <ChevronUp className="size-5" />
+          </button>
           </div>
         </div>
           {catalogue && (

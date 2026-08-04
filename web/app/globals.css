@@ -129,6 +129,42 @@
     @apply font-sans;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Cursors.
+
+   Tailwind v4 dropped the preflight rule that gave buttons `cursor: pointer`,
+   on the grounds that native buttons do not have one. The result across an
+   application built almost entirely from <button> is that nothing anywhere
+   reads as clickable. Restoring it once here is better than remembering to add
+   a class to every control.
+
+   Disabled controls say so rather than silently ignoring the click, and the
+   things that are dragged rather than pressed — the scrubber and the volume —
+   show a grab cursor instead.
+--------------------------------------------------------------------------- */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  label[for],
+  summary,
+  a[href] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [aria-disabled="true"],
+  [data-disabled] {
+    cursor: not-allowed;
+  }
+
+  /* Text stays selectable-looking where it is text, not a control. */
+  input[type="text"],
+  input[type="search"],
+  textarea {
+    cursor: text;
+  }
+}
 /* ---------------------------------------------------------------------------
    Mehfil theme. Dark, elevated surfaces in the shape of a modern player, but
    warm rather than clinical: a brass/gold accent to match the golden-era
