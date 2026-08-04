@@ -17,11 +17,13 @@ import {
   SkipForward,
   Sparkles,
   ListVideo,
+  Info,
   Volume2,
   VolumeX,
 } from "lucide-react";
 import { artwork, type Song } from "@/lib/catalogue";
 import { ReportDialog } from "@/components/report-dialog";
+import { SongDetails } from "@/components/song-details";
 import { useCatalogue, useSongCredits } from "@/lib/queries";
 import { QueuePanel } from "@/components/queue-panel";
 
@@ -257,6 +259,7 @@ export function PlayerBar({
   const [expanded, setExpanded] = useState(false);
   const [queueOpen, setQueueOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const { data: songCredits } = useSongCredits();
   const credit = song ? songCredits?.[String(song.id)] : undefined;
   const { data: catalogue } = useCatalogue();
@@ -765,8 +768,15 @@ export function PlayerBar({
                 </p>
                 {/* Shown only where someone gave a name. Most will not, and an
                     empty credit line reads worse than no credit at all. */}
+                <button
+                  onClick={() => setDetailsOpen(true)}
+                  className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-white/[0.07] px-3 py-1 text-xs text-muted-foreground transition hover:bg-white/[0.14] hover:text-foreground"
+                >
+                  <Info className="size-3.5" />
+                  Credits
+                </button>
                 {credit && (
-                  <p className="mt-1.5 truncate text-xs text-primary/80">
+                  <p className="mt-2 truncate text-xs text-primary/80">
                     {credit.kind === "corrected" ? "Corrected by" : "Found by"}{" "}
                     {credit.name}
                   </p>
@@ -969,6 +979,9 @@ export function PlayerBar({
           </button>
           </div>
         </div>
+          {detailsOpen && song && (
+            <SongDetails song={song} onClose={() => setDetailsOpen(false)} />
+          )}
           {reportOpen && song && (
             <ReportDialog
               kind="wrong-track"

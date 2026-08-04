@@ -115,14 +115,22 @@ export function ReportDialog({
 
         {sent ? (
           <p className="mt-6 flex items-center gap-2 text-sm text-primary">
-            <Check className="size-4" /> Thank you — that has been recorded.
+            <Check className="size-4" /> Thank you, that has been recorded.
           </p>
         ) : (
-          <form onSubmit={submit} className="mt-4 space-y-3">
+          <form onSubmit={submit} className="mt-4 space-y-3.5">
+            {wrong && (
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                A link is the most useful thing you can give us. Without one we
+                are left running the same search that already went wrong.
+              </p>
+            )}
             <label className="block">
-              <span className="text-xs text-muted-foreground">
-                YouTube link to the correct recording
-                {wrong ? " (optional, but the most useful thing you can give us)" : ""}
+              <span className="block text-xs leading-tight text-muted-foreground">
+                {wrong ? "Link to the correct recording" : "YouTube link"}
+                {wrong && (
+                  <span className="text-muted-foreground/60"> (optional)</span>
+                )}
               </span>
               <input
                 value={url}
@@ -134,8 +142,9 @@ export function ReportDialog({
             </label>
 
             <label className="block">
-              <span className="text-xs text-muted-foreground">
-                Anything else worth knowing (optional)
+              <span className="block text-xs leading-tight text-muted-foreground">
+                Anything else worth knowing
+                <span className="text-muted-foreground/60"> (optional)</span>
               </span>
               <textarea
                 value={note}
@@ -152,8 +161,11 @@ export function ReportDialog({
             </label>
 
             <label className="block">
-              <span className="text-xs text-muted-foreground">
-                Your name (optional) — so we can credit you on the song
+              <span className="block text-xs leading-tight text-muted-foreground">
+                Your name
+                <span className="text-muted-foreground/60">
+                  {" "}(optional, shown as a credit on the song)
+                </span>
               </span>
               <input
                 value={name}

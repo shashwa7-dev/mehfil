@@ -77,15 +77,14 @@ export default function ContributePage() {
         {songs.length
           ? `${songs.length.toLocaleString()} songs in the catalogue have no recording we could confirm.`
           : "Some songs in the catalogue have no recording we could confirm."}{" "}
-        Every one is a real entry from the Carvaan songlist — we simply could not
+        Every one is a real entry from the Carvaan songlist. We simply could not
         find an upload that was definitely the right recording. If you know one,
         paste the link and we will check it against the catalogue.
       </p>
       <p className="mt-3 text-sm leading-7 text-muted-foreground">
         Heard something playing the <em>wrong</em> recording instead? There is a
-        flag beside the player for that — it is the more useful report of the
-        two, because nothing automatic can tell a plausible match from a correct
-        one.
+        flag beside the player for that. It is the more useful report of the two,
+        because nothing automatic can tell a plausible match from a correct one.
       </p>
       <p className="mt-3 text-sm leading-7 text-muted-foreground">
         Leave your name if you would like to be credited on the song. Blank is
