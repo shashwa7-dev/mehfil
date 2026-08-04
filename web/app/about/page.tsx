@@ -15,10 +15,15 @@ export default function AboutPage() {
   const { data: photos } = usePhotoManifest();
   const { data: posters } = useStationPosters();
 
-  const portraitCredits = Object.entries(photos ?? {})
+  const allPortraits = Object.entries(photos ?? {})
     .filter(([, value]) => value)
     .map(([name, value]) => ({ name, ...value! }))
     .sort((a, b) => a.name.localeCompare(b.name));
+
+  // Split by source. Only the Wikimedia set has a licence to state; listing the
+  // rest alongside them would attach terms to images that do not carry them.
+  const portraitCredits = allPortraits.filter((p) => p.provenance !== "web");
+  const webPortraits = allPortraits.filter((p) => p.provenance === "web");
 
   const posterCredits = Object.entries(posters ?? {}).sort(([a], [b]) =>
     a.localeCompare(b)
@@ -75,14 +80,21 @@ export default function AboutPage() {
 
       <Section title="Images">
         <p>
-          Song artwork is shown using YouTube&apos;s own video thumbnails. Artist
-          portraits come from Wikimedia Commons and station artwork from
-          Openverse, each under an open licence, credited in full below.
+          Song artwork is shown using YouTube&apos;s own video thumbnails. Station
+          artwork comes from Openverse and most artist portraits from Wikimedia
+          Commons, each under an open licence and credited in full below.
+        </p>
+        <p>
+          Where neither source held a photograph, the portrait was found through
+          a general web search and is shown here for identification only. Those
+          images are <strong className="text-foreground">not openly licensed</strong>,
+          are listed separately below with a link to where each was found, and
+          remain the property of their photographers.
         </p>
         <p>
           Decorative artwork elsewhere in the interface may include film poster
-          imagery reproduced at low fidelity for illustrative purposes, and is
-          removed on request.
+          imagery reproduced at low fidelity for illustrative purposes. Any image
+          here is removed on request, without argument.
         </p>
       </Section>
 
@@ -136,12 +148,53 @@ export default function AboutPage() {
           <ul className="mt-4 grid gap-2.5 sm:grid-cols-2">
             {portraitCredits.map((credit) => (
               <li key={credit.name} className="text-xs leading-6">
-                <span className="text-foreground">{credit.name}</span> ·{" "}
-                {credit.license}
+                <span className="text-foreground">{credit.name}</span>
+                {/* Duos are one entry per member in the catalogue but share a
+                    single portrait, so the credit names what it really shows. */}
+                {credit.subject && (
+                  <span className="text-muted-foreground/70">
+                    {" "}
+                    (pictured: {credit.subject})
+                  </span>
+                )}{" "}
+                · {credit.license}
                 {credit.author ? ` · ${credit.author}` : ""}
                 {credit.source && (
                   <a
                     href={credit.source}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ml-1 inline-flex text-primary hover:underline"
+                  >
+                    <ExternalLink className="size-3" />
+                  </a>
+                )}
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+
+      {webPortraits.length > 0 && (
+        <Section title={`Portraits found by search (${webPortraits.length})`}>
+          <p className="text-xs">
+            No open-licence photograph was available for these. Each links to
+            the page it was found on. Shown for identification only; rights stay
+            with the photographer, and any of them comes down on request.
+          </p>
+          <ul className="mt-4 grid gap-2.5 sm:grid-cols-2">
+            {webPortraits.map((credit) => (
+              <li key={credit.name} className="text-xs leading-6">
+                <span className="text-foreground">{credit.name}</span>
+                {credit.subject && (
+                  <span className="text-muted-foreground/70">
+                    {" "}
+                    (pictured: {credit.subject})
+                  </span>
+                )}
+                {credit.page && (
+                  <a
+                    href={credit.page}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="ml-1 inline-flex text-primary hover:underline"
