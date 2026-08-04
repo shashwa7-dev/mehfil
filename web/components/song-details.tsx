@@ -71,7 +71,7 @@ export function SongDetails({
             the circle stretches to an ellipse and the corner looks lopsided. */}
         <span
           aria-hidden
-          className="pointer-events-none absolute -left-8 -top-8 size-[150px] overflow-hidden [mask-image:radial-gradient(circle_at_top_left,#000_0%,#000_38%,transparent_72%)] [-webkit-mask-image:radial-gradient(circle_at_top_left,#000_0%,#000_38%,transparent_72%)]"
+          className="pointer-events-none absolute -left-8 -top-8 size-[250px] overflow-hidden [mask-image:radial-gradient(circle_at_top_left,#000_0%,#000_38%,transparent_72%)] [-webkit-mask-image:radial-gradient(circle_at_top_left,#000_0%,#000_38%,transparent_72%)]"
         >
           <img
             key={song.video}
