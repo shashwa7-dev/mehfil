@@ -198,19 +198,17 @@ function Scrubber({
         }`}
       >
         <SliderPrimitive.Track
-          className={`relative w-full grow overflow-hidden transition-all ${
+          className={`relative w-full grow overflow-hidden rounded-full transition-all ${
             edge
               ? "h-[3px] bg-white/15 group-hover/scrub:h-[5px]"
-              : `rounded-full bg-white/25 ${
+              : `bg-white/25 ${
                   large ? "h-2 group-hover/scrub:h-2.5" : "h-1.5 group-hover/scrub:h-2"
                 }`
           }`}
         >
           <SliderPrimitive.Indicator
-            className={`h-full transition-colors ${
-              edge
-                ? "bg-primary"
-                : "rounded-full bg-foreground group-hover/scrub:bg-primary"
+            className={`h-full rounded-full transition-colors ${
+              edge ? "bg-primary" : "bg-foreground group-hover/scrub:bg-primary"
             }`}
           />
         </SliderPrimitive.Track>
@@ -839,8 +837,13 @@ export function PlayerBar({
       {/* Pulled up by half the control less half the track, so the centred
           track lands on the bar's top edge while the handle — centred on that
           track — straddles it. The footer deliberately does not clip, or the
-          half above the edge would be cut away. */}
-      <div className="absolute inset-x-0 -top-[4.5px] z-30">
+          half above the edge would be cut away.
+
+          Inset from lg, where the bar acquires a rounded corner: a track that
+          runs square-ended to the edge overhangs that curve, and the two shapes
+          visibly disagree. Inset by the radius it sits inside the corner
+          instead, and its own rounded ends finish it. */}
+      <div className="absolute inset-x-0 -top-[4.5px] z-30 lg:inset-x-2">
         <Scrubber
           value={duration > 0 ? elapsed / duration : 0}
           onCommit={seek}
