@@ -57,8 +57,9 @@ export function useInstall() {
       window.matchMedia("(display-mode: standalone)").matches ||
       (window.navigator as { standalone?: boolean }).standalone === true;
     if (standalone) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- display-mode
-      // is a browser query, unreadable during render or on the server
+      // display-mode is a browser query, unreadable during render or on the
+      // server, so this state can only be set once mounted.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setInstalled(true);
       return;
     }
@@ -224,8 +225,9 @@ export function InstallPrompt() {
 
   useEffect(() => {
     try {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage
-      // is unavailable during render and on the server
+      // localStorage is unavailable during render and on the server, so the
+      // dismissal can only be read once mounted.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDismissed(Boolean(localStorage.getItem(DISMISSED_KEY)));
     } catch {
       setDismissed(false);

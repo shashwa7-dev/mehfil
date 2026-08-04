@@ -132,14 +132,58 @@ export type FacetCard = {
 export const PERSON_FACETS = new Set(["artists", "composer", "lyricist", "actor"]);
 
 /** Manifest written by pipeline/fetch_artist_photos.py; null means no verified photo. */
-export type PhotoManifest = Record<
-  string,
-  { file: string; qid: string; license: string; author: string; source: string } | null
->;
+/**
+ * One portrait, from one of two sources.
+ *
+ * Wikimedia entries carry a verified licence and must be credited. Web-search
+ * entries carry none, so they are marked `provenance: "web"` and the licence
+ * fields are absent rather than guessed — the about page splits on exactly
+ * this, and filing an unlicensed image under the Creative Commons list would
+ * be a false statement about its terms.
+ */
+export type PhotoCredit = {
+  file: string;
+  /**
+   * Who the picture is actually of, when that is not simply this person —
+   * a composing duo, or a fuller form of the name. Absent for the usual case.
+   */
+  subject?: string;
+
+  /** Wikimedia. */
+  qid?: string;
+  license?: string;
+  author?: string;
+  source?: string;
+
+  /** Web search. */
+  provenance?: "web";
+  page?: string;
+  query?: string;
+};
+
+export type PhotoManifest = Record<string, PhotoCredit | null>;
+
+/**
+ * Short stamp of where a portrait came from, used to bust caches.
+ *
+ * Correcting a portrait usually replaces the bytes at an existing path —
+ * `shankar.jpg` went from a photograph of the wrong Shankar to the right one
+ * without changing its name. Nothing in the URL changed, so browsers kept
+ * serving the old face indefinitely. Keying off the source means the URL moves
+ * whenever the picture does.
+ */
+function sourceStamp(entry: PhotoCredit): string {
+  const seed = entry.page || entry.source || entry.qid || entry.file;
+  let hash = 5381;
+  for (let i = 0; i < seed.length; i += 1) {
+    hash = ((hash << 5) + hash + seed.charCodeAt(i)) | 0;
+  }
+  return (hash >>> 0).toString(36);
+}
 
 export function portrait(name: string, manifest: PhotoManifest | null): string | null {
   const entry = manifest?.[name];
-  return entry ? `/artists/${entry.file}` : null;
+  return entry ? `/artists/${entry.file}?v=${sourceStamp(entry)}` : null;
 }
 
 /**

@@ -36,24 +36,62 @@ THUMB_WIDTH = 400
 MAX_PASSES = 4
 
 HUMAN = "Q5"
-# Musical occupations. A name match that is not one of these is the wrong person.
-MUSIC_ROLES = {
-    "Q177220",   # singer
-    "Q1415090",  # playback singer
-    "Q639669",   # musician
-    "Q36834",    # composer
-    "Q486748",   # songwriter
-    "Q158852",   # conductor
-    "Q3282637",  # film producer (Lata et al. wear several hats)
-    "Q753110",   # songwriter/lyricist
-    "Q49757",    # poet (lyricists)
-    "Q214917",   # playwright
-    "Q33999",    # actor (on-screen faces)
-    "Q2526255",  # film director
-    "Q10800557", # film actor
+
+# Occupations that qualify someone, per the role they are credited under here.
+#
+# The gate is per-role because the roles disagree about what counts. A composer
+# who only ever composed is the right person for the composer grid; an actor who
+# only ever acted is the right person for the actor grid. An earlier single
+# global rule demanded a *musical* occupation of everyone, so a pure film actor
+# could never pass it — Sadhana Shivdasani has a portrait and the occupations
+# "actor, film actor, film director", and was rejected by all three.
+ROLE_QIDS = {
+    "singer": {
+        "Q177220",   # singer
+        "Q1415090",  # playback singer
+        "Q639669",   # musician
+        "Q36834",    # composer
+    },
+    "composer": {
+        "Q36834",    # composer
+        "Q486748",   # songwriter
+        "Q158852",   # conductor
+        "Q639669",   # musician
+    },
+    "lyricist": {
+        "Q753110",   # songwriter/lyricist
+        "Q49757",    # poet
+        "Q486748",   # songwriter
+        "Q214917",   # playwright
+        "Q36180",    # writer
+    },
+    "actor": {
+        "Q33999",    # actor
+        "Q10800557", # film actor
+    },
+    "director": {
+        "Q2526255",  # film director
+        "Q3282637",  # film producer
+    },
 }
-# Roles that alone are not enough to call someone a musician.
-WEAK_ROLES = {"Q33999", "Q10800557", "Q2526255", "Q3282637", "Q214917"}
+# Used when we do not know why a person is in the catalogue.
+ANY_ROLE = set().union(*ROLE_QIDS.values())
+
+ALIAS_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "data", "artist_aliases.json",
+)
+
+
+def load_aliases():
+    """Hand-checked catalogue-name -> Wikidata-name corrections."""
+    if not os.path.exists(ALIAS_PATH):
+        return {}
+    data = json.load(open(ALIAS_PATH, encoding="utf-8"))
+    return {k: v for k, v in data.items() if not k.startswith("_")}
+
+
+ALIASES = load_aliases()
 
 
 def get_json(url, retries=5):
@@ -97,6 +135,26 @@ def names_match(query, labels):
     return any(name_key(label) == target for label in labels)
 
 
+def query_terms(name):
+    """Search strings to try for a person, best first.
+
+    Wikidata's search is literal about punctuation: "S.D. Burman" returns
+    nothing at all, while "S. D. Burman" finds the entity. Spacing runs of
+    initials is therefore not cosmetic — it is the difference between a hit and
+    silence for every name written in the catalogue's compact style.
+    """
+    terms = []
+    alias = ALIASES.get(name)
+    if alias:
+        terms.append(alias)
+    terms.append(name)
+    spaced = re.sub(r"\b([A-Za-z])\.(?=[A-Za-z])", r"\1. ", name)
+    if spaced != name:
+        terms.append(spaced)
+    # Preserve order, drop repeats.
+    return list(dict.fromkeys(terms))
+
+
 class LookupFailed(Exception):
     """The API did not answer. Distinct from 'this person has no photo'.
 
@@ -105,12 +163,29 @@ class LookupFailed(Exception):
     """
 
 
-def find_person(name):
-    """Return (qid, image_filename) for a verified musical human, else None.
+def find_person(name, accept=None):
+    """Return (qid, image_filename, subject) for the right person, else None.
 
-    Raises LookupFailed if the API could not be reached, so the caller can
-    leave the person out of the manifest and retry on the next run.
+    `accept` is the set of occupations that qualify this person, chosen from
+    the role they are credited under. Raises LookupFailed if the API could not
+    be reached, so the caller can leave the person out of the manifest and
+    retry on the next run rather than recording a permanent "no photo".
     """
+    accept = accept or ANY_ROLE
+    # An entry in the alias file is a human judgement about which entity this
+    # is, so the occupation and instance-of checks have already been made by a
+    # person. They still have to bear the name we look them up by.
+    curated = name in ALIASES
+
+    for term in query_terms(name):
+        result = _search_one(term, accept, curated)
+        if result:
+            return result
+    return None
+
+
+def _search_one(name, accept, curated):
+    """One search term. Raises LookupFailed on an unreachable API."""
     query = urllib.parse.quote(name)
     found = get_json(
         f"{API}?action=wbsearchentities&search={query}&language=en&format=json&limit=5"
@@ -140,29 +215,31 @@ def find_person(name):
         if not names_match(name, labels):
             continue
 
-        instances = {
-            c["mainsnak"]["datavalue"]["value"]["id"]
-            for c in claims.get("P31", [])
-            if "datavalue" in c["mainsnak"]
-        }
-        if HUMAN not in instances:
-            continue
+        # Curated names skip these two gates: the entity was chosen by hand, and
+        # some targets are duos rather than people, so "instance of human" is
+        # false for them by design.
+        if not curated:
+            instances = {
+                c["mainsnak"]["datavalue"]["value"]["id"]
+                for c in claims.get("P31", [])
+                if "datavalue" in c["mainsnak"]
+            }
+            if HUMAN not in instances:
+                continue
 
-        roles = {
-            c["mainsnak"]["datavalue"]["value"]["id"]
-            for c in claims.get("P106", [])
-            if "datavalue" in c["mainsnak"]
-        }
-        # Require at least one role, and not only the weak ones.
-        if not (roles & MUSIC_ROLES) or not (roles - WEAK_ROLES) and not (
-            roles & {"Q177220", "Q1415090", "Q639669", "Q36834"}
-        ):
-            continue
+            roles = {
+                c["mainsnak"]["datavalue"]["value"]["id"]
+                for c in claims.get("P106", [])
+                if "datavalue" in c["mainsnak"]
+            }
+            if not roles & accept:
+                continue
 
         images = claims.get("P18", [])
         if not images or "datavalue" not in images[0]["mainsnak"]:
             continue
-        return qid, images[0]["mainsnak"]["datavalue"]["value"]
+        label = entity.get("labels", {}).get("en", {}).get("value", "") or name
+        return qid, images[0]["mainsnak"]["datavalue"]["value"], label
 
     return None
 
@@ -208,7 +285,7 @@ def download(url, path):
         return False
 
 
-def main(db_path, out_dir):
+def main(db_path, out_dir, retry_none=False):
     conn = store.connect(db_path)
     os.makedirs(out_dir, exist_ok=True)
     manifest_path = os.path.join(out_dir, "manifest.json")
@@ -217,9 +294,22 @@ def main(db_path, out_dir):
     if os.path.exists(manifest_path):
         manifest = json.load(open(manifest_path, encoding="utf-8"))
 
+    # A recorded null is never revisited, which is right for ordinary reruns and
+    # wrong after the matching rules change: every person the old rules turned
+    # away stays turned away, and the fix looks like it did nothing. Dropping
+    # the nulls re-opens exactly those, leaving found portraits untouched.
+    if retry_none:
+        dropped = [k for k, v in manifest.items() if v is None]
+        for k in dropped:
+            del manifest[k]
+        print(f"retrying {len(dropped)} previously recorded as having no photo")
+
     # People worth a portrait: credited singers, plus the roles the browse grid
     # shows as circular cards.
     people = {}
+    # What each person is credited as, so the occupation check can ask for the
+    # right thing. Someone credited both ways qualifies under either.
+    roles_by_person = {}
     for row in conn.execute(
         "SELECT a.name, COUNT(*) n FROM song_artists sa "
         "JOIN artists a ON a.id = sa.artist_id "
@@ -227,12 +317,19 @@ def main(db_path, out_dir):
         "GROUP BY a.name ORDER BY n DESC"
     ):
         people[row["name"]] = row["n"]
+        roles_by_person.setdefault(row["name"], set()).add("singer")
     for row in conn.execute(
-        "SELECT person, COUNT(DISTINCT sr.song_id) n FROM song_roles sr "
+        "SELECT person, role, COUNT(DISTINCT sr.song_id) n FROM song_roles sr "
         "JOIN resolutions r ON r.song_id = sr.song_id AND r.embeddable = 1 "
-        "GROUP BY person ORDER BY n DESC"
+        "GROUP BY person, role ORDER BY n DESC"
     ):
         people.setdefault(row["person"], row["n"])
+        roles_by_person.setdefault(row["person"], set()).add(row["role"])
+
+    def accepted_roles(name):
+        roles = roles_by_person.get(name, set())
+        qids = set().union(*(ROLE_QIDS.get(r, set()) for r in roles)) if roles else set()
+        return qids or ANY_ROLE
 
     def save():
         with open(manifest_path, "w", encoding="utf-8") as fh:
@@ -244,7 +341,7 @@ def main(db_path, out_dir):
         path = os.path.join(out_dir, f"{slug}.jpg")
 
         try:
-            result = find_person(name)
+            result = find_person(name, accepted_roles(name))
         except LookupFailed:
             return False
 
@@ -252,7 +349,7 @@ def main(db_path, out_dir):
             manifest[name] = None  # verified: no suitable entity
             return True
 
-        qid, filename = result
+        qid, filename, subject = result
         meta = image_meta(filename)
         # A failed lookup or download is a network problem, not proof the
         # person has no photo. Recording null here is what previously turned
@@ -269,6 +366,11 @@ def main(db_path, out_dir):
             "author": meta["author"],
             "source": meta["descriptionurl"],
         }
+        # Only when the portrait is filed under a different name — a duo, or a
+        # fuller form. Recording it keeps the credits from implying the picture
+        # shows one member of Laxmikant-Pyarelal on his own.
+        if name_key(subject) != name_key(name):
+            manifest[name]["subject"] = subject
         return True
 
     # Several passes, because a run that leaves failures for "next time" only
@@ -305,4 +407,5 @@ def main(db_path, out_dir):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2])
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    main(args[0], args[1], retry_none="--retry-none" in sys.argv)
