@@ -6,6 +6,7 @@ import { Slider as SliderPrimitive } from "@base-ui/react/slider";
 import {
   ChevronDown,
   ChevronUp,
+  Flag,
   Loader2,
   Maximize2,
   Pause,
@@ -20,6 +21,7 @@ import {
   VolumeX,
 } from "lucide-react";
 import { artwork, type Song } from "@/lib/catalogue";
+import { ReportDialog } from "@/components/report-dialog";
 import { useCatalogue } from "@/lib/queries";
 import { QueuePanel } from "@/components/queue-panel";
 
@@ -254,6 +256,7 @@ export function PlayerBar({
   const [failure, setFailure] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [queueOpen, setQueueOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const { data: catalogue } = useCatalogue();
   const barSwipe = useSwipe((d) => d === "up" && setExpanded(true));
   const stageSwipe = useSwipe((d) => d === "down" && setExpanded(false));
@@ -902,6 +905,15 @@ export function PlayerBar({
               unverified
             </span>
           )}
+          {/* Reporting sits next to the track it is about, which is the only
+              moment anyone knows the recording is wrong — hearing it. */}
+          <button
+            onClick={() => setReportOpen(true)}
+            className={iconButton}
+            title="Wrong recording? Tell us"
+          >
+            <Flag className="size-4" />
+          </button>
           <button
             onClick={() => setQueueOpen(true)}
             className={iconButton}
@@ -947,6 +959,16 @@ export function PlayerBar({
           </button>
           </div>
         </div>
+          {reportOpen && song && (
+            <ReportDialog
+              kind="wrong-track"
+              songId={song.id}
+              songTitle={song.title}
+              songFilm={song.film ?? undefined}
+              currentVideoId={song.video}
+              onClose={() => setReportOpen(false)}
+            />
+          )}
           {catalogue && (
             <QueuePanel
               catalogue={catalogue}
