@@ -11,18 +11,16 @@ video is already in the database, so proposing a better match for three
 thousand songs costs no requests at all. Only the shortlisted candidates need a
 network call, and only to learn their length.
 
-An upgrade is applied when the official candidate is at least as trustworthy as
-what is there now:
+A match is replaced only when it is genuinely faulty — missing, unplayable, the
+wrong length, or not the song. Coming from somewhere other than Saregama is not
+a fault. Treating it as one cost real songs: Saregama disables embedding on many
+of its uploads, so preferring them moved "Aa Mere Humjoli Aa" off a Rajshri
+video that played onto an official one that would not.
 
-  - the song is unresolved, or
-  - its current match is disqualified (wrong length, or does not name it), or
-  - its current match is not from an official channel.
-
-A song already matched to a sound official upload is left alone. The same
-naming and corroboration rules apply as everywhere else; being official earns a
-preference, never an exemption. Saregama Karaoke is official and publishes
-backing tracks, which is exactly the kind of thing that preference would wave
-through if it were allowed to.
+Being official earns a preference between candidates and never an exemption
+from the rules. Saregama Karaoke is official and publishes backing tracks;
+Saregama Jhankar Beats is official and publishes remasters. Both are excluded,
+and every candidate is checked for embedding before it is accepted.
 
 Usage:
     python3 pipeline/match_official.py data/carvaan.db --dry-run
@@ -38,7 +36,7 @@ import store
 from titlematch import fold, names_song, opens_with_song
 from match_videos import REJECT_RE, RANGE_RE
 from reresolve_songs import (
-    MIN_SECONDS, MAX_SECONDS, TYPICAL, EXTRA_REJECT, WRONG_KIND, tier,
+    MIN_SECONDS, MAX_SECONDS, TYPICAL, EXTRA_REJECT, WRONG_KIND,
 )
 from fetch_video_meta import fetch_batch, BATCH
 from verify_embeddable import check as check_embeddable

@@ -62,7 +62,9 @@ TYPICAL = (120, 600)
 EXTRA_REJECT = re.compile(
     r"\b(full movie|full film|complete movie|movie online|audio jukebox|"
     r"video jukebox|all time hits|superhit collection|golden collection|"
-    r"lyrical video jukebox|one hour|1 hour|hour long|marathon)\b",
+    r"lyrical video jukebox|one hour|1 hour|hour long|marathon|"
+    # "5 Top Songs of ..." — the shared list catches "top 5" and misses this.
+    r"\d+\s*top songs|top songs|geetmala|vol\.?\s*\d+|volume\s*\d+)\b",
     re.I,
 )
 
@@ -198,9 +200,14 @@ def queries(song):
     return list(dict.fromkeys(q for q in out if q.strip()))
 
 
-def best_for(song):
-    """Search progressively; stop as soon as an official-channel match lands."""
-    seen, pool = set(), []
+def best_for(song, taken=()):
+    """Search progressively; stop as soon as an official-channel match lands.
+
+    `taken` holds videos already serving a different song. One upload cannot be
+    two recordings, so a second claim on it means either a compilation or a
+    title that happens to name both — either way this song needs its own.
+    """
+    seen, pool = set(taken), []
     for query in queries(song):
         for candidate in search(query):
             if candidate[0] in seen:
@@ -277,7 +284,12 @@ def main(db_path, mode="all", limit=None, workers=WORKERS, dry_run=False,
     fixed = failed = 0
     with ThreadPoolExecutor(max_workers=workers) as pool:
         songs = {song_id: song_row(conn, song_id) for song_id in targets}
-        futures = {pool.submit(best_for, songs[i]): i for i in targets}
+        # Videos already serving a song that is NOT being re-resolved here.
+        target_set = set(targets)
+        taken = {row["video_id"] for row in conn.execute(
+            "SELECT song_id, video_id FROM resolutions WHERE embeddable = 1")
+            if row["song_id"] not in target_set}
+        futures = {pool.submit(best_for, songs[i], taken): i for i in targets}
         for done, future in enumerate(as_completed(futures), start=1):
             song_id = futures[future]
             song = songs[song_id]
