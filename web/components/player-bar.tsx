@@ -775,6 +775,24 @@ export function PlayerBar({
       )}
 
       <div className="relative grid grid-cols-[1fr_auto] items-center gap-4 px-4 py-2.5 md:grid-cols-3 md:px-5 md:py-3">
+        {/* Artwork, bled off the bar's left edge rather than sat inside it as a
+            tile. Absolute so it can reach past the row's padding to the very
+            edge, and masked so it dissolves into the bar instead of ending on a
+            hard line. Decorative and non-interactive: the button below covers
+            the same area and stays the thing you click. */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 left-0 w-28 overflow-hidden [mask-image:linear-gradient(to_right,#000_0%,#000_35%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,#000_0%,#000_35%,transparent_100%)] md:w-36"
+        >
+          <img
+            key={song.video}
+            src={artwork(song.video)}
+            alt=""
+            loading="lazy"
+            className="size-full object-cover"
+          />
+        </span>
+
         {/* Now playing. The video host is rendered unconditionally: the player
             is constructed against it on mount, so gating it behind `song`
             would mean the player is never created at all. */}
@@ -784,18 +802,12 @@ export function PlayerBar({
           {...barSwipe}
           onClick={() => setExpanded(true)}
           title="Expand to video"
-          className="group/np flex min-w-0 items-center gap-3 text-left"
+          className="group/np relative flex min-w-0 items-center gap-3 pl-24 text-left md:pl-32"
         >
-          <span className="relative size-11 shrink-0 overflow-hidden rounded">
-            <img
-              src={artwork(song.video)}
-              alt=""
-              loading="lazy"
-              className="size-full object-cover"
-            />
-            <span className="absolute inset-0 grid place-items-center bg-black/55 text-white opacity-0 transition group-hover/np:opacity-100 group-focus-visible/np:opacity-100">
-              <Maximize2 className="size-4" />
-            </span>
+          {/* Sits over the bled artwork, so the expand affordance still appears
+              where the picture is. */}
+          <span className="pointer-events-none absolute inset-y-0 left-0 grid w-24 place-items-center text-white opacity-0 transition group-hover/np:opacity-100 group-focus-visible/np:opacity-100 md:w-32">
+            <Maximize2 className="size-4 drop-shadow" />
           </span>
 
           <span className="min-w-0">

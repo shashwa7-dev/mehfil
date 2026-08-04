@@ -255,7 +255,15 @@ def load_targets(conn, mode, limit, ids_file=None):
     dead = "SELECT song_id FROM resolutions WHERE embeddable = 0"
     weak = "SELECT song_id FROM resolutions WHERE embeddable = 1 AND confidence <= 0.82"
 
-    parts = [bad_duration, dead] if mode == "bad-only" else [bad_duration, dead, weak]
+    # Songs that have never had a match at all, as opposed to a faulty one.
+    never = "SELECT id AS song_id FROM songs WHERE id NOT IN (SELECT song_id FROM resolutions)"
+
+    if mode == "pending":
+        parts = [never]
+    elif mode == "bad-only":
+        parts = [bad_duration, dead]
+    else:
+        parts = [bad_duration, dead, weak]
     ids = []
     for sql in parts:
         ids += [row["song_id"] for row in conn.execute(sql)]
@@ -354,6 +362,7 @@ if __name__ == "__main__":
         if a == "--ids" and i + 1 < len(sys.argv):
             ids_file = sys.argv[i + 1]
     main(args[0],
-         mode="bad-only" if "--bad-only" in sys.argv else "all",
+         mode=("pending" if "--pending" in sys.argv else
+               "bad-only" if "--bad-only" in sys.argv else "all"),
          limit=limit, workers=workers or WORKERS,
          dry_run="--dry-run" in sys.argv, ids_file=ids_file)
