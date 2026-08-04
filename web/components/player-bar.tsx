@@ -18,12 +18,14 @@ import {
   Sparkles,
   ListVideo,
   Info,
+  MoreVertical,
   Volume2,
   VolumeX,
 } from "lucide-react";
 import { artwork, type Song } from "@/lib/catalogue";
 import { ReportDialog } from "@/components/report-dialog";
 import { SongDetails } from "@/components/song-details";
+import { PlayerMenu } from "@/components/player-menu";
 import { useCatalogue, useSongCredits } from "@/lib/queries";
 import { QueuePanel } from "@/components/queue-panel";
 
@@ -265,6 +267,7 @@ export function PlayerBar({
   const [queueOpen, setQueueOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const { data: songCredits } = useSongCredits();
   const credit = song ? songCredits?.[String(song.id)] : undefined;
   const { data: catalogue } = useCatalogue();
@@ -857,7 +860,7 @@ export function PlayerBar({
           the middle of the *bar* rather than the middle of whatever space the
           controls leave over. With a flexible centre column the thumbnail slid
           left and right as titles changed length, which is the jumping. */}
-      <div className="relative grid grid-cols-[auto_1fr] items-center gap-3 px-3 py-2.5 md:grid-cols-[1fr_auto_1fr] md:gap-4 md:px-4 md:py-3">
+      <div className="relative grid grid-cols-[auto_1fr_auto] items-center gap-2 px-3 py-2.5 md:grid-cols-[1fr_auto_1fr] md:gap-4 md:px-4 md:py-3">
         {/* Transport, at the left edge where the hand goes first. */}
         <div className="flex items-center gap-0.5 md:gap-1">
           <button onClick={onPrev} disabled={!song} className={iconButton} title="Previous">
@@ -936,6 +939,16 @@ export function PlayerBar({
           </span>
         </button>
 
+        {/* Below md the right-hand cluster does not fit, so one button opens
+            it as a sheet rather than the controls simply being absent. */}
+        <button
+          onClick={() => setMenuOpen(true)}
+          title="More"
+          className={`${iconButton} justify-self-end md:hidden`}
+        >
+          <MoreVertical className="size-5" />
+        </button>
+
         {/* Everything that modifies playback rather than driving it. */}
         <div className="hidden items-center justify-end gap-1 md:flex">
           {song && song.confidence < 0.85 && (
@@ -1008,6 +1021,18 @@ export function PlayerBar({
           </button>
           </div>
         </div>
+          <PlayerMenu
+            open={menuOpen}
+            onClose={() => setMenuOpen(false)}
+            repeat={repeat}
+            shuffle={shuffle}
+            onToggleRepeat={onToggleRepeat}
+            onToggleShuffle={onToggleShuffle}
+            onQueue={() => setQueueOpen(true)}
+            onCredits={() => setDetailsOpen(true)}
+            onReport={() => setReportOpen(true)}
+            onExpand={() => setExpanded(true)}
+          />
           {detailsOpen && song && (
             <SongDetails song={song} onClose={() => setDetailsOpen(false)} />
           )}

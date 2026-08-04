@@ -55,8 +55,13 @@ export default function ContributePage() {
   }, [songs, query]);
 
   // Keyed on the query so a new search starts from the first page rather than
-  // wherever the previous one had been scrolled to.
-  const paged = usePagedItems(matching, `missing:${query}`);
+  // wherever the previous one had been scrolled to — and on the list's length,
+  // which is what makes it correct. usePagedItems caches with staleTime
+  // Infinity over an array its queryFn closes over, so a key that does not
+  // change when the array does keeps serving the first slice it ever computed.
+  // Here the first render happens before the fetch resolves, so that slice was
+  // of an empty list: the page stayed blank until a keystroke changed the key.
+  const paged = usePagedItems(matching, `missing:${query}:${matching.length}`);
   const loaded = useMemo(
     () => flattenPages<MissingSong>(paged.data?.pages),
     [paged.data]
