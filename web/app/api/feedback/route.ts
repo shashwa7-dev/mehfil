@@ -74,7 +74,6 @@ function clean(value: unknown, max: number): string {
   else return "";
 
   return text
-    // eslint-disable-next-line no-control-regex
     .replace(/[\u0000-\u001f\u007f]+/g, " ")
     .replace(/\s+/g, " ")
     .trim()
