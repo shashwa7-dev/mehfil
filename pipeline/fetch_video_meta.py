@@ -36,12 +36,12 @@ TIMEOUT = 120
 
 
 def fetch_batch(video_ids):
-    """[(id, duration, channel)] for one batch. Missing ids are simply absent."""
+    """[(id, duration, channel, title)] for one batch. Missing ids are absent."""
     url = "https://www.youtube.com/watch_videos?video_ids=" + ",".join(video_ids)
     cmd = [
         "yt-dlp", url,
         "--flat-playlist", "--skip-download", "--no-warnings", "--ignore-errors",
-        "--print", "%(id)s|%(duration)s|%(channel)s",
+        "--print", "%(id)s|%(duration)s|%(channel)s|%(title)s",
     ]
     try:
         out = subprocess.run(cmd, capture_output=True, text=True, timeout=TIMEOUT).stdout
@@ -50,15 +50,15 @@ def fetch_batch(video_ids):
 
     rows = []
     for line in out.splitlines():
-        parts = line.strip().split("|", 2)
-        if len(parts) != 3 or len(parts[0]) != 11:
+        parts = line.strip().split("|", 3)
+        if len(parts) != 4 or len(parts[0]) != 11:
             continue
-        video_id, raw_duration, channel = parts
+        video_id, raw_duration, channel, title = parts
         try:
             duration = int(float(raw_duration))
         except (TypeError, ValueError):
             duration = None
-        rows.append((video_id, duration, channel or None))
+        rows.append((video_id, duration, channel or None, title or None))
     return rows
 
 
@@ -96,7 +96,7 @@ def main(db_path, refresh_all=False, workers=WORKERS):
                 continue
 
             found = set()
-            for video_id, duration, channel in rows:
+            for video_id, duration, channel, _title in rows:
                 found.add(video_id)
                 conn.execute(
                     "UPDATE videos SET duration = ?, channel_title = ?, "

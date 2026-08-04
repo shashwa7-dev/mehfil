@@ -68,16 +68,18 @@ def main(db_path, corrections_path):
         # video as zero seconds and flags the one match that is certainly right.
         meta = fetch_batch([video_id]) or []
         duration, channel, real_title = None, None, title
-        for got_id, got_duration, got_channel in meta:
+        for got_id, got_duration, got_channel, got_title in meta:
             if got_id == video_id:
                 duration, channel = got_duration, got_channel
+                real_title = got_title or title
 
         conn.execute("BEGIN")
         conn.execute(
             "INSERT INTO videos "
             "(video_id,title,channel_id,published_at,title_key,duration,channel_title) "
             "VALUES (?,?,?,?,?,?,?) ON CONFLICT(video_id) DO UPDATE SET "
-            "embeddable=1, duration=COALESCE(excluded.duration, videos.duration), "
+            "embeddable=1, title=excluded.title, title_key=excluded.title_key, "
+            "duration=COALESCE(excluded.duration, videos.duration), "
             "channel_title=COALESCE(excluded.channel_title, videos.channel_title)",
             (video_id, real_title, "correction", None, store.normalise(real_title),
              duration, channel),

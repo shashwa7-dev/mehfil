@@ -154,7 +154,7 @@ def main(db_path, dry_run=False):
         print(f"fetching length for {len(unknown)} candidates...")
         for i in range(0, len(unknown), BATCH):
             rows = fetch_batch(unknown[i:i + BATCH]) or []
-            for video_id, duration, channel in rows:
+            for video_id, duration, channel, _title in rows:
                 conn.execute(
                     "UPDATE videos SET duration = ?, channel_title = ? "
                     "WHERE video_id = ?", (duration, channel, video_id),
