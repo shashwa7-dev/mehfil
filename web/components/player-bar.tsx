@@ -212,13 +212,14 @@ function Scrubber({
         <SliderPrimitive.Thumb
           className={`block shrink-0 cursor-grab rounded-full shadow transition-opacity after:absolute after:-inset-3 active:cursor-grabbing ${
             edge
-              // Sat on the line rather than under it. The control is 12px tall
-              // with the track pinned to its top, so a 12px thumb aligned to
-              // the start has its centre 6px down while the 3px track's centre
-              // is at 1.5px — hence 4.5px up, and 3.5px once hover thickens the
-              // track to 5px. Hidden until pointed at: a permanent dot on a
+              // The control is 12px tall with the track pinned to its top, so a
+              // 12px thumb aligned to the start has its centre 6px down while
+              // the 3px track's centre is at 1.5px: 4.5px up would sit it on
+              // the line, and half again lifts it to straddle the line rather
+              // than rest on it. Hover thickens the track to 5px, so its offset
+              // is a pixel less. Hidden until pointed at — a permanent dot on a
               // hairline is clutter, but it has to exist to be grabbed.
-              ? "size-3 -translate-y-[4.5px] bg-primary opacity-0 group-hover/scrub:-translate-y-[3.5px] group-hover/scrub:opacity-100"
+              ? "size-3 -translate-y-[6.75px] bg-primary opacity-0 group-hover/scrub:-translate-y-[5.75px] group-hover/scrub:opacity-100"
               : `bg-foreground ${large ? "size-4" : "size-3.5"}`
           }`}
         />
@@ -807,13 +808,20 @@ export function PlayerBar({
       {song && (
         // Sits inside the content column, so it needs no manual offset —
         // the frame's flex layout already keeps it clear of the rail.
-        <footer className="relative z-50 shrink-0 overflow-hidden border-t bg-card/80 backdrop-blur lg:rounded-lg lg:border">
+        // No overflow-hidden here. The scrubber's handle sits astride the top
+        // edge, so clipping the footer cut its upper half off and left it
+        // looking like it hung below the line. Only the ambient wash actually
+        // needs clipping, and it now clips itself.
+        <footer className="relative z-50 shrink-0 border-t bg-card/80 backdrop-blur lg:rounded-lg lg:border">
       {/* Ambient wash from the current track, so the bar picks up its colour.
           A child rather than a background image on the footer: it has to paint
           over the footer's own surface, and the veil above it is what keeps
           the controls legible against bright artwork. */}
       {ambient && song && (
-        <div aria-hidden className="pointer-events-none absolute inset-0">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 overflow-hidden lg:rounded-lg"
+        >
           <img
             key={song.video}
             src={artwork(song.video, "hq")}
