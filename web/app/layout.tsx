@@ -19,7 +19,36 @@ const figtree = Figtree({
   display: "swap",
 });
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+/**
+ * Absolute origin for the metadata. Every share card depends on getting this
+ * right: og:image is emitted as an absolute URL, so when this falls back to
+ * localhost the crawler is handed an address on its own machine, fetches
+ * nothing, and renders a card with no image. The card looks broken while the
+ * image route it points at is perfectly healthy.
+ *
+ * Vercel already knows the answer, so it is read from there rather than
+ * requiring a variable to be set by hand and remembered on every project:
+ *
+ *   NEXT_PUBLIC_SITE_URL          an explicit override, if one is ever wanted
+ *   VERCEL_PROJECT_PRODUCTION_URL the project's production domain, custom
+ *                                 domain included — used even on previews, so
+ *                                 a shared preview link still shows the real
+ *                                 card rather than a deployment-specific one
+ *   VERCEL_URL                    this deployment, before a production domain
+ *                                 exists
+ */
+function siteUrl(): string {
+  const explicit = process.env.NEXT_PUBLIC_SITE_URL;
+  if (explicit) return explicit.replace(/\/$/, "");
+
+  const vercel =
+    process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL;
+  if (vercel) return `https://${vercel}`;
+
+  return "http://localhost:3000";
+}
+
+const SITE_URL = siteUrl();
 const DESCRIPTION =
   "Browse and play golden-era Hindi film music by singer, composer, lyricist, " +
   "actor, film and mood. Over 3,000 songs across 66 stations.";

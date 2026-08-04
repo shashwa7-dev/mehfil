@@ -5,6 +5,8 @@ import { createPortal } from "react-dom";
 import { Slider as SliderPrimitive } from "@base-ui/react/slider";
 import {
   ChevronDown,
+  ChevronUp,
+  Flag,
   Loader2,
   Maximize2,
   Pause,
@@ -15,11 +17,16 @@ import {
   SkipForward,
   Sparkles,
   ListVideo,
+  Info,
+  MoreVertical,
   Volume2,
   VolumeX,
 } from "lucide-react";
 import { artwork, type Song } from "@/lib/catalogue";
-import { useCatalogue } from "@/lib/queries";
+import { ReportDialog } from "@/components/report-dialog";
+import { SongDetails } from "@/components/song-details";
+import { PlayerMenu } from "@/components/player-menu";
+import { useCatalogue, useSongCredits } from "@/lib/queries";
 import { QueuePanel } from "@/components/queue-panel";
 
 type YTPlayer = {
@@ -143,12 +150,15 @@ function Scrubber({
   disabled,
   className = "",
   large = false,
+  edge = false,
 }: {
   value: number; // 0..1
   onCommit: (fraction: number) => void;
   disabled?: boolean;
   className?: string;
   large?: boolean;
+  /** Hairline along the bar's top edge. Desktop only — see the bar below. */
+  edge?: boolean;
 }) {
   const [dragging, setDragging] = useState(false);
   const [preview, setPreview] = useState(0);
@@ -178,20 +188,37 @@ function Scrubber({
           height is also the real hit target — the finger and cursor land here,
           not on the thin visible track. */}
       <SliderPrimitive.Control
-        className={`group/scrub relative flex w-full touch-none select-none items-center data-disabled:opacity-50 ${
-          large ? "h-9" : "h-8"
+        // items-center matters: Base UI positions the thumb at `top: 50%` of
+        // this control as an inline style, so the track has to sit at the
+        // control's middle for the two to meet. No translate utility can
+        // correct a mismatch — Tailwind v4 compiles those to the `translate`
+        // property, which is the property Base UI sets inline, and inline wins.
+        className={`group/scrub relative flex w-full cursor-pointer touch-none select-none items-center data-disabled:cursor-not-allowed data-disabled:opacity-50 ${
+          edge ? "h-3" : large ? "h-9" : "h-8"
         }`}
       >
         <SliderPrimitive.Track
-          className={`relative w-full grow overflow-hidden rounded-full bg-white/25 transition-all ${
-            large ? "h-2 group-hover/scrub:h-2.5" : "h-1.5 group-hover/scrub:h-2"
+          className={`relative w-full grow overflow-hidden rounded-full transition-all ${
+            edge
+              ? "h-[3px] bg-white/15 group-hover/scrub:h-[5px]"
+              : `bg-white/25 ${
+                  large ? "h-2 group-hover/scrub:h-2.5" : "h-1.5 group-hover/scrub:h-2"
+                }`
           }`}
         >
-          <SliderPrimitive.Indicator className="h-full rounded-full bg-foreground transition-colors group-hover/scrub:bg-primary" />
+          <SliderPrimitive.Indicator
+            className={`h-full rounded-full transition-colors ${
+              edge ? "bg-primary" : "bg-foreground group-hover/scrub:bg-primary"
+            }`}
+          />
         </SliderPrimitive.Track>
         <SliderPrimitive.Thumb
-          className={`block shrink-0 rounded-full bg-foreground shadow transition-opacity after:absolute after:-inset-3 ${
-            large ? "size-4" : "size-3.5"
+          className={`block shrink-0 cursor-grab rounded-full shadow transition-opacity after:absolute after:-inset-3 active:cursor-grabbing ${
+            edge
+              // Revealed on point: a permanent dot on a hairline is clutter,
+              // and this variant only exists where there is a cursor to point.
+              ? "size-3 bg-primary opacity-0 group-hover/scrub:opacity-100"
+              : `bg-foreground ${large ? "size-4" : "size-3.5"}`
           }`}
         />
       </SliderPrimitive.Control>
@@ -234,6 +261,11 @@ export function PlayerBar({
   const [failure, setFailure] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [queueOpen, setQueueOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const { data: songCredits } = useSongCredits();
+  const credit = song ? songCredits?.[String(song.id)] : undefined;
   const { data: catalogue } = useCatalogue();
   const barSwipe = useSwipe((d) => d === "up" && setExpanded(true));
   const stageSwipe = useSwipe((d) => d === "down" && setExpanded(false));
@@ -496,70 +528,65 @@ export function PlayerBar({
     [duration]
   );
 
+  // A faint disc appears under the icon on hover, so the secondary controls
+  // acknowledge the pointer without competing with the play button, which is
+  // the only one that carries a fill at rest.
+  // Secondary actions in the expanded view: labelled from sm, icon-only on a
+  // narrow phone where four labels would not fit on one line.
+  const secondaryAction =
+    "flex items-center gap-1.5 rounded-full px-3 py-2 text-xs text-muted-foreground transition hover:bg-white/[0.07] hover:text-foreground active:scale-95";
+
   const iconButton =
-    "grid size-8 place-items-center rounded-full text-muted-foreground transition hover:text-foreground disabled:opacity-40 disabled:hover:text-muted-foreground";
+    "grid size-9 place-items-center rounded-full text-muted-foreground transition-all duration-200 hover:bg-white/[0.08] hover:text-foreground active:scale-90 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground";
 
   // Rendered in both the bar and the expanded view, so the controls are always
   // reachable. `large` scales it up for the full-screen layout.
-  const transport = (large: boolean) => (
-    <div className="flex w-full flex-col items-center gap-0.5">
-      <div className={`flex items-center ${large ? "gap-4" : "gap-2"}`}>
+  // Only the expanded view uses this now: the compact bar lays its controls
+  // out along the left edge instead, so there is no shared shape to abstract.
+  const transport = () => (
+    <div className="flex w-full flex-col items-center">
+      {/* Generous gaps and a large play button: this is the one surface with
+          room for the controls to be sized for a thumb rather than a cursor. */}
+      <div className="flex items-center gap-5 sm:gap-7">
         <button
           onClick={onToggleShuffle}
           title="Shuffle"
           className={`${iconButton} ${shuffle ? "text-primary hover:text-primary" : ""}`}
         >
-          <Shuffle className={large ? "size-5" : "size-4"} />
+          <Shuffle className="size-5" />
         </button>
         <button onClick={onPrev} disabled={!song} className={iconButton} title="Previous">
-          <SkipBack className={`fill-current ${large ? "size-5" : "size-4"}`} />
+          <SkipBack className="size-5 fill-current" />
         </button>
         <button
           onClick={toggle}
           disabled={!song || !ready}
           title={playing ? "Pause" : "Play"}
-          className={`grid place-items-center rounded-full bg-foreground text-background transition hover:scale-105 disabled:opacity-40 disabled:hover:scale-100 ${
-            large ? "size-12" : "size-9"
-          }`}
+          // The one filled control, so it carries the weight: a soft brass ring
+          // and a lift on hover rather than a flat disc. active:scale keeps the
+          // press physical instead of instantaneous.
+          className="grid size-16 place-items-center rounded-full bg-foreground text-background shadow-[0_4px_20px_-4px_rgba(0,0,0,0.6)] ring-1 ring-primary/20 transition-all duration-200 hover:scale-105 hover:shadow-[0_6px_26px_-4px_rgba(214,168,84,0.5)] hover:ring-primary/40 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:hover:scale-100"
         >
           {loading ? (
-            <Loader2 className={`animate-spin ${large ? "size-5" : "size-4"}`} />
+            <Loader2 className="size-6 animate-spin" />
           ) : playing ? (
-            <Pause className={`fill-current ${large ? "size-5" : "size-4"}`} />
+            <Pause className="size-6 fill-current" />
           ) : (
-            <Play className={`translate-x-px fill-current ${large ? "size-5" : "size-4"}`} />
+            <Play className="size-6 translate-x-0.5 fill-current" />
           )}
         </button>
         <button onClick={onNext} disabled={!song} className={iconButton} title="Next">
-          <SkipForward className={`fill-current ${large ? "size-5" : "size-4"}`} />
+          <SkipForward className="size-5 fill-current" />
         </button>
         <button
           onClick={onToggleRepeat}
           title="Repeat one"
           className={`${iconButton} ${repeat ? "text-primary hover:text-primary" : ""}`}
         >
-          <Repeat className={large ? "size-5" : "size-4"} />
+          <Repeat className="size-5" />
         </button>
       </div>
 
-      <div
-        className={`w-full items-center gap-2 ${
-          large ? "flex max-w-2xl pt-1" : "hidden max-w-md md:flex"
-        }`}
-      >
-        <span className="w-9 text-right text-[11px] tabular-nums text-muted-foreground">
-          {formatTime(elapsed)}
-        </span>
-        <Scrubber
-          value={duration > 0 ? elapsed / duration : 0}
-          onCommit={seek}
-          disabled={!song || duration <= 0}
-          className="flex-1"
-        />
-        <span className="w-9 text-[11px] tabular-nums text-muted-foreground">
-          {formatTime(duration)}
-        </span>
-      </div>
     </div>
   );
 
@@ -617,30 +644,8 @@ export function PlayerBar({
             Now playing
           </span>
 
-          {/* Labelled and visibly two-state. As a bare icon that only changed
-              colour, there was nothing to say it was a toggle, what it
-              controlled, or which way it was set. */}
-          <button
-            onClick={onToggleAmbient}
-            role="switch"
-            aria-checked={ambient}
-            title={ambient ? "Turn ambient off" : "Turn ambient on"}
-            className={`flex shrink-0 items-center gap-1.5 rounded-full border py-1.5 pl-2 pr-3 text-[11px] font-medium backdrop-blur transition ${
-              ambient
-                ? "border-primary/40 bg-primary/20 text-primary"
-                : "border-white/10 bg-white/[0.06] text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Sparkles
-              className={`size-3.5 transition-transform ${ambient ? "scale-110" : ""}`}
-            />
-            <span className="hidden sm:inline">Ambient</span>
-            <span
-              className={`ml-0.5 size-1.5 rounded-full transition-colors ${
-                ambient ? "bg-primary" : "bg-white/25"
-              }`}
-            />
-          </button>
+          {/* Balances the collapse button so "Now playing" sits centred. */}
+          <span className="size-9 shrink-0" aria-hidden />
         </div>
       )}
 
@@ -655,89 +660,136 @@ export function PlayerBar({
         }
       >
         {/* Below md the stage covers the whole screen (see .video-stage); from
-            md it returns to a centred card, height-driven so a short viewport
+            md it is a plain 16:9 card, height-driven so a short viewport
             shrinks the video rather than pushing it into the text below.
-            clip-path rather than overflow-hidden, because border-radius alone
-            does not reliably clip a nested iframe in WebKit. */}
-        {/* From md the picture sits in a CRT cabinet. The set is a background
-            layer and the video is placed over its screen, because the screen in
-            the artwork is opaque — putting the video behind would hide it.
-            Percentages come from measuring the screen rectangle in the image,
-            so the two stay registered at any size.
-            Below md the video still covers the whole display: a cabinet around
-            a phone-sized picture would leave almost nothing to watch. */}
-        {/* The cabinet is sized by its own artwork rather than by a box the
-            artwork is fitted into. With object-contain the image letterboxes
-            inside whatever box it is given, so the moment a height or width
-            limit changed the box's aspect, the image no longer filled it — and
-            the screen percentages, which are measured against the box, pointed
-            somewhere the screen was not. That is what put the picture outside
-            the cabinet. Letting the image define the box makes the two
-            impossible to disagree. */}
-        {/* Height-driven: the cabinet takes the row's full height and derives
-            its width from the artwork's ratio, shrinking only when width is
-            the tighter constraint. Sizing it by the image's own width instead
-            left it small on a large screen with the spare height showing
-            underneath. */}
+
+            The CRT cabinet is gone. It was a picture the video had to be
+            registered against by measured percentages, which meant every change
+            to the surrounding box risked putting the two out of alignment —
+            and it spent most of a wide screen on furniture rather than on the
+            thing being watched. */}
         <div
           className={
             expanded
-              ? "video-stage absolute inset-0 bg-black md:relative md:inset-auto md:aspect-[768/484] md:h-full md:max-w-full md:bg-transparent md:leading-none"
+              ? "video-stage absolute inset-0 bg-black md:relative md:inset-auto md:aspect-video md:h-full md:max-h-full md:w-auto md:max-w-full md:overflow-hidden md:rounded-2xl md:bg-black md:shadow-2xl md:ring-1 md:ring-white/10"
               : "size-full"
           }
         >
-          {/* Stretched to the box rather than fitted inside it. object-contain
-              letterboxes when the two ratios differ, and the screen offsets
-              below are measured against the box — so any letterboxing puts
-              them off the artwork, which is what threw the picture outside the
-              cabinet before. Filling guarantees they agree; the ratio is
-              already pinned above, so there is nothing to distort.
-              Always mounted and hidden with CSS, because the player replaces
-              the host node below with an iframe and inserting or removing a
-              sibling beside it breaks reconciliation. */}
-          <img
-            src="/tv.png"
-            alt=""
-            aria-hidden
-            className={`pointer-events-none absolute inset-0 z-10 size-full ${
-              expanded ? "hidden md:block" : "hidden"
-            }`}
-          />
-          {/* The screen opening. Positioning and clipping live here, not on the
-              host below: the player replaces that node with an iframe and the
+          {/* Positioning and clipping live on this wrapper, not on the host
+              below: the player replaces that node with an iframe and the
               replacement keeps none of its classes, so anything set there is
-              destroyed the moment playback attaches — which is what let the
-              picture escape and fill the whole cabinet.
-              overflow-hidden is the backstop. Whatever size the iframe ends up,
-              it cannot paint outside the opening. */}
-          <div className="size-full overflow-hidden md:absolute md:left-[10.03%] md:top-[10.74%] md:h-[73.14%] md:w-[61.85%]">
+              destroyed the moment playback attaches. */}
+          <div className="size-full overflow-hidden">
             <div ref={hostRef} className="size-full" />
           </div>
         </div>
       </div>
 
-      {/* Scrims keep the header and controls legible over the picture. Only
-          needed where the video runs edge to edge. */}
+      {/* Scrims keep the header and controls legible over the picture, and are
+          only needed where the video runs edge to edge. The lower one covers
+          three-fifths of the screen: it was sized for a title and a row of
+          controls, and the view below now carries a title, the credits, a
+          scrubber, the transport and a row of secondary actions. Solid under
+          the text and easing away well before the middle, so the picture is
+          still the picture. */}
       {expanded && (
         <>
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-background via-background/70 to-transparent md:hidden" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-background via-background/85 to-transparent md:hidden" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-background via-background/80 to-transparent md:hidden" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[60%] bg-gradient-to-t from-background from-35% via-background/90 to-transparent md:hidden" />
         </>
       )}
 
       {expanded && (
-        <div className="relative z-10 shrink-0 px-5 pb-[max(2rem,env(safe-area-inset-bottom))] pt-6">
-          <div className="mx-auto flex w-full max-w-4xl flex-col items-center gap-4">
+        <div className="relative z-10 shrink-0 px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-6 md:pt-8">
+          {/* One column, read top to bottom: what is playing, how far through
+              it is, the controls, then everything secondary. Narrow enough that
+              the eye does not have to travel across a wide screen to follow
+              that order. */}
+          <div className="mx-auto flex w-full max-w-xl flex-col gap-6">
             {song && (
-              <div className="w-full text-center">
-                <h2 className="truncate text-2xl">{song.title}</h2>
-                <p className="truncate text-sm text-muted-foreground">
+              <div className="min-w-0 text-center">
+                <h2 className="truncate text-[22px] font-semibold leading-tight md:text-3xl">
+                  {song.title}
+                </h2>
+                {/* The singers are the second thing anyone reads, so they get
+                    body size; the film is context and is set back from it. */}
+                <p className="mt-1.5 truncate text-sm text-foreground/70 md:text-base">
                   {song.artists.join(", ") || "Unknown artist"}
-                  {song.film ? ` · ${song.film}` : ""}
                 </p>
+                {song.film && (
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground md:text-sm">
+                    {song.film}
+                  </p>
+                )}
+                {credit && (
+                  <p className="mt-2 truncate text-xs text-primary/80">
+                    {credit.kind === "corrected" ? "Corrected by" : "Found by"}{" "}
+                    {credit.name}
+                  </p>
+                )}
               </div>
             )}
-            {transport(true)}
+
+            {/* Seeking lives here, where the scrubber has the width to be
+                dragged accurately — the bar upstairs only reports position. */}
+            <div className="flex items-center gap-3">
+              <span className="w-10 shrink-0 text-right text-[11px] tabular-nums text-muted-foreground">
+                {formatTime(elapsed)}
+              </span>
+              <Scrubber
+                value={duration > 0 ? elapsed / duration : 0}
+                onCommit={seek}
+                disabled={!song || duration <= 0}
+                className="flex-1"
+                large
+              />
+              <span className="w-10 shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                {formatTime(duration)}
+              </span>
+            </div>
+
+            {transport()}
+
+            {/* Everything that is not playback, on one line and set quietly.
+                Above they competed with the controls; the ambient toggle in
+                particular sat in the header as though it were a way out of the
+                view. */}
+            <div className="flex items-center justify-center gap-1">
+              <button
+                onClick={() => setDetailsOpen(true)}
+                title="Credits for this song"
+                className={secondaryAction}
+              >
+                <Info className="size-4" />
+                <span className="hidden sm:inline">Credits</span>
+              </button>
+              <button
+                onClick={() => setQueueOpen(true)}
+                title="Queue"
+                className={secondaryAction}
+              >
+                <ListVideo className="size-4" />
+                <span className="hidden sm:inline">Queue</span>
+              </button>
+              <button
+                onClick={onToggleAmbient}
+                role="switch"
+                aria-checked={ambient}
+                title={ambient ? "Turn ambient off" : "Turn ambient on"}
+                className={`${secondaryAction} ${ambient ? "text-primary hover:text-primary" : ""}`}
+              >
+                <Sparkles className="size-4" />
+                <span className="hidden sm:inline">Ambient</span>
+              </button>
+              <button
+                onClick={() => setReportOpen(true)}
+                title="Wrong recording? Tell us"
+                className={secondaryAction}
+              >
+                <Flag className="size-4" />
+                <span className="hidden sm:inline">Report</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -757,13 +809,20 @@ export function PlayerBar({
       {song && (
         // Sits inside the content column, so it needs no manual offset —
         // the frame's flex layout already keeps it clear of the rail.
-        <footer className="relative z-50 shrink-0 overflow-hidden border-t bg-card/80 backdrop-blur lg:rounded-lg lg:border">
+        // No overflow-hidden here. The scrubber's handle sits astride the top
+        // edge, so clipping the footer cut its upper half off and left it
+        // looking like it hung below the line. Only the ambient wash actually
+        // needs clipping, and it now clips itself.
+        <footer className="relative z-50 shrink-0 border-t bg-card/80 backdrop-blur lg:rounded-lg lg:border">
       {/* Ambient wash from the current track, so the bar picks up its colour.
           A child rather than a background image on the footer: it has to paint
           over the footer's own surface, and the veil above it is what keeps
           the controls legible against bright artwork. */}
       {ambient && song && (
-        <div aria-hidden className="pointer-events-none absolute inset-0">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 overflow-hidden lg:rounded-lg"
+        >
           <img
             key={song.video}
             src={artwork(song.video, "hq")}
@@ -774,7 +833,85 @@ export function PlayerBar({
         </div>
       )}
 
-      <div className="relative grid grid-cols-[1fr_auto] items-center gap-4 px-4 py-2.5 md:grid-cols-3 md:px-5 md:py-3">
+      {/* Two treatments, because the two inputs are not comparable.
+
+          A cursor can hit a three-pixel line, so the desktop keeps the real
+          scrubber: click anywhere to seek, drag the handle, exactly as before.
+
+          A fingertip cannot. Every attempt to make it touchable made something
+          else worse — enlarging the target put half of it over the scrolling
+          list, which is where a thumb aiming at the line actually lands. So on
+          a phone it reports position and nothing else, and tapping it opens the
+          full player, where the scrubber has the room to be dragged. */}
+      <button
+        onClick={() => setExpanded(true)}
+        title="Open the full player"
+        aria-label="Open the full player"
+        className="group/prog absolute inset-x-0 top-0 z-30 h-2.5 md:hidden"
+      >
+        <span className="absolute inset-x-0 top-0 h-[3px] overflow-hidden rounded-full bg-white/15">
+          <span
+            className="block h-full rounded-full bg-primary transition-[width] duration-300 ease-linear"
+            style={{ width: `${duration > 0 ? (elapsed / duration) * 100 : 0}%` }}
+          />
+        </span>
+      </button>
+
+      {/* Pulled up by half the control less half the track, so the centred
+          track lands on the bar's top edge and the handle straddles it. Inset
+          from lg, where the bar takes a rounded corner a square-ended track
+          would overhang. */}
+      <div className="absolute inset-x-0 -top-[4.5px] z-30 hidden md:block lg:inset-x-2">
+        <Scrubber
+          value={duration > 0 ? elapsed / duration : 0}
+          onCommit={seek}
+          disabled={!song || duration <= 0}
+          className="w-full"
+          edge
+        />
+      </div>
+
+      {/* 1fr on both sides and a fixed centre, so the now-playing block sits in
+          the middle of the *bar* rather than the middle of whatever space the
+          controls leave over. With a flexible centre column the thumbnail slid
+          left and right as titles changed length, which is the jumping. */}
+      {/* Even padding. The progress is a 10px strip at the top now rather than
+          the 20px control it replaced, so the row no longer needs to be pushed
+          clear of it — and pushing it left the controls against the bottom
+          instead of centred in the bar. */}
+      <div className="relative grid grid-cols-[1fr_auto] items-center gap-2 py-3 pl-0 pr-2 md:grid-cols-[1fr_auto_1fr] md:gap-4 md:px-4">
+        {/* Transport, at the left edge where the hand goes first. Desktop
+            only: the phone puts the title first and the controls after it. */}
+        <div className="hidden items-center gap-0.5 md:flex md:gap-1">
+          <button onClick={onPrev} disabled={!song} className={iconButton} title="Previous">
+            <SkipBack className="size-4 fill-current" />
+          </button>
+          <button
+            onClick={toggle}
+            disabled={!song || !ready}
+            title={playing ? "Pause" : "Play"}
+            className="grid size-10 place-items-center rounded-full bg-foreground text-background shadow-[0_2px_10px_-2px_rgba(0,0,0,0.5)] ring-1 ring-primary/20 transition-all duration-200 hover:scale-105 hover:shadow-[0_4px_18px_-2px_rgba(214,168,84,0.45)] hover:ring-primary/40 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:hover:scale-100"
+          >
+            {loading ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : playing ? (
+              <Pause className="size-4 fill-current" />
+            ) : (
+              <Play className="size-4 translate-x-px fill-current" />
+            )}
+          </button>
+          <button onClick={onNext} disabled={!song} className={iconButton} title="Next">
+            <SkipForward className="size-4 fill-current" />
+          </button>
+          {/* Elapsed and total together, beside the controls rather than under
+              the scrubber — the scrubber has no labels now that it is an edge. */}
+          {/* Fixed width as well as tabular figures: the digits are even, but
+              crossing ten minutes adds one, which would nudge everything. */}
+          <span className="ml-1 hidden w-[6.5rem] whitespace-nowrap text-xs tabular-nums text-muted-foreground lg:block">
+            {formatTime(elapsed)} / {formatTime(duration)}
+          </span>
+        </div>
+
         {/* Now playing. The video host is rendered unconditionally: the player
             is constructed against it on mount, so gating it behind `song`
             would mean the player is never created at all. */}
@@ -784,9 +921,32 @@ export function PlayerBar({
           {...barSwipe}
           onClick={() => setExpanded(true)}
           title="Expand to video"
-          className="group/np flex min-w-0 items-center gap-3 text-left"
+          // A fixed width, so the block occupies the same space whatever is
+          // playing. Titles here range from "Aa" to a full line of Devanagari,
+          // and letting the box follow them is what moved the thumbnail around
+          // between tracks. Full width below md, where it is the only thing on
+          // the row.
+          className="group/np flex min-w-0 items-center gap-0 pl-[4.25rem] text-left md:w-[19rem] md:gap-3 md:pl-0 lg:w-[24rem]"
         >
-          <span className="relative size-11 shrink-0 overflow-hidden rounded">
+          {/* On a phone the artwork bleeds off the bar's left edge and fades
+              into it, so the picture reads as the bar's surface rather than a
+              tile with the title beside it. From md it goes back to a tile: the
+              transport occupies that edge there, and the two cannot both have
+              it. Padding on the button keeps the text clear of the bleed. */}
+          <span className="pointer-events-none absolute inset-y-0 left-0 w-[4.75rem] overflow-hidden [mask-image:linear-gradient(to_right,#000_0%,rgba(0,0,0,0.75)_30%,transparent_88%)] [-webkit-mask-image:linear-gradient(to_right,#000_0%,rgba(0,0,0,0.75)_30%,transparent_88%)] md:hidden">
+            {/* The fade begins early and the picture is held back, because the
+                title crosses it. Two gentle reductions rather than one steep
+                one: a hard edge in the mask is as visible as the artwork it was
+                meant to hide. */}
+            <img
+              src={artwork(song.video)}
+              alt=""
+              loading="lazy"
+              className="size-full object-cover opacity-70"
+            />
+          </span>
+
+          <span className="relative hidden size-10 shrink-0 overflow-hidden rounded shadow-sm ring-1 ring-white/10 md:block">
             <img
               src={artwork(song.video)}
               alt=""
@@ -798,9 +958,14 @@ export function PlayerBar({
             </span>
           </span>
 
-          <span className="min-w-0">
-            <span className="block truncate text-sm font-medium">{song.title}</span>
-            <span className="block truncate text-xs text-muted-foreground">
+          {/* Overflow dissolves rather than ending in an ellipsis. The mask
+              covers the box, so a title short enough to stop before the
+              gradient is left alone — only the ones that run on get faded. */}
+          <span className="fade-r min-w-0 flex-1 overflow-hidden">
+            <span className="block whitespace-nowrap text-sm font-medium">
+              {song.title}
+            </span>
+            <span className="block whitespace-nowrap text-xs text-muted-foreground">
               {failure ? (
                 <span className="text-destructive">{failure}</span>
               ) : loading ? (
@@ -812,10 +977,70 @@ export function PlayerBar({
           </span>
         </button>
 
-        {transport(false)}
+        {/* The phone's transport, after the title rather than before it. Its
+            own cluster instead of reordering the desktop one: the two hold
+            different controls, and shuffle and repeat belong on the bar here
+            because there is no room for them anywhere else. */}
+        <div className="flex items-center justify-self-end md:hidden">
+          <button
+            onClick={onToggleShuffle}
+            title="Shuffle"
+            className={`grid size-8 place-items-center rounded-full transition active:scale-90 ${
+              shuffle ? "text-primary" : "text-muted-foreground"
+            }`}
+          >
+            <Shuffle className="size-[18px]" />
+          </button>
+          <button
+            onClick={onPrev}
+            disabled={!song}
+            title="Previous"
+            className="grid size-8 place-items-center rounded-full text-foreground transition active:scale-90 disabled:opacity-40"
+          >
+            <SkipBack className="size-[18px] fill-current" />
+          </button>
+          <button
+            onClick={toggle}
+            disabled={!song || !ready}
+            title={playing ? "Pause" : "Play"}
+            className="mx-0.5 grid size-11 place-items-center rounded-full bg-foreground text-background shadow-[0_2px_10px_-2px_rgba(0,0,0,0.5)] transition active:scale-95 disabled:opacity-40"
+          >
+            {loading ? (
+              <Loader2 className="size-5 animate-spin" />
+            ) : playing ? (
+              <Pause className="size-5 fill-current" />
+            ) : (
+              <Play className="size-5 translate-x-px fill-current" />
+            )}
+          </button>
+          <button
+            onClick={onNext}
+            disabled={!song}
+            title="Next"
+            className="grid size-8 place-items-center rounded-full text-foreground transition active:scale-90 disabled:opacity-40"
+          >
+            <SkipForward className="size-[18px] fill-current" />
+          </button>
+          <button
+            onClick={onToggleRepeat}
+            title="Repeat one"
+            className={`grid size-8 place-items-center rounded-full transition active:scale-90 ${
+              repeat ? "text-primary" : "text-muted-foreground"
+            }`}
+          >
+            <Repeat className="size-[18px]" />
+          </button>
+          <button
+            onClick={() => setMenuOpen(true)}
+            title="More"
+            className="grid size-8 place-items-center rounded-full text-muted-foreground transition active:scale-90"
+          >
+            <MoreVertical className="size-[18px]" />
+          </button>
+        </div>
 
-        {/* Volume */}
-        <div className="hidden items-center justify-end gap-2 md:flex">
+        {/* Everything that modifies playback rather than driving it. */}
+        <div className="hidden items-center justify-end gap-1 md:flex">
           {song && song.confidence < 0.85 && (
             <span
               title="Matched on singer alone — this may not be the catalogue recording"
@@ -824,6 +1049,23 @@ export function PlayerBar({
               unverified
             </span>
           )}
+          {/* Credits and reporting sit next to the track they are about. The
+              bar has room for a title and a line of singers, so the composer
+              and lyricist are one press away rather than absent. */}
+          <button
+            onClick={() => setDetailsOpen(true)}
+            className={iconButton}
+            title="Credits for this song"
+          >
+            <Info className="size-4" />
+          </button>
+          <button
+            onClick={() => setReportOpen(true)}
+            className={iconButton}
+            title="Wrong recording? Tell us"
+          >
+            <Flag className="size-4" />
+          </button>
           <button
             onClick={() => setQueueOpen(true)}
             className={iconButton}
@@ -846,8 +1088,54 @@ export function PlayerBar({
             }}
             className="w-24"
           />
+          <button
+            onClick={onToggleRepeat}
+            title="Repeat one"
+            className={`${iconButton} ${repeat ? "text-primary hover:text-primary" : ""}`}
+          >
+            <Repeat className="size-4" />
+          </button>
+          <button
+            onClick={onToggleShuffle}
+            title="Shuffle"
+            className={`${iconButton} ${shuffle ? "text-primary hover:text-primary" : ""}`}
+          >
+            <Shuffle className="size-4" />
+          </button>
+          <button
+            onClick={() => setExpanded(true)}
+            title="Expand"
+            className={iconButton}
+          >
+            <ChevronUp className="size-5" />
+          </button>
           </div>
         </div>
+          <PlayerMenu
+            open={menuOpen}
+            onClose={() => setMenuOpen(false)}
+            repeat={repeat}
+            shuffle={shuffle}
+            onToggleRepeat={onToggleRepeat}
+            onToggleShuffle={onToggleShuffle}
+            onQueue={() => setQueueOpen(true)}
+            onCredits={() => setDetailsOpen(true)}
+            onReport={() => setReportOpen(true)}
+            onExpand={() => setExpanded(true)}
+          />
+          {detailsOpen && song && (
+            <SongDetails song={song} onClose={() => setDetailsOpen(false)} />
+          )}
+          {reportOpen && song && (
+            <ReportDialog
+              kind="wrong-track"
+              songId={song.id}
+              songTitle={song.title}
+              songFilm={song.film ?? undefined}
+              currentVideoId={song.video}
+              onClose={() => setReportOpen(false)}
+            />
+          )}
           {catalogue && (
             <QueuePanel
               catalogue={catalogue}

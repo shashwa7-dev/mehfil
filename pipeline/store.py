@@ -142,6 +142,12 @@ def connect(path):
     _add_column(conn, "videos", "embeddable", "INTEGER")
     _add_column(conn, "resolutions", "embeddable", "INTEGER")
     _add_column(conn, "resolutions", "checked_at", "TEXT")
+    # How long a video is, and who published it. Without these the matcher
+    # cannot tell a three-minute recording from a two-hour upload of the whole
+    # film, which is how entire films ended up behind song titles.
+    _add_column(conn, "videos", "duration", "INTEGER")
+    _add_column(conn, "videos", "channel_title", "TEXT")
+    _add_column(conn, "videos", "meta_checked_at", "TEXT")
     return conn
 
 
@@ -220,10 +226,16 @@ def commit_page(conn, source, videos, next_page_token, units=1):
     try:
         for video in videos:
             conn.execute(
-                "INSERT INTO videos (video_id,title,channel_id,published_at,title_key) "
-                "VALUES (?,?,?,?,?) ON CONFLICT(video_id) DO NOTHING",
+                "INSERT INTO videos "
+                "(video_id,title,channel_id,published_at,title_key,duration) "
+                "VALUES (?,?,?,?,?,?) ON CONFLICT(video_id) DO UPDATE SET "
+                # Fill in a length we did not have before. Everything else is
+                # left alone: a re-harvest must not undo what later passes
+                # learned about a video.
+                "duration=COALESCE(videos.duration, excluded.duration)",
                 (video["video_id"], video["title"], video.get("channel_id"),
-                 video.get("published_at"), normalise(video["title"])),
+                 video.get("published_at"), normalise(video["title"]),
+                 video.get("duration")),
             )
         conn.execute(
             "INSERT INTO harvest_cursor (source,next_page_token,completed,pages_done,updated_at) "
@@ -254,6 +266,27 @@ def record_match(conn, song_id, video_id, confidence, method):
         "video_id=excluded.video_id, confidence=excluded.confidence, "
         "method=excluded.method, updated_at=excluded.updated_at "
         "WHERE excluded.confidence > resolutions.confidence",
+        (song_id, video_id, confidence, method, now()),
+    )
+    conn.execute("DELETE FROM resolve_failures WHERE song_id=?", (song_id,))
+
+
+def replace_match(conn, song_id, video_id, confidence, method):
+    """Overwrite a match outright, whatever its confidence.
+
+    record_match refuses to displace a higher-confidence match, which is what
+    keeps a weak later pass from undoing a strong earlier one. That rule is
+    wrong in exactly one case: when the existing match has been *disqualified*
+    rather than merely outscored. A two-and-a-half hour upload of a whole film
+    scored 0.9 because its title matched exactly, and no correct three-minute
+    recording could ever outrank it. Disqualification is a separate judgement
+    from confidence, so it gets a separate door.
+    """
+    conn.execute(
+        "INSERT INTO resolutions (song_id,video_id,confidence,method,updated_at) "
+        "VALUES (?,?,?,?,?) ON CONFLICT(song_id) DO UPDATE SET "
+        "video_id=excluded.video_id, confidence=excluded.confidence, "
+        "method=excluded.method, updated_at=excluded.updated_at",
         (song_id, video_id, confidence, method, now()),
     )
     conn.execute("DELETE FROM resolve_failures WHERE song_id=?", (song_id,))

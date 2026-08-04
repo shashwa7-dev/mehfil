@@ -129,6 +129,42 @@
     @apply font-sans;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Cursors.
+
+   Tailwind v4 dropped the preflight rule that gave buttons `cursor: pointer`,
+   on the grounds that native buttons do not have one. The result across an
+   application built almost entirely from <button> is that nothing anywhere
+   reads as clickable. Restoring it once here is better than remembering to add
+   a class to every control.
+
+   Disabled controls say so rather than silently ignoring the click, and the
+   things that are dragged rather than pressed — the scrubber and the volume —
+   show a grab cursor instead.
+--------------------------------------------------------------------------- */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  label[for],
+  summary,
+  a[href] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [aria-disabled="true"],
+  [data-disabled] {
+    cursor: not-allowed;
+  }
+
+  /* Text stays selectable-looking where it is text, not a control. */
+  input[type="text"],
+  input[type="search"],
+  textarea {
+    cursor: text;
+  }
+}
 /* ---------------------------------------------------------------------------
    Mehfil theme. Dark, elevated surfaces in the shape of a modern player, but
    warm rather than clinical: a brass/gold accent to match the golden-era
@@ -235,6 +271,11 @@
     height: 56.25vw;
     min-width: 177.7778vh;
     min-height: 100%;
+    /* Held back a little. On a phone the picture is behind the whole interface
+       rather than beside it, so at full strength it competes with the title and
+       the controls sitting on top of it. The scrims do most of the work; this
+       takes the edge off the part of the frame they do not reach. */
+    opacity: 0.75;
   }
 }
 
@@ -247,6 +288,24 @@
 
   .no-scrollbar::-webkit-scrollbar {
     display: none;
+  }
+
+  /* Overlong text dissolves at the right edge instead of ending in an ellipsis.
+     Short text is untouched: the gradient only starts near the edge of the box,
+     and a line that stops before it never reaches the transparent part. */
+  .fade-r {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      #000 0,
+      #000 calc(100% - 2rem),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      #000 0,
+      #000 calc(100% - 2rem),
+      transparent 100%
+    );
   }
 
   .fade-x {

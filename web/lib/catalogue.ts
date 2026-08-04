@@ -50,6 +50,13 @@ export type Song = {
   artists: string[];
   stations: string[];
   moods: string[];
+  // The rest of the credits the songlist carries. Present on every song and
+  // previously dropped in hydration, so nothing could show who wrote a song
+  // even though the catalogue knew.
+  composers: string[];
+  lyricists: string[];
+  actors: string[];
+  directors: string[];
 };
 
 // Which song field backs each filterable facet.
@@ -92,6 +99,10 @@ export function hydrate(song: RawSong, facets: Catalogue["facets"]): Song {
     artists: song.a.map((i) => facets.artists[i]),
     stations: song.s.map((i) => facets.stations[i]),
     moods: song.m.map((i) => facets.moods[i]),
+    composers: (song.cr ?? []).map((i) => facets.composer?.[i]).filter(Boolean),
+    lyricists: (song.lt ?? []).map((i) => facets.lyricist?.[i]).filter(Boolean),
+    actors: (song.ar ?? []).map((i) => facets.actor?.[i]).filter(Boolean),
+    directors: (song.dr ?? []).map((i) => facets.director?.[i]).filter(Boolean),
   };
 }
 

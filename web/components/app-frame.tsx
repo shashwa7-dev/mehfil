@@ -3,7 +3,7 @@
 import { createContext, useContext, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutGrid, ListMusic, Menu, Search, Shuffle, X } from "lucide-react";
+import { HeartHandshake, LayoutGrid, ListMusic, Menu, Search, Shuffle, X } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { InstallButton } from "@/components/install-prompt";
 import { usePlayer, usePlayerBar } from "@/components/player-provider";
@@ -51,7 +51,7 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
   // The about page has nothing to search and its own back control, so the
   // header would be an empty bar. Mobile still needs the menu, which only
   // lives there, so the row stays below lg with the search removed.
-  const hideSearch = pathname === "/about";
+  const hideSearch = pathname === "/about" || pathname === "/contribute";
 
   const navClass = (active: boolean) =>
     `flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition ${
@@ -79,8 +79,11 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
         <Link href="/" className={navClass(onBrowse)}>
           <LayoutGrid className="size-4" /> Browse
         </Link>
-        <Link href="/songs" className={navClass(!onBrowse)}>
+        <Link href="/songs" className={navClass(pathname === "/songs")}>
           <ListMusic className="size-4" /> All songs
+        </Link>
+        <Link href="/contribute" className={navClass(pathname === "/contribute")}>
+          <HeartHandshake className="size-4" /> Help us find songs
         </Link>
         <InstallButton />
       </div>

@@ -19,6 +19,7 @@ import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import store
+from fetch_video_meta import fetch_batch
 
 UA = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"}
 
@@ -62,11 +63,26 @@ def main(db_path, corrections_path):
             skipped += 1
             continue
 
+        # Fetch the real title, length and channel rather than filing the song's
+        # own title against the id. Without a length the audit reads a corrected
+        # video as zero seconds and flags the one match that is certainly right.
+        meta = fetch_batch([video_id]) or []
+        duration, channel, real_title = None, None, title
+        for got_id, got_duration, got_channel, got_title in meta:
+            if got_id == video_id:
+                duration, channel = got_duration, got_channel
+                real_title = got_title or title
+
         conn.execute("BEGIN")
         conn.execute(
-            "INSERT INTO videos (video_id,title,channel_id,published_at,title_key) "
-            "VALUES (?,?,?,?,?) ON CONFLICT(video_id) DO UPDATE SET embeddable=1",
-            (video_id, title, "correction", None, store.normalise(title)),
+            "INSERT INTO videos "
+            "(video_id,title,channel_id,published_at,title_key,duration,channel_title) "
+            "VALUES (?,?,?,?,?,?,?) ON CONFLICT(video_id) DO UPDATE SET "
+            "embeddable=1, title=excluded.title, title_key=excluded.title_key, "
+            "duration=COALESCE(excluded.duration, videos.duration), "
+            "channel_title=COALESCE(excluded.channel_title, videos.channel_title)",
+            (video_id, real_title, "correction", None, store.normalise(real_title),
+             duration, channel),
         )
         conn.execute("UPDATE videos SET embeddable=1 WHERE video_id=?", (video_id,))
         # Replace outright rather than going through record_match: the point of
