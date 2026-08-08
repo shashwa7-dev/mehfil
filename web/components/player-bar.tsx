@@ -821,15 +821,26 @@ export function PlayerBar({
         <div
           className={
             expanded
-              ? "video-stage absolute inset-0 bg-black md:relative md:inset-auto md:aspect-video md:h-full md:max-h-full md:w-auto md:max-w-full md:overflow-hidden md:rounded-2xl md:bg-black md:shadow-2xl md:ring-1 md:ring-white/10"
+              ? "video-stage absolute inset-0 bg-black md:relative md:inset-auto md:aspect-video md:h-full md:max-h-full md:w-auto md:max-w-full md:overflow-hidden md:rounded-2xl md:bg-transparent md:shadow-2xl md:ring-1 md:ring-white/10"
               : "size-full"
           }
         >
-          {/* Positioning and clipping live on this wrapper, not on the host
-              below: the player replaces that node with an iframe and the
-              replacement keeps none of its classes, so anything set there is
-              destroyed the moment playback attaches. */}
-          <div className="size-full overflow-hidden">
+          {/* Positioning, clipping and the blend live on this wrapper, not on
+              the host below: the player replaces that node with an iframe and
+              the replacement keeps none of its classes, so anything set there
+              is destroyed the moment playback attaches.
+
+              Held slightly back from full opacity on desktop so the picture
+              settles into the room instead of sitting on top of it as a lit
+              rectangle. It only works because the stage above drops its black
+              backing at the same breakpoint — over an opaque black the same
+              opacity would mix toward grey rather than toward the backdrop,
+              which is dimming, not blending.
+
+              Desktop only, matching the backdrop behind it. On a phone the
+              expanded view is full-bleed video with nothing behind it to blend
+              into, so there the picture stays whole. */}
+          <div className="size-full overflow-hidden md:opacity-[0.88]">
             <div ref={hostRef} className="size-full" />
           </div>
         </div>
