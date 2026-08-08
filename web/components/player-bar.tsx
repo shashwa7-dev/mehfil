@@ -735,16 +735,16 @@ export function PlayerBar({
             loop
             playsInline
             poster="/backdrop.jpg"
-            className="absolute inset-0 size-full object-cover opacity-[0.10] motion-reduce:hidden"
+            className="absolute inset-0 size-full object-cover opacity-[0.20] motion-reduce:hidden"
           >
             <source src="/backdrop.mp4" type="video/mp4" />
           </video>
           <img
             src="/backdrop.jpg"
             alt=""
-            className="absolute inset-0 hidden size-full object-cover opacity-[0.10] motion-reduce:block"
+            className="absolute inset-0 hidden size-full object-cover opacity-[0.20] motion-reduce:block"
           />
-          <div className="absolute inset-0 bg-[oklch(0.79_0.135_78)]/[0.05]" />
+          <div className="absolute inset-0 bg-[oklch(0.79_0.135_78)]/[0.06]" />
         </div>
       )}
 

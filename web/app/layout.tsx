@@ -146,7 +146,7 @@ export default function RootLayout({
             loop
             playsInline
             poster="/backdrop.jpg"
-            className="absolute inset-0 size-full object-cover opacity-[0.22] motion-reduce:hidden"
+            className="absolute inset-0 size-full object-cover opacity-[0.38] motion-reduce:hidden"
           >
             <source src="/backdrop.mp4" type="video/mp4" />
           </video>
@@ -154,7 +154,7 @@ export default function RootLayout({
           <img
             src="/backdrop.jpg"
             alt=""
-            className="absolute inset-0 hidden size-full object-cover opacity-[0.22] motion-reduce:block"
+            className="absolute inset-0 hidden size-full object-cover opacity-[0.38] motion-reduce:block"
           />
 
           {/* Warm wash, so the backdrop belongs to the brass palette rather
