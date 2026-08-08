@@ -608,31 +608,29 @@ export function PlayerBar({
     setPosition(elapsed, duration);
   }, [playing, elapsed, duration]);
 
-  // Registered once against refs, so the handlers the OS holds never go stale
-  // while the ones re-registering would churn on every render.
-  // Initialised empty: toggle and seek are declared below this point, and the
-  // effect that fills this runs after render, by which time both exist.
-  const controlsRef = useRef<{
-    toggle: () => void;
-    next: () => void;
-    prev: () => void;
-  }>({ toggle: () => {}, next: () => {}, prev: () => {} });
+  // Only next and previous need a ref: they are props and change identity,
+  // while the handlers the OS holds are registered once and would otherwise
+  // close over the first ones forever.
+  const skipRef = useRef({ next: onNext, prev: onPrev });
   useEffect(() => {
-    controlsRef.current = { toggle, next: onNext, prev: onPrev };
+    skipRef.current = { next: onNext, prev: onPrev };
   });
 
   useEffect(() => {
     return setHandlers({
-      play: () => controlsRef.current.toggle(),
-      pause: () => controlsRef.current.toggle(),
-      next: () => controlsRef.current.next(),
-      previous: () => controlsRef.current.prev(),
+      // Explicitly play and pause, never toggle. The OS sends the action it
+      // wants, and its idea of the state can differ from ours for a moment —
+      // a lock-screen play while already playing would toggle to a pause,
+      // which is the opposite of what was asked for.
+      play: () => playerRef.current?.playVideo(),
+      pause: () => playerRef.current?.pauseVideo(),
+      next: () => skipRef.current.next(),
+      previous: () => skipRef.current.prev(),
       seek: (seconds) => {
         const player = playerRef.current;
-        if (player) {
-          player.seekTo(seconds, true);
-          setElapsed(seconds);
-        }
+        if (!player) return;
+        player.seekTo(seconds, true);
+        setElapsed(seconds);
       },
     });
   }, []);

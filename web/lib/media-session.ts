@@ -35,9 +35,14 @@ function available(): boolean {
   return typeof navigator !== "undefined" && "mediaSession" in navigator;
 }
 
+// Separate from mediaSession itself, and constructing it is what would throw.
+function canDescribe(): boolean {
+  return available() && typeof MediaMetadata === "function";
+}
+
 /** What the lock screen shows. */
 export function setNowPlaying(song: NowPlaying | null) {
-  if (!available()) return;
+  if (!canDescribe()) return;
 
   if (!song) {
     navigator.mediaSession.metadata = null;
@@ -48,14 +53,12 @@ export function setNowPlaying(song: NowPlaying | null) {
     title: song.title,
     artist: song.artist,
     album: song.album,
-    // Several sizes from one image: platforms pick by their own rules and some
-    // ignore an entry whose declared size they cannot use.
+    // The size it actually is. Listing the same URL as 96, 256 and 512 square
+    // is a common trick and a lie here — a YouTube thumbnail is 480x360 — and
+    // a platform that trusts the declaration will letterbox or crop against a
+    // shape the image does not have.
     artwork: song.artwork
-      ? [
-          { src: song.artwork, sizes: "96x96", type: "image/jpeg" },
-          { src: song.artwork, sizes: "256x256", type: "image/jpeg" },
-          { src: song.artwork, sizes: "512x512", type: "image/jpeg" },
-        ]
+      ? [{ src: song.artwork, sizes: "480x360", type: "image/jpeg" }]
       : [],
   });
 }
@@ -77,7 +80,11 @@ export function setPosition(elapsed: number, duration: number) {
   if (!available() || typeof navigator.mediaSession.setPositionState !== "function") {
     return;
   }
+  // Both, not just duration. getCurrentTime() returns NaN before the player is
+  // ready, and a NaN position is rejected the same way a zero duration is —
+  // caught below, but caught means never updated rather than merely skipped.
   if (!Number.isFinite(duration) || duration <= 0) return;
+  if (!Number.isFinite(elapsed)) return;
 
   try {
     navigator.mediaSession.setPositionState({
