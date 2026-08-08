@@ -225,14 +225,22 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
                 <button
                   onClick={() => playRandom(catalogue.songs)}
                   title="Play something at random"
-                  className="group/surprise ml-auto hidden shrink-0 items-center gap-2 rounded-full border border-primary/30 bg-primary/15 px-4 py-2 text-xs font-semibold text-primary shadow-[0_0_0_0_rgba(214,168,84,0)] transition-all hover:border-primary/50 hover:bg-primary/25 hover:shadow-[0_0_20px_-2px_rgba(214,168,84,0.45)] lg:inline-flex"
+                  className="group/surprise ml-auto hidden shrink-0 items-center gap-2 rounded-full border border-primary/30 bg-primary/15 px-4 py-2 text-xs font-semibold text-primary shadow-[0_0_0_0_rgba(214,168,84,0)] transition-[background-color,border-color,box-shadow] duration-300 hover:border-primary/50 hover:bg-primary/25 hover:shadow-[0_0_20px_-2px_rgba(214,168,84,0.45)] lg:inline-flex"
                 >
-                  {/* The faces fan apart on hover rather than the icon
-                      snapping half a turn — the old rotation ended upside down
-                      and read as a glitch. Each is delayed a little after the
-                      one before, so they open outward instead of jumping. */}
+                  {/* A record, not a shuffle glyph: this plays music at
+                      random rather than reordering a list. A full revolution
+                      ends where it began — the old half turn stopped upside
+                      down and read as a glitch. */}
+                  <Disc3 className="size-4 shrink-0 transition-transform duration-[900ms] ease-out motion-safe:group-hover/surprise:rotate-[360deg]" />
+                  Surprise
+
+                  {/* The faces fan out on hover. Transform only, never margin:
+                      margins are laid out, so animating one reflows the button
+                      every frame — which is both why this was not smooth and
+                      why the control grew as it played. A transform is composited
+                      and moves nothing around it. */}
                   {faces.length > 0 && (
-                    <span className="flex -space-x-2.5">
+                    <span className="flex shrink-0 -space-x-2">
                       {faces.map((face, index) => (
                         <img
                           key={face.name}
@@ -240,17 +248,17 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
                           alt=""
                           title={face.name}
                           loading="lazy"
-                          style={{ transitionDelay: `${index * 60}ms` }}
-                          className="size-6 rounded-full object-cover object-top ring-2 ring-card transition-all duration-300 ease-out group-hover/surprise:-space-x-0 motion-safe:group-hover/surprise:ml-0.5 motion-safe:group-hover/surprise:-translate-y-px"
+                          style={
+                            {
+                              "--fan": `${index * 5}px`,
+                              transitionDelay: `${index * 45}ms`,
+                            } as React.CSSProperties
+                          }
+                          className="size-5 rounded-full object-cover object-top ring-2 ring-card transition-transform duration-300 ease-out motion-safe:group-hover/surprise:translate-x-[var(--fan)]"
                         />
                       ))}
                     </span>
                   )}
-                  {/* A record, not a shuffle glyph: this plays music at random
-                      rather than reordering a list, and a disc turning a full
-                      revolution ends where it began. */}
-                  <Disc3 className="size-4 transition-transform duration-[900ms] ease-out group-hover/surprise:rotate-[360deg]" />
-                  Surprise me
                 </button>
               )}
 
