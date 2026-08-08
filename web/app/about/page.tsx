@@ -92,6 +92,19 @@ export default function AboutPage() {
           remain the property of their photographers.
         </p>
         <p>
+          The backdrop behind the app is a still frame from a video by{" "}
+          <a
+            href="https://www.pexels.com/video/28638515/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline"
+          >
+            Pexels
+          </a>
+          , free to use under their licence. Credited here because everything
+          else is, not because it is required.
+        </p>
+        <p>
           Decorative artwork elsewhere in the interface may include film poster
           imagery reproduced at low fidelity for illustrative purposes. Any image
           here is removed on request, without argument.

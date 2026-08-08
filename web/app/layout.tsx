@@ -127,6 +127,26 @@ export default function RootLayout({
       className={`dark ${figtree.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col overflow-hidden">
+        {/* App-wide backdrop. A still, not the video it was taken from: a
+            looping 4K decode would run behind everything and compete with the
+            player for the same frame budget, which is the contention the
+            expanded view's blur was already reduced for.
+
+            Fixed, so it stays put while content scrolls over it, and behind
+            everything at -z-10. Graded warm and soft before shipping — the
+            source is a cold grey alpine scene and this palette is brass on
+            warm dark, so ungraded it would pull the whole app grey. At 7% it
+            gives the surface some depth without becoming a picture. */}
+        <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
+          <img
+            src="/backdrop.jpg"
+            alt=""
+            className="size-full object-cover opacity-[0.07]"
+          />
+          {/* Darkened toward the bottom, where the player bar and the densest
+              text sit. */}
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/40 to-background/80" />
+        </div>
         {/* PlayerProvider sits in the layout, not a page: layouts persist
             across navigation, so the YouTube iframe — and the music — survive
             moving between browse, a station and the full song list. */}
