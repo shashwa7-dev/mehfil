@@ -715,6 +715,39 @@ export function PlayerBar({
           : "pointer-events-none fixed -left-[9999px] top-0 h-36 w-64 overflow-hidden"
       }
     >
+      {/* The app's own backdrop, carried into the full-screen view so it does
+          not read as a different application. The layer below is opaque, so
+          the one behind the app cannot show through and this is a second copy.
+
+          Desktop only, and deliberately: a second video decode alongside the
+          one the player is already running is not something to spend on a
+          phone, where the expanded view is full-bleed video and there is no
+          margin for a backdrop to occupy anyway. Reduced motion gets the
+          still, as everywhere else. */}
+      {expanded && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -z-20 hidden md:block"
+        >
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            poster="/backdrop.jpg"
+            className="absolute inset-0 size-full object-cover opacity-[0.10] motion-reduce:hidden"
+          >
+            <source src="/backdrop.mp4" type="video/mp4" />
+          </video>
+          <img
+            src="/backdrop.jpg"
+            alt=""
+            className="absolute inset-0 hidden size-full object-cover opacity-[0.10] motion-reduce:block"
+          />
+          <div className="absolute inset-0 bg-[oklch(0.79_0.135_78)]/[0.05]" />
+        </div>
+      )}
+
       {/* Ambient wash. The iframe is cross-origin so its frames cannot be
           sampled to a canvas, but a heavily blurred copy of the thumbnail
           gives the same bloom for nothing — no pixel access, no timers. */}
