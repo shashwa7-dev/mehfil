@@ -1,9 +1,10 @@
 # Playback limits worth knowing before changing the player
 
-## Auto-advance does not work in the installed PWA on mobile
+## Auto-advance does not work in the installed PWA with the screen locked
 
 A track finishes and the next one does not start. Pressing Next plays it
-immediately.
+immediately, and with the screen on it advances by itself. It is specifically
+the locked screen that stops it.
 
 This is not a broken code path. `onNext` and `onEnded` call the same `step(1)`,
 which sets `currentId`, which runs the same load effect and the same explicit
@@ -19,11 +20,17 @@ Engagement Index once a site has been used repeatedly. This explains a browser
 tab well and an installed PWA less well, since installed apps usually get more
 latitude rather than less.
 
-**Background throttling.** In standalone mode a phone throttles timers and
-callbacks hard once the app loses focus or the screen locks. The YouTube iframe
-keeps playing audio on its own, but the advance needs *our* JavaScript to run —
-the `onStateChange` callback, a React state update, then an effect — and any of
-that can be deferred until the app is looked at again.
+**Background throttling.** This is the one the reproduction points at. With the
+screen locked a phone freezes the page; the YouTube iframe keeps playing audio
+on its own, but the advance needs *our* JavaScript — the `onStateChange`
+callback, a React state update, then an effect — and a frozen page runs none of
+it until the phone is woken.
+
+A media session is now declared, which is how a page tells the platform it is
+playback rather than an idle tab, and is the signal the platform weighs when
+deciding what to freeze. It also puts the title, artwork and skip controls on
+the lock screen, which a music app should have regardless. Whether it is enough
+to keep the page alive through a lock is the platform's decision, not ours.
 
 ### What would actually fix it
 

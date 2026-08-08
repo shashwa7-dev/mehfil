@@ -92,6 +92,12 @@ export default function AboutPage() {
           remain the property of their photographers.
         </p>
         <p>
+          The animated backdrop behind the app is an illustrated loop, warmed
+          to sit with the rest of the palette. If you hold the rights to it and
+          would rather it were not used, it comes down on request like anything
+          else here.
+        </p>
+        <p>
           Decorative artwork elsewhere in the interface may include film poster
           imagery reproduced at low fidelity for illustrative purposes. Any image
           here is removed on request, without argument.

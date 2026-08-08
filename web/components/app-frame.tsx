@@ -1,13 +1,22 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { HeartHandshake, LayoutGrid, ListMusic, Menu, Search, Shuffle, X } from "lucide-react";
+import {
+  Disc3,
+  HeartHandshake,
+  LayoutGrid,
+  ListMusic,
+  Menu,
+  Search,
+  X,
+} from "lucide-react";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { InstallButton } from "@/components/install-prompt";
+import { facetCards, portrait } from "@/lib/catalogue";
 import { usePlayer, usePlayerBar } from "@/components/player-provider";
-import { useCatalogue } from "@/lib/queries";
+import { useCatalogue, usePhotoManifest } from "@/lib/queries";
 
 type Frame = {
   /** Scroll container the virtualised lists measure against. */
@@ -46,6 +55,20 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const playerBar = usePlayerBar();
   const { playRandom } = usePlayer();
+  const { data: photos } = usePhotoManifest();
+
+  // The three voices this catalogue is really made of. Named rather than
+  // ranked: ranking by catalogue share puts Asha Bhosle third and leaves
+  // Kishore Kumar out, and these three together say what the collection is at
+  // a glance. Anyone missing a portrait is dropped rather than drawn blank,
+  // and if none resolve the control simply shows no faces.
+  const faces = useMemo(
+    () =>
+      ["Lata Mangeshkar", "Kishore Kumar", "Mohammed Rafi"]
+        .map((name) => ({ name, src: portrait(name, photos ?? null) }))
+        .filter((face): face is { name: string; src: string } => Boolean(face.src)),
+    [photos]
+  );
 
   const onBrowse = pathname === "/";
   // The about page has nothing to search and its own back control, so the
@@ -202,10 +225,40 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
                 <button
                   onClick={() => playRandom(catalogue.songs)}
                   title="Play something at random"
-                  className="group/surprise ml-auto hidden shrink-0 items-center gap-2 rounded-full border border-primary/30 bg-primary/15 px-4 py-2 text-xs font-semibold text-primary shadow-[0_0_0_0_rgba(214,168,84,0)] transition-all hover:border-primary/50 hover:bg-primary/25 hover:shadow-[0_0_20px_-2px_rgba(214,168,84,0.45)] lg:inline-flex"
+                  className="group/surprise ml-auto hidden shrink-0 items-center gap-2 rounded-full border border-primary/30 bg-primary/15 px-4 py-2 text-xs font-semibold text-primary shadow-[0_0_0_0_rgba(214,168,84,0)] transition-[background-color,border-color,box-shadow] duration-300 hover:border-primary/50 hover:bg-primary/25 hover:shadow-[0_0_20px_-2px_rgba(214,168,84,0.45)] lg:inline-flex"
                 >
-                  <Shuffle className="size-3.5 transition-transform duration-300 group-hover/surprise:rotate-180" />
-                  Surprise me
+                  {/* A record, not a shuffle glyph: this plays music at
+                      random rather than reordering a list. A full revolution
+                      ends where it began — the old half turn stopped upside
+                      down and read as a glitch. */}
+                  <Disc3 className="size-4 shrink-0 transition-transform duration-[900ms] ease-out motion-safe:group-hover/surprise:rotate-[360deg]" />
+                  Surprise
+
+                  {/* The faces fan out on hover. Transform only, never margin:
+                      margins are laid out, so animating one reflows the button
+                      every frame — which is both why this was not smooth and
+                      why the control grew as it played. A transform is composited
+                      and moves nothing around it. */}
+                  {faces.length > 0 && (
+                    <span className="flex shrink-0 -space-x-2">
+                      {faces.map((face, index) => (
+                        <img
+                          key={face.name}
+                          src={face.src}
+                          alt=""
+                          title={face.name}
+                          loading="lazy"
+                          style={
+                            {
+                              "--fan": `${index * 5}px`,
+                              transitionDelay: `${index * 45}ms`,
+                            } as React.CSSProperties
+                          }
+                          className="size-5 rounded-full object-cover object-top ring-2 ring-card transition-transform duration-300 ease-out motion-safe:group-hover/surprise:translate-x-[var(--fan)]"
+                        />
+                      ))}
+                    </span>
+                  )}
                 </button>
               )}
 

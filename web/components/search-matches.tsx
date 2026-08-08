@@ -70,7 +70,7 @@ export function SearchMatches({
         Artists &amp; collections
       </h3>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1.5 sm:gap-2">
         {matches.map(({ facet, card }) => {
           const isStation = facet === "stations";
           const face = PERSON_FACETS.has(facet) ? portrait(card.label, photos) : null;
@@ -79,9 +79,11 @@ export function SearchMatches({
             <Link
               key={`${facet}-${card.index}`}
               href={collectionHref(facet, card.label)}
-              className="flex min-w-0 max-w-full items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.05] py-1.5 pl-1.5 pr-4 transition hover:border-white/20 hover:bg-white/[0.09]"
+              // Compact on a phone, where eight of these wrap into a wall
+              // before the songs they sit above are reached. Full size from sm.
+              className="flex min-w-0 max-w-full items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] py-1 pl-1 pr-3 transition hover:border-white/20 hover:bg-white/[0.09] sm:gap-2.5 sm:py-1.5 sm:pl-1.5 sm:pr-4"
             >
-              <span className="size-9 shrink-0 overflow-hidden rounded-full">
+              <span className="size-7 shrink-0 overflow-hidden rounded-full sm:size-9">
                 {isStation ? (
                   <StationPoster
                     name={card.label}
@@ -100,8 +102,10 @@ export function SearchMatches({
                 )}
               </span>
               <span className="min-w-0">
-                <span className="block truncate text-sm">{card.label}</span>
-                <span className="block text-[11px] text-muted-foreground">
+                <span className="block truncate text-[13px] leading-tight sm:text-sm">
+                  {card.label}
+                </span>
+                <span className="block text-[10px] leading-tight text-muted-foreground sm:text-[11px]">
                   {KIND_LABEL[KIND_BY_FACET[facet]] ?? "Collection"} ·{" "}
                   {card.count.toLocaleString()} songs
                 </span>
