@@ -136,9 +136,11 @@ export default function RootLayout({
             anyone who has asked for reduced motion gets instead.
 
             Fixed and behind everything, so it holds still while content
-            scrolls over it. 22% here, because the content area lays bg-card/40
-            over it and takes 40% of whatever this sets — the previous backdrop
-            was set at 7% and arrived under the threshold of visible. */}
+            scrolls over it. The opacity is a balance rather than a maximum:
+            the content area lays bg-card/40 over it, so 60% of whatever this
+            sets ends up behind the song rows. At 38% the footage read well in
+            the open margins but crowded the rows; 24% keeps it present there
+            and lets the cards and titles sit clearly in front of it. */}
         <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
           <video
             autoPlay
@@ -146,7 +148,7 @@ export default function RootLayout({
             loop
             playsInline
             poster="/backdrop.jpg"
-            className="absolute inset-0 size-full object-cover opacity-[0.38] motion-reduce:hidden"
+            className="absolute inset-0 size-full object-cover opacity-[0.24] motion-reduce:hidden"
           >
             <source src="/backdrop.mp4" type="video/mp4" />
           </video>
@@ -154,7 +156,7 @@ export default function RootLayout({
           <img
             src="/backdrop.jpg"
             alt=""
-            className="absolute inset-0 hidden size-full object-cover opacity-[0.38] motion-reduce:block"
+            className="absolute inset-0 hidden size-full object-cover opacity-[0.24] motion-reduce:block"
           />
 
           {/* Warm wash, so the backdrop belongs to the brass palette rather
