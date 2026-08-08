@@ -810,13 +810,8 @@ export function PlayerBar({
         }
       >
         {/* Below md the stage covers the whole screen (see .video-stage); from
-            md it is a 16:9 frame, height-driven so a short viewport shrinks the
-            video rather than pushing it into the text below.
-
-            No ring and no shadow from md. Both draw the boundary the picture is
-            meant to lose: a lit hairline and a cast shadow describe a pane
-            lying on the scene, and no amount of transparency behind them undoes
-            an edge that is being explicitly drawn.
+            md it is a plain 16:9 card, height-driven so a short viewport
+            shrinks the video rather than pushing it into the text below.
 
             The CRT cabinet is gone. It was a picture the video had to be
             registered against by measured percentages, which meant every change
@@ -826,7 +821,7 @@ export function PlayerBar({
         <div
           className={
             expanded
-              ? "video-stage absolute inset-0 bg-black md:relative md:inset-auto md:aspect-video md:h-full md:max-h-full md:w-auto md:max-w-full md:overflow-hidden md:rounded-2xl md:bg-transparent"
+              ? "video-stage absolute inset-0 bg-black md:relative md:inset-auto md:aspect-video md:h-full md:max-h-full md:w-auto md:max-w-full md:overflow-hidden md:rounded-2xl md:bg-transparent md:shadow-2xl md:ring-1 md:ring-white/10"
               : "size-full"
           }
         >
@@ -835,23 +830,17 @@ export function PlayerBar({
               the replacement keeps none of its classes, so anything set there
               is destroyed the moment playback attaches.
 
-              Two things blend it, and the edge matters more than the opacity.
-              The mask feathers the outer rim away so the picture ends in the
-              backdrop instead of at a border; 72% is where it stays solid, and
-              only the last part of the radius fades. The opacity then sets how
-              much of the room comes through the picture itself. It works only
-              because the stage above drops its black backing at the same
-              breakpoint — over opaque black the same opacity mixes toward grey,
-              which is dimming rather than blending.
-
-              Kept above two-thirds on purpose. Blending is subtractive and this
-              catalogue is largely dark film footage, so further down the
-              shadows stop separating and the picture reads as fog.
+              Held slightly back from full opacity on desktop so the picture
+              settles into the room instead of sitting on top of it as a lit
+              rectangle. It only works because the stage above drops its black
+              backing at the same breakpoint — over an opaque black the same
+              opacity would mix toward grey rather than toward the backdrop,
+              which is dimming, not blending.
 
               Desktop only, matching the backdrop behind it. On a phone the
               expanded view is full-bleed video with nothing behind it to blend
               into, so there the picture stays whole. */}
-          <div className="size-full overflow-hidden md:opacity-[0.72] md:[mask-image:radial-gradient(115%_115%_at_50%_50%,black_72%,transparent_100%)]">
+          <div className="size-full overflow-hidden md:opacity-[0.88]">
             <div ref={hostRef} className="size-full" />
           </div>
         </div>
