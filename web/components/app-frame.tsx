@@ -1,13 +1,14 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { HeartHandshake, LayoutGrid, ListMusic, Menu, Search, Shuffle, X } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { InstallButton } from "@/components/install-prompt";
+import { facetCards, portrait } from "@/lib/catalogue";
 import { usePlayer, usePlayerBar } from "@/components/player-provider";
-import { useCatalogue } from "@/lib/queries";
+import { useCatalogue, usePhotoManifest } from "@/lib/queries";
 
 type Frame = {
   /** Scroll container the virtualised lists measure against. */
@@ -46,6 +47,20 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const playerBar = usePlayerBar();
   const { playRandom } = usePlayer();
+  const { data: photos } = usePhotoManifest();
+
+  // A few real faces for the shuffle control, so it offers people rather than
+  // an abstraction. Ranked by how much of the catalogue each one sings, not
+  // taken off the front of the facet — that list is alphabetical, and its first
+  // three are names almost nobody would know. Only where a portrait exists: a
+  // blank circle says less than no circle.
+  const faces = useMemo(() => {
+    if (!catalogue) return [];
+    return facetCards(catalogue, "artists")
+      .map((card) => portrait(card.label, photos ?? null))
+      .filter((src): src is string => Boolean(src))
+      .slice(0, 3);
+  }, [catalogue, photos]);
 
   const onBrowse = pathname === "/";
   // The about page has nothing to search and its own back control, so the
@@ -204,6 +219,19 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
                   title="Play something at random"
                   className="group/surprise ml-auto hidden shrink-0 items-center gap-2 rounded-full border border-primary/30 bg-primary/15 px-4 py-2 text-xs font-semibold text-primary shadow-[0_0_0_0_rgba(214,168,84,0)] transition-all hover:border-primary/50 hover:bg-primary/25 hover:shadow-[0_0_20px_-2px_rgba(214,168,84,0.45)] lg:inline-flex"
                 >
+                  {faces.length > 0 && (
+                    <span className="flex -space-x-2">
+                      {faces.map((src) => (
+                        <img
+                          key={src}
+                          src={src}
+                          alt=""
+                          loading="lazy"
+                          className="size-5 rounded-full object-cover object-top ring-2 ring-card"
+                        />
+                      ))}
+                    </span>
+                  )}
                   <Shuffle className="size-3.5 transition-transform duration-300 group-hover/surprise:rotate-180" />
                   Surprise me
                 </button>
