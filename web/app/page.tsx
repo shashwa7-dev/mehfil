@@ -2,13 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ListMusic, Play } from "lucide-react";
+import { Shuffle } from "lucide-react";
 import { BrowseGrid } from "@/components/browse-grid";
 import { CatalogueGate } from "@/components/catalogue-gate";
 import { InstallPrompt } from "@/components/install-prompt";
 import { useFrame } from "@/components/app-frame";
 import { usePlayer } from "@/components/player-provider";
-import { filterSongs, type Catalogue } from "@/lib/catalogue";
+import { artwork, filterSongs, type Catalogue } from "@/lib/catalogue";
 import { collectionHref } from "@/lib/routes";
 import { useCatalogue } from "@/lib/queries";
 
@@ -16,7 +16,7 @@ export default function BrowsePage() {
   const { data: catalogue, isLoading, isError, error } = useCatalogue();
   const { scrollEl } = useFrame();
   const router = useRouter();
-  const { playFirst } = usePlayer();
+  const { playFirst, playRandom } = usePlayer();
 
   return (
     <CatalogueGate isLoading={isLoading} isError={isError} error={error}>
@@ -25,22 +25,59 @@ export default function BrowsePage() {
           <h2 className="pb-4 pt-1 text-2xl leading-tight">Browse</h2>
 
           {/* The rail carries this on desktop; below lg it is the only way to
-              reach the whole catalogue from here. */}
-          <Link
-            href="/songs"
-            className="mb-4 flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/[0.05] p-3 transition hover:bg-white/[0.09] lg:hidden"
-          >
-            <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary">
-              <ListMusic className="size-5" />
+              reach the whole catalogue from here, so it is worth more than a
+              row. Real covers from the catalogue rather than an icon: the card
+              is about the size of the collection, and showing some of it says
+              that better than a number does. */}
+          <div className="relative mb-5 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] lg:hidden">
+            {/* Covers bleeding in from the right, faded out before the text.
+                Evenly spaced through the catalogue rather than the first few,
+                which would all be the same letter of the alphabet. */}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-y-0 right-0 flex w-2/3 items-center justify-end gap-1 [mask-image:linear-gradient(to_left,#000_35%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_left,#000_35%,transparent_100%)]"
+            >
+              {[0.18, 0.42, 0.66, 0.9].map((at) => {
+                const song = catalogue.songs[Math.floor(catalogue.songs.length * at)];
+                return song ? (
+                  <img
+                    key={song.id}
+                    src={artwork(song.v)}
+                    alt=""
+                    loading="lazy"
+                    className="size-24 shrink-0 object-cover"
+                  />
+                ) : null;
+              })}
             </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-medium">All songs</span>
-              <span className="block text-xs text-muted-foreground">
-                {catalogue.songs.length.toLocaleString()} tracks · shuffle or search
-              </span>
-            </span>
-            <Play className="size-4 shrink-0 fill-current text-muted-foreground" />
-          </Link>
+
+            {/* Warms the covers into the card instead of letting four
+                unrelated thumbnails sit on it. */}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-0 bg-gradient-to-r from-card via-card/85 to-transparent"
+            />
+
+            <div className="relative flex items-center gap-3 p-4">
+              <Link href="/songs" className="min-w-0 flex-1">
+                <span className="block text-lg leading-tight">All songs</span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  {catalogue.songs.length.toLocaleString()} tracks · browse, filter or search
+                </span>
+              </Link>
+
+              {/* A play button that plays. It used to be an icon inside the
+                  link, so it looked like the way to start listening and was
+                  the way to open a list. */}
+              <button
+                onClick={() => playRandom(catalogue.songs)}
+                title="Shuffle the whole catalogue"
+                className="grid size-12 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground shadow-[0_4px_16px_-4px_rgba(214,168,84,0.6)] transition active:scale-95"
+              >
+                <Shuffle className="size-5" />
+              </button>
+            </div>
+          </div>
 
           <BrowseGrid
             catalogue={catalogue}
