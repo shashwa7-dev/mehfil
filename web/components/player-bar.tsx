@@ -23,6 +23,12 @@ import {
   VolumeX,
 } from "lucide-react";
 import { artwork, type Song } from "@/lib/catalogue";
+import {
+  setHandlers,
+  setNowPlaying,
+  setPlaybackState,
+  setPosition,
+} from "@/lib/media-session";
 import { ReportDialog } from "@/components/report-dialog";
 import { SongDetails } from "@/components/song-details";
 import { PlayerMenu } from "@/components/player-menu";
@@ -575,6 +581,61 @@ export function PlayerBar({
     },
     [duration]
   );
+
+  // What the lock screen shows, and the reason it stays lit at all: a page
+  // that has declared a media session is one the platform knows is playback.
+  useEffect(() => {
+    setNowPlaying(
+      song
+        ? {
+            title: song.title,
+            artist: song.artists.join(", ") || "Unknown artist",
+            album: song.film ?? undefined,
+            artwork: artwork(song.video, "hq"),
+          }
+        : null
+    );
+  }, [song]);
+
+  useEffect(() => {
+    setPlaybackState(playing);
+  }, [playing]);
+
+  // Only while playing. Writing a position for a paused or loading track means
+  // writing zeros, which draws a lock-screen scrubber that keeps resetting.
+  useEffect(() => {
+    if (!playing) return;
+    setPosition(elapsed, duration);
+  }, [playing, elapsed, duration]);
+
+  // Registered once against refs, so the handlers the OS holds never go stale
+  // while the ones re-registering would churn on every render.
+  // Initialised empty: toggle and seek are declared below this point, and the
+  // effect that fills this runs after render, by which time both exist.
+  const controlsRef = useRef<{
+    toggle: () => void;
+    next: () => void;
+    prev: () => void;
+  }>({ toggle: () => {}, next: () => {}, prev: () => {} });
+  useEffect(() => {
+    controlsRef.current = { toggle, next: onNext, prev: onPrev };
+  });
+
+  useEffect(() => {
+    return setHandlers({
+      play: () => controlsRef.current.toggle(),
+      pause: () => controlsRef.current.toggle(),
+      next: () => controlsRef.current.next(),
+      previous: () => controlsRef.current.prev(),
+      seek: (seconds) => {
+        const player = playerRef.current;
+        if (player) {
+          player.seekTo(seconds, true);
+          setElapsed(seconds);
+        }
+      },
+    });
+  }, []);
 
   // A faint disc appears under the icon on hover, so the secondary controls
   // acknowledge the pointer without competing with the play button, which is
