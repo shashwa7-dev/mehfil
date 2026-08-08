@@ -127,27 +127,42 @@ export default function RootLayout({
       className={`dark ${figtree.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col overflow-hidden">
-        {/* App-wide backdrop. A still, not the video it was taken from: a
-            looping 4K decode would run behind everything and compete with the
-            player for the same frame budget, which is the contention the
-            expanded view's blur was already reduced for.
+        {/* App-wide backdrop.
 
-            Fixed, so it stays put while content scrolls over it, and behind
-            everything at -z-10. Graded warm and soft before shipping — the
-            source is a cold grey alpine scene and this palette is brass on
-            warm dark, so ungraded it would pull the whole app grey. At 7% it
-            gives the surface some depth without becoming a picture. */}
+            A video rather than the GIF it came from. A GIF is decoded on the
+            CPU and re-decoded every loop; the same footage as h264 is smaller
+            and decodes in hardware, which matters when a YouTube player is
+            already running. The still beside it is both the poster and what
+            anyone who has asked for reduced motion gets instead.
+
+            Fixed and behind everything, so it holds still while content
+            scrolls over it. 22% here, because the content area lays bg-card/40
+            over it and takes 40% of whatever this sets — the previous backdrop
+            was set at 7% and arrived under the threshold of visible. */}
         <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            poster="/backdrop.jpg"
+            className="absolute inset-0 size-full object-cover opacity-[0.22] motion-reduce:hidden"
+          >
+            <source src="/backdrop.mp4" type="video/mp4" />
+          </video>
+          {/* Shown only when motion is unwanted; the video is hidden then. */}
           <img
             src="/backdrop.jpg"
             alt=""
-            className="size-full object-cover opacity-[0.18]"
+            className="absolute inset-0 hidden size-full object-cover opacity-[0.22] motion-reduce:block"
           />
-          {/* Only the bottom, and gently. The previous gradient ran from the
-              top at 40% and 80%, which — on top of the 18% here and the
-              bg-card/40 the content area lays over all of it — left a lift of
-              well under two levels out of 255. Three reductions multiplied
-              into nothing. */}
+
+          {/* Warm wash, so the backdrop belongs to the brass palette rather
+              than merely sitting under it. */}
+          <div className="absolute inset-0 bg-[oklch(0.79_0.135_78)]/[0.07]" />
+
+          {/* Only the bottom, and gently. A gradient from the top would undo
+              the opacity chosen above. */}
           <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-background/70 to-transparent" />
         </div>
         {/* PlayerProvider sits in the layout, not a page: layouts persist
