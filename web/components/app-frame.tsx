@@ -181,12 +181,7 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
         <div className="flex min-w-0 flex-1 flex-col gap-0 lg:gap-2">
           <main
             ref={setScrollEl}
-            // Thin enough to let the backdrop through. This panel is the only
-            // thing between the content and the backdrop, so its opacity is
-            // what decides how much of the room is seen — at 40 it took nearly
-            // half of it. The rows carry their own hover and selected states,
-            // so the text is never reading against bare video.
-            className="scroll-slim min-h-0 flex-1 overflow-y-auto rounded-none bg-card/25 lg:rounded-lg"
+            className="scroll-slim min-h-0 flex-1 overflow-y-auto rounded-none bg-card/40 lg:rounded-lg"
           >
             {/* Gutter must match the content below exactly, or the search box
                 sits on a different edge from everything it sits above. */}
