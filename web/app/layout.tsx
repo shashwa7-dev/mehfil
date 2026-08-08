@@ -141,11 +141,14 @@ export default function RootLayout({
           <img
             src="/backdrop.jpg"
             alt=""
-            className="size-full object-cover opacity-[0.07]"
+            className="size-full object-cover opacity-[0.18]"
           />
-          {/* Darkened toward the bottom, where the player bar and the densest
-              text sit. */}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/40 to-background/80" />
+          {/* Only the bottom, and gently. The previous gradient ran from the
+              top at 40% and 80%, which — on top of the 18% here and the
+              bg-card/40 the content area lays over all of it — left a lift of
+              well under two levels out of 255. Three reductions multiplied
+              into nothing. */}
+          <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-background/70 to-transparent" />
         </div>
         {/* PlayerProvider sits in the layout, not a page: layouts persist
             across navigation, so the YouTube iframe — and the music — survive
