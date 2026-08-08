@@ -834,7 +834,14 @@ export function PlayerBar({
             move them. Display contents generates none. */}
         <div
           className={
-            expanded ? "contents md:relative md:flex md:h-full md:items-center" : "contents"
+            expanded
+              // max-w-full stays on the wrapper as well as the stage. The
+              // stage's own max-width now resolves against this box, whose
+              // width comes from the stage — so without a clamp that reaches
+              // the real container, a tall viewport could size the video wider
+              // than the space it sits in.
+              ? "contents md:relative md:flex md:h-full md:max-w-full md:items-center"
+              : "contents"
           }
         >
           {/* Light spill. The same artwork as the wash above, but held close to
