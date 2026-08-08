@@ -835,23 +835,28 @@ export function PlayerBar({
               the replacement keeps none of its classes, so anything set there
               is destroyed the moment playback attaches.
 
-              Two things blend it, and the edge matters more than the opacity.
-              The mask feathers the outer rim away so the picture ends in the
-              backdrop instead of at a border; 72% is where it stays solid, and
-              only the last part of the radius fades. The opacity then sets how
-              much of the room comes through the picture itself. It works only
-              because the stage above drops its black backing at the same
-              breakpoint — over opaque black the same opacity mixes toward grey,
-              which is dimming rather than blending.
+              Screen rather than transparency, which blends per-pixel instead of
+              uniformly: a screened black is exactly the backdrop, a screened
+              highlight is untouched. So the shadows in the footage become the
+              room and the lit parts stay lit, which is the dissolve — where
+              plain opacity fades everything by the same amount and takes the
+              highlights down with the shadows.
 
-              Kept above two-thirds on purpose. Blending is subtractive and this
-              catalogue is largely dark film footage, so further down the
-              shadows stop separating and the picture reads as fog.
+              It blends against the backdrop and the ambient wash because both
+              paint below it inside this same fixed layer, which is the stacking
+              context the blend resolves against. Moving either out from under
+              here, or isolating anything between, leaves it blending against
+              flat background instead.
+
+              Opacity is back up near full as a result — screen is doing the
+              work now, and pulling it down again would only re-introduce the
+              flat fade this replaced. The mask still feathers the outer rim, so
+              the frame ends in the backdrop rather than at a border.
 
               Desktop only, matching the backdrop behind it. On a phone the
               expanded view is full-bleed video with nothing behind it to blend
               into, so there the picture stays whole. */}
-          <div className="size-full overflow-hidden md:opacity-[0.72] md:[mask-image:radial-gradient(115%_115%_at_50%_50%,black_72%,transparent_100%)]">
+          <div className="size-full overflow-hidden md:opacity-[0.92] md:mix-blend-screen md:[mask-image:radial-gradient(115%_115%_at_50%_50%,black_72%,transparent_100%)]">
             <div ref={hostRef} className="size-full" />
           </div>
         </div>
