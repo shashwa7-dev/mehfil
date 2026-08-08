@@ -748,9 +748,14 @@ export function PlayerBar({
         </div>
       )}
 
-      {/* Ambient wash. The iframe is cross-origin so its frames cannot be
-          sampled to a canvas, but a heavily blurred copy of the thumbnail
-          gives the same bloom for nothing — no pixel access, no timers. */}
+      {/* Ambient wash — room tone. A diffuse full-screen tint that colours the
+          space the video sits in; the spill that reads as light coming off the
+          screen is the tighter halo around the frame further down. Kept low so
+          the two do not sum into a single flat haze.
+
+          The iframe is cross-origin so its frames cannot be sampled to a
+          canvas, but a heavily blurred copy of the thumbnail gives the same
+          bloom for nothing — no pixel access, no timers. */}
       {expanded && ambient && song && (
         <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
           {/* Blurred small and then scaled up, rather than blurred at full
@@ -767,7 +772,7 @@ export function PlayerBar({
           <img
             src={artwork(song.video)}
             alt=""
-            className="absolute left-1/2 top-1/2 size-80 -translate-x-1/2 -translate-y-1/2 scale-[4] object-cover opacity-60 blur-2xl saturate-[1.8] transition-opacity duration-700"
+            className="absolute left-1/2 top-1/2 size-80 -translate-x-1/2 -translate-y-1/2 scale-[4] object-cover opacity-40 blur-2xl saturate-[1.8] transition-opacity duration-700"
           />
           {/* Keeps text legible over whatever the artwork happens to be, while
               leaving the middle open so the video sits inside its own glow. */}
@@ -818,19 +823,76 @@ export function PlayerBar({
             to the surrounding box risked putting the two out of alignment —
             and it spent most of a wide screen on furniture rather than on the
             thing being watched. */}
+        {/* Wraps the stage only so the halo has something frame-shaped to size
+            itself against — `absolute -inset-N` needs a box that already has
+            the video's dimensions, and the stage's width comes from its aspect
+            ratio, so nothing further out knows it.
+
+            `contents` everywhere but md: the collapsed player and the phone's
+            full-bleed stage both position against ancestors further up, and a
+            wrapper that generated a box would become their containing block and
+            move them. Display contents generates none. */}
         <div
           className={
-            expanded
-              ? "video-stage absolute inset-0 bg-black md:relative md:inset-auto md:aspect-video md:h-full md:max-h-full md:w-auto md:max-w-full md:overflow-hidden md:rounded-2xl md:bg-black md:shadow-2xl md:ring-1 md:ring-white/10"
-              : "size-full"
+            expanded ? "contents md:relative md:flex md:h-full md:items-center" : "contents"
           }
         >
-          {/* Positioning and clipping live on this wrapper, not on the host
-              below: the player replaces that node with an iframe and the
-              replacement keeps none of its classes, so anything set there is
-              destroyed the moment playback attaches. */}
-          <div className="size-full overflow-hidden">
-            <div ref={hostRef} className="size-full" />
+          {/* Light spill. The same artwork as the wash above, but held close to
+              the frame and stronger, so it reads as the screen illuminating
+              what surrounds it rather than as a tinted background — which is
+              the whole difference between this and a backdrop.
+
+              Sized from the frame by negative inset, so it tracks the video at
+              any viewport instead of being a fixed blob the stage happens to
+              sit near. Desktop only: the phone's stage is full-bleed, so there
+              is no surround for light to fall on. */}
+          {expanded && ambient && song && (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -inset-10 -z-10 hidden md:block"
+            >
+              <img
+                src={artwork(song.video)}
+                alt=""
+                className="size-full scale-105 object-cover opacity-70 blur-3xl saturate-[1.7] transition-opacity duration-700"
+              />
+            </div>
+          )}
+
+          <div
+            className={
+              expanded
+                // Shadow rather than a ring, and warm rather than black. A
+                // large soft cast shadow gives the frame weight and a light
+                // source above it; the flat hairline on all four sides
+                // described an outline instead, which nothing lit actually
+                // has. The warm tone keeps it inside the brass palette rather
+                // than punching a neutral hole in it.
+                ? "video-stage absolute inset-0 bg-black md:relative md:inset-auto md:aspect-video md:h-full md:max-h-full md:w-auto md:max-w-full md:overflow-hidden md:rounded-2xl md:bg-black md:shadow-[0_45px_90px_-30px_rgb(14_8_2_/_0.95),0_16px_36px_-16px_rgb(0_0_0_/_0.65)]"
+                : "size-full"
+            }
+          >
+            {/* Positioning and clipping live on this wrapper, not on the host
+                below: the player replaces that node with an iframe and the
+                replacement keeps none of its classes, so anything set there is
+                destroyed the moment playback attaches. */}
+            <div className="size-full overflow-hidden">
+              <div ref={hostRef} className="size-full" />
+            </div>
+
+            {/* The lit edge, on its own layer above the video. It cannot be an
+                inset shadow on the stage: inset shadows paint over the
+                background but under the content, and the iframe is content, so
+                it would be covered the moment playback attached.
+
+                Bright along the top, dark along the bottom, barely there around
+                the sides. That is what an edge catching light from above looks
+                like, and it is what makes the frame read as an object with a
+                thickness rather than a rectangle with a border. */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 hidden rounded-2xl md:block md:shadow-[inset_0_1px_0_rgb(255_255_255_/_0.20),inset_0_-1px_0_rgb(0_0_0_/_0.55),inset_0_0_0_1px_rgb(255_255_255_/_0.04)]"
+            />
           </div>
         </div>
       </div>
