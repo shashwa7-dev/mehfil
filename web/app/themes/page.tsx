@@ -35,9 +35,13 @@ export default function ThemesPage() {
   const selectedId = hydrated ? chosen : null;
 
   return (
-    <>
-      <div className="pb-4">
-        <h2 className="pt-1 text-2xl leading-tight">Themes</h2>
+    // The same reading column as /about and /releases. These three are the
+    // app's settled-down pages — read rather than browsed — and running the
+    // grid to the full width of a desktop made this one feel like a different
+    // section of the site.
+    <div className="mx-auto max-w-3xl">
+      <div className="pb-5">
+        <h2 className="pt-1 text-3xl leading-tight">Themes</h2>
         <p className="text-xs text-muted-foreground">
           Kept on this device · applies straight away
         </p>
@@ -107,6 +111,6 @@ export default function ThemesPage() {
           </span>
         </button>
       </div>
-    </>
+    </div>
   );
 }

@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Check, Play } from "lucide-react";
+import { usePlayer } from "@/components/player-provider";
+import { useCatalogue } from "@/lib/queries";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -57,6 +59,8 @@ function markNoticeSeen() {
 export function NoticeDialog() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const { playRandom } = usePlayer();
+  const { data: catalogue } = useCatalogue();
 
   useEffect(() => {
     // Read after mount, same as offline-notice.tsx: the server has no notion
@@ -82,6 +86,28 @@ export function NoticeDialog() {
   function handleOpenChange(next: boolean) {
     setOpen(next);
     if (!next) markNoticeSeen();
+  }
+
+  /**
+   * The button does what it says.
+   *
+   * "Let the music play" that only closed a dialog was a label describing an
+   * intention rather than an action. Starting something here is also the one
+   * moment the browser will allow it: autoplay needs a user gesture, and this
+   * press is the first one a new visitor makes, so it is the cheapest possible
+   * route from arriving to hearing something.
+   *
+   * Not on /about, where the button is an acknowledgement and the music is
+   * usually already playing — hijacking it there would replace what someone
+   * chose with something random.
+   *
+   * If the catalogue has not arrived yet the dialog just closes. A first-run
+   * visitor on a slow connection can reach this before the fetch resolves, and
+   * a button that does nothing visible is better than one that throws.
+   */
+  function dismiss() {
+    if (!revisiting && catalogue?.songs.length) playRandom(catalogue.songs);
+    handleOpenChange(false);
   }
 
   return (
@@ -242,7 +268,7 @@ export function NoticeDialog() {
               confirm they have read terms; this is a welcome, and the only
               thing waiting on the other side of it is the music. The icon is
               filled to match the play controls it is about to hand them. */}
-          <AlertDialogAction className="gap-2" onClick={() => handleOpenChange(false)}>
+          <AlertDialogAction className="gap-2" onClick={dismiss}>
             {/* gap-2 explicitly: the button base sets items-center and sizes
                 svg children, but no gap, so an icon beside a label would sit
                 flush against it. The other icon-and-text buttons in the app
