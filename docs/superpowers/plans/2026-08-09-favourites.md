@@ -771,3 +771,573 @@ git commit -m "Add the favourites route"
 **Type consistency.** `useIsFavourite`, `useFavouriteIds`, `useFavouritesRevision`, `isFavourite`, `toggleFavourite`, `burstAt`, `LikeBurstHost`, `LikeButton` are used in later tasks exactly as declared in their producing task. `SongList` is called with the same props as `web/app/songs/page.tsx` passes today.
 
 **Not covered, and correctly so:** backup and export, sync, like counts, playlists, and any separate recently-liked ordering — storing ids in like-order and reversing at render provides the last one already.
+
+---
+
+# Backdrop themes
+
+Added after the favourites tasks above and executed after them. It shares no
+code with favourites, but it reuses the same external-store shape, so doing it
+second means that pattern is already established and reviewed.
+
+**Goal:** Let someone choose which animated backdrop the app wears, from a
+route showing all of them.
+
+**Architecture:** The backdrop currently lives in `app/layout.tsx`, a server
+component, so it cannot read a choice made in the browser. It moves into a
+client component that reads the stored id through `useSyncExternalStore` —
+the same shape as favourites — and both the app frame and the expanded player
+render that one component.
+
+## Assets, and why they are video
+
+The seven GIFs total 9.1 MB. As h264 they total 1.3 MB, and only the chosen one
+is ever fetched:
+
+| theme | id | source | mp4 | poster |
+|---|---|---|---|---|
+| Lofi room | `lofi` | already shipped | 301K | 102K |
+| Meadow | `meadow` | sheep1.gif 3.2M | 230K | 92K |
+| Evening flock | `flock` | sheep2.gif 2.9M | 172K | 79K |
+| Bus stop, dusk | `stop-dusk` | cat1.gif 600K | 156K | 79K |
+| Bus stop, night | `stop-night` | cat2.gif 556K | 140K | 53K |
+| Sleeping porch | `porch` | cat3.gif 348K | 88K | 67K |
+| Waiting in the rain | `rain` | gib1.gif 1.1M | 57K | 24K |
+
+Every one is lighter than the backdrop shipping today. A GIF also decodes on the
+CPU and re-decodes every loop, which is the wrong thing to spend while a YouTube
+player is running; h264 decodes in hardware.
+
+`bg_gif.gif` is the lofi room already in the repo — same 150 frames — and the
+shipped mp4 is the higher-resolution copy, so it is kept rather than re-encoded.
+
+The pixel-art sources were encoded at crf 23 rather than 26: h264 smears hard
+edges, and pixel art is nothing but hard edges.
+
+---
+
+### Task 6: Assets and the backdrop catalogue
+
+**Files:**
+- Create: `web/public/backdrops/{lofi,meadow,flock,stop-dusk,stop-night,porch,rain}.{mp4,jpg}`
+- Delete: `web/public/backdrop.mp4`, `web/public/backdrop.jpg`
+- Create: `web/lib/backdrops.ts`
+
+**Interfaces:**
+- Consumes: nothing.
+- Produces:
+  - `BACKDROPS: readonly Backdrop[]` where `Backdrop = { id: string; label: string; note: string }`
+  - `DEFAULT_BACKDROP = "lofi"`
+  - `useBackdrop(): string` — the chosen id, or `"none"`
+  - `setBackdrop(id: string): void`
+  - `backdropSrc(id: string): { video: string; poster: string }`
+
+- [ ] **Step 1: Convert and place the assets**
+
+The conversions have already been produced in the scratchpad. Copy them in and
+move the existing backdrop into the new folder:
+
+```bash
+cd /Users/shashwa7/Desktop/personal/carvaan
+SRC=/private/tmp/claude-501/-Users-shashwa7-Desktop-personal/2ce5e5dc-414d-487a-a318-923e9c2de1fd/scratchpad/themes
+mkdir -p web/public/backdrops
+git mv web/public/backdrop.mp4 web/public/backdrops/lofi.mp4
+git mv web/public/backdrop.jpg web/public/backdrops/lofi.jpg
+cp $SRC/sheep1.mp4 web/public/backdrops/meadow.mp4
+cp $SRC/sheep1.jpg web/public/backdrops/meadow.jpg
+cp $SRC/sheep2.mp4 web/public/backdrops/flock.mp4
+cp $SRC/sheep2.jpg web/public/backdrops/flock.jpg
+cp $SRC/cat1.mp4   web/public/backdrops/stop-dusk.mp4
+cp $SRC/cat1.jpg   web/public/backdrops/stop-dusk.jpg
+cp $SRC/cat2.mp4   web/public/backdrops/stop-night.mp4
+cp $SRC/cat2.jpg   web/public/backdrops/stop-night.jpg
+cp $SRC/cat3.mp4   web/public/backdrops/porch.mp4
+cp $SRC/cat3.jpg   web/public/backdrops/porch.jpg
+cp $SRC/gib1.mp4   web/public/backdrops/rain.mp4
+cp $SRC/gib1.jpg   web/public/backdrops/rain.jpg
+ls -la web/public/backdrops/
+```
+
+Expected: 14 files, none larger than 302K.
+
+- [ ] **Step 2: Write `web/lib/backdrops.ts`**
+
+```tsx
+"use client";
+
+import { useSyncExternalStore } from "react";
+
+/**
+ * Which animated backdrop the app is wearing.
+ *
+ * Same shape as lib/favourites.ts: localStorage is external state, so it is
+ * read through useSyncExternalStore rather than a context, and the server
+ * snapshot is what makes the server render coherent without a `mounted` flag.
+ *
+ * The server snapshot is "none" rather than the default, deliberately. Serving
+ * the default would mean anyone who picked something else downloads a backdrop
+ * they will not see before downloading the one they will. Rendering nothing
+ * costs a beat with no backdrop, which the fade-in below turns into something
+ * that reads as intentional rather than as a flash.
+ */
+
+const KEY = "mehfil:backdrop:v1";
+
+export type Backdrop = {
+  id: string;
+  label: string;
+  /** One line, shown under the label on the themes page. */
+  note: string;
+};
+
+export const DEFAULT_BACKDROP = "lofi";
+
+/** Absence, chosen on purpose. Not every room wants weather in it. */
+export const NO_BACKDROP = "none";
+
+export const BACKDROPS: readonly Backdrop[] = [
+  { id: "lofi", label: "Lofi room", note: "A studio with the hills outside" },
+  { id: "meadow", label: "Meadow", note: "A sheep, a dog, an afternoon" },
+  { id: "flock", label: "Evening flock", note: "The whole flock at sunset" },
+  { id: "stop-dusk", label: "Bus stop, dusk", note: "A cat waiting, in red light" },
+  { id: "stop-night", label: "Bus stop, night", note: "The same cat, under a lamp" },
+  { id: "porch", label: "Sleeping porch", note: "Two cats, entirely asleep" },
+  { id: "rain", label: "Waiting in the rain", note: "An umbrella and a long wait" },
+];
+
+const IDS = new Set<string>(BACKDROPS.map((b) => b.id));
+
+export function backdropSrc(id: string) {
+  return { video: `/backdrops/${id}.mp4`, poster: `/backdrops/${id}.jpg` };
+}
+
+const listeners = new Set<() => void>();
+let chosen: string | null = null;
+
+function read(): string {
+  try {
+    const raw = localStorage.getItem(KEY);
+    // An unknown id means a theme that has since been removed, or a
+    // hand-edited value. Fall back rather than requesting a file that is not
+    // there and leaving the app with no backdrop and no explanation.
+    if (raw === NO_BACKDROP) return NO_BACKDROP;
+    return raw && IDS.has(raw) ? raw : DEFAULT_BACKDROP;
+  } catch {
+    return DEFAULT_BACKDROP;
+  }
+}
+
+function current(): string {
+  if (chosen === null) chosen = read();
+  return chosen;
+}
+
+export function setBackdrop(id: string) {
+  chosen = id;
+  try {
+    localStorage.setItem(KEY, id);
+  } catch {
+    // Private mode, or a full disk. The choice still applies for this session.
+  }
+  for (const listener of listeners) listener();
+}
+
+function onStorage(event: StorageEvent) {
+  if (event.key !== null && event.key !== KEY) return;
+  chosen = null;
+  for (const listener of listeners) listener();
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  if (listeners.size === 1) window.addEventListener("storage", onStorage);
+  return () => {
+    listeners.delete(listener);
+    if (listeners.size === 0) window.removeEventListener("storage", onStorage);
+  };
+}
+
+export function useBackdrop(): string {
+  return useSyncExternalStore(subscribe, current, () => NO_BACKDROP);
+}
+```
+
+- [ ] **Step 3: Verify**
+
+```bash
+cd web && npx tsc --noEmit && npm run lint && npm run build
+```
+
+Expected: tsc silent, lint `0 errors`, build `✓ Compiled successfully`.
+
+At this point the app still references the deleted `/backdrop.mp4`; Task 7
+fixes that. Do not commit until Task 7's step 1 is done — a commit here would
+leave the tree with a broken image reference.
+
+---
+
+### Task 7: One backdrop component, driven by the choice
+
+**Files:**
+- Create: `web/components/app-backdrop.tsx`
+- Modify: `web/app/layout.tsx` — replace the inline backdrop markup
+- Modify: `web/components/player-bar.tsx` — replace the expanded-view copy
+
+**Interfaces:**
+- Consumes: `useBackdrop`, `backdropSrc`, `NO_BACKDROP` from Task 6.
+- Produces: `<AppBackdrop opacity={number} />`
+
+- [ ] **Step 1: Write `web/components/app-backdrop.tsx`**
+
+```tsx
+"use client";
+
+import { backdropSrc, NO_BACKDROP, useBackdrop } from "@/lib/backdrops";
+
+/**
+ * The moving backdrop, wherever it appears.
+ *
+ * A client component because the choice lives in the browser, which is why this
+ * is no longer inline in the layout. One definition serves the app frame and
+ * the expanded player: they differ only in opacity, and two copies would drift
+ * the moment either was touched.
+ *
+ * Video rather than the GIF each came from: a GIF decodes on the CPU and
+ * re-decodes every loop, which is the wrong thing to spend while a YouTube
+ * player is already running. The still beside it is both the poster and what
+ * anyone who has asked for reduced motion gets instead.
+ *
+ * `key` on the video is deliberate. Changing a <source> element's src does not
+ * reload a video — the browser has already committed to the loaded one — so
+ * switching themes without remounting would leave the old footage playing under
+ * a new name.
+ *
+ * Positioning belongs to the caller; this fills whatever box it is given.
+ */
+export function AppBackdrop({ opacity }: { opacity: number }) {
+  const id = useBackdrop();
+  if (id === NO_BACKDROP) return null;
+
+  const { video, poster } = backdropSrc(id);
+
+  return (
+    <>
+      <video
+        key={id}
+        autoPlay
+        muted
+        loop
+        playsInline
+        poster={poster}
+        // Fades in rather than appearing. The server renders no backdrop, so
+        // there is always a moment before this arrives; easing it in reads as
+        // intentional where a pop reads as a glitch.
+        className="absolute inset-0 size-full animate-[fade-in_700ms_ease-out_both] object-cover motion-reduce:hidden"
+        style={{ opacity }}
+      >
+        <source src={video} type="video/mp4" />
+      </video>
+      <img
+        src={poster}
+        alt=""
+        className="absolute inset-0 hidden size-full object-cover motion-reduce:block"
+        style={{ opacity }}
+      />
+      {/* Warm wash, so the backdrop belongs to the brass palette rather than
+          merely sitting under it. */}
+      <div className="absolute inset-0 bg-[oklch(0.79_0.135_78)]/[0.07]" />
+    </>
+  );
+}
+```
+
+- [ ] **Step 2: Add the fade keyframes to `web/app/globals.css`**
+
+Append at the end of the file:
+
+```css
+/* The backdrop arriving after hydration. See components/app-backdrop.tsx. */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+```
+
+Note: this animates from `opacity: 0` to whatever the inline style sets, because
+a keyframe with no `to` uses the element's own value as the end state.
+
+- [ ] **Step 3: Replace the backdrop block in `web/app/layout.tsx`**
+
+Add to the imports:
+
+```tsx
+import { AppBackdrop } from "@/components/app-backdrop";
+```
+
+Replace the whole `{/* App-wide backdrop. ... */}` block — the wrapper div and
+everything inside it — with:
+
+```tsx
+        {/* App-wide backdrop. Fixed and behind everything, so it holds still
+            while content scrolls over it.
+
+            24%, and that is a balance rather than a maximum: the content area
+            lays bg-card/40 over it, so 60% of whatever is set here ends up
+            behind the song rows. At 38% the footage read well in the open
+            margins but crowded the rows. */}
+        <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
+          <AppBackdrop opacity={0.24} />
+          {/* Only the bottom, and gently. A gradient from the top would undo
+              the opacity chosen above. */}
+          <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-background/70 to-transparent" />
+        </div>
+```
+
+- [ ] **Step 4: Replace the expanded-player copy in `web/components/player-bar.tsx`**
+
+Add to the imports:
+
+```tsx
+import { AppBackdrop } from "@/components/app-backdrop";
+```
+
+Replace the contents of the `{expanded && (...)}` block that currently holds the
+video, img and wash — keeping its wrapper div exactly as it is — so it reads:
+
+```tsx
+      {expanded && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -z-20 hidden md:block"
+        >
+          <AppBackdrop opacity={0.2} />
+        </div>
+      )}
+```
+
+- [ ] **Step 5: Verify no reference to the old paths survives**
+
+```bash
+cd /Users/shashwa7/Desktop/personal/carvaan
+grep -rn "/backdrop\.mp4\|/backdrop\.jpg" web/app web/components web/public || echo "none — good"
+cd web && npx tsc --noEmit && npm run lint && npm run build
+```
+
+Expected: `none — good`, then tsc silent, lint `0 errors`, build succeeds.
+
+- [ ] **Step 6: Verify by hand**
+
+1. The backdrop still appears on every route, and looks as it did.
+2. It still appears in the expanded player on desktop, and still does not on a
+   phone.
+3. Under `prefers-reduced-motion: reduce`, the still shows and the video does
+   not.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add web/public/backdrops web/lib/backdrops.ts web/components/app-backdrop.tsx web/app/layout.tsx web/app/globals.css web/components/player-bar.tsx
+git rm --cached web/public/backdrop.mp4 web/public/backdrop.jpg 2>/dev/null || true
+git commit -m "Make the backdrop a choice rather than a constant"
+```
+
+---
+
+### Task 8: The themes route
+
+**Files:**
+- Create: `web/app/themes/page.tsx`
+- Modify: `web/components/app-frame.tsx` — nav item
+- Modify: `web/app/about/page.tsx` — credit all seven rather than one
+
+**Interfaces:**
+- Consumes: `BACKDROPS`, `useBackdrop`, `setBackdrop`, `backdropSrc`, `NO_BACKDROP` from Task 6.
+- Produces: the `/themes` route.
+
+- [ ] **Step 1: Write `web/app/themes/page.tsx`**
+
+```tsx
+"use client";
+
+import { Check, ImageOff } from "lucide-react";
+import {
+  BACKDROPS,
+  backdropSrc,
+  NO_BACKDROP,
+  setBackdrop,
+  useBackdrop,
+} from "@/lib/backdrops";
+
+/**
+ * Pick what the app wears.
+ *
+ * There is no preview pane, because the page itself is the preview: choosing
+ * applies immediately and the panel this grid sits on is translucent, so the
+ * chosen backdrop is already visible behind the choice being made.
+ *
+ * The cards show stills rather than the videos. Seven autoplaying clips to
+ * choose one is a great deal of decoding for a decision, and the live backdrop
+ * behind the page is the moving version already.
+ */
+export default function ThemesPage() {
+  const chosen = useBackdrop();
+
+  return (
+    <>
+      <div className="pb-4">
+        <h2 className="pt-1 text-2xl leading-tight">Themes</h2>
+        <p className="text-xs text-muted-foreground">
+          Kept on this device · applies straight away
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 pb-8 sm:grid-cols-3">
+        {BACKDROPS.map((backdrop) => {
+          const selected = chosen === backdrop.id;
+          return (
+            <button
+              key={backdrop.id}
+              onClick={() => setBackdrop(backdrop.id)}
+              aria-pressed={selected}
+              className={`group overflow-hidden rounded-xl border text-left transition ${
+                selected
+                  ? "border-primary/60 ring-1 ring-primary/40"
+                  : "border-white/10 hover:border-white/25"
+              }`}
+            >
+              <span className="relative block aspect-video overflow-hidden bg-black/40">
+                <img
+                  src={backdropSrc(backdrop.id).poster}
+                  alt=""
+                  loading="lazy"
+                  className="size-full object-cover transition duration-500 group-hover:scale-105"
+                />
+                {selected && (
+                  <span className="absolute right-2 top-2 grid size-6 place-items-center rounded-full bg-primary text-primary-foreground">
+                    <Check className="size-3.5" />
+                  </span>
+                )}
+              </span>
+              <span className="block px-3 py-2.5">
+                <span className="block truncate text-sm">{backdrop.label}</span>
+                <span className="block truncate text-[11px] text-muted-foreground">
+                  {backdrop.note}
+                </span>
+              </span>
+            </button>
+          );
+        })}
+
+        {/* Absence, offered as plainly as the rest. A moving backdrop is not to
+            everyone's taste and should not need a browser setting to escape. */}
+        <button
+          onClick={() => setBackdrop(NO_BACKDROP)}
+          aria-pressed={chosen === NO_BACKDROP}
+          className={`group overflow-hidden rounded-xl border text-left transition ${
+            chosen === NO_BACKDROP
+              ? "border-primary/60 ring-1 ring-primary/40"
+              : "border-white/10 hover:border-white/25"
+          }`}
+        >
+          <span className="relative grid aspect-video place-items-center bg-black/30">
+            <ImageOff className="size-6 text-muted-foreground" />
+            {chosen === NO_BACKDROP && (
+              <span className="absolute right-2 top-2 grid size-6 place-items-center rounded-full bg-primary text-primary-foreground">
+                <Check className="size-3.5" />
+              </span>
+            )}
+          </span>
+          <span className="block px-3 py-2.5">
+            <span className="block text-sm">None</span>
+            <span className="block text-[11px] text-muted-foreground">
+              Just the dark room
+            </span>
+          </span>
+        </button>
+      </div>
+    </>
+  );
+}
+```
+
+- [ ] **Step 2: Add the nav item in `web/components/app-frame.tsx`**
+
+Add `Palette` to the existing `lucide-react` import. In the lower link group —
+the one containing the `/about` link — add above it:
+
+```tsx
+          <Link
+            href="/themes"
+            className={navClass(pathname === "/themes")}
+          >
+            <Palette className="size-4" /> Themes
+          </Link>
+```
+
+Match the surrounding links' class usage exactly; if the `/about` link there
+uses a different class than `navClass`, use that one instead.
+
+- [ ] **Step 3: Update the credit in `web/app/about/page.tsx`**
+
+Replace the paragraph beginning "The animated backdrop behind the app is an
+illustrated loop" with:
+
+```tsx
+        <p>
+          The backdrops offered under Themes are illustrated loops by artists we
+          have not been able to identify, re-encoded and warmed to sit with the
+          rest of the palette. They are used decoratively and at low opacity. If
+          you made one, or hold the rights to one, tell us and we will credit it
+          or take it down — whichever you prefer.
+        </p>
+```
+
+- [ ] **Step 4: Verify**
+
+```bash
+cd web && npx tsc --noEmit && npm run lint && npm run build
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/themes
+```
+
+Expected: build succeeds, route returns `200`.
+
+- [ ] **Step 5: Verify by hand**
+
+1. Choosing a theme **changes the backdrop immediately**, without a reload.
+2. The change **survives a reload**.
+3. Choosing None removes the backdrop entirely and **leaves no broken video
+   element** behind.
+4. Switching between two themes actually swaps the footage rather than keeping
+   the first — this is what the `key` on the video guards, and it is the thing
+   most likely to be silently wrong.
+5. The choice **applies inside the expanded player** on desktop too.
+6. A second tab follows the choice made in the first.
+7. On a phone, the grid is two columns and the cards are legible.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add web/app/themes/page.tsx web/components/app-frame.tsx web/app/about/page.tsx
+git commit -m "Add a themes route"
+```
+
+## Self-review for the theme tasks
+
+**Coverage.** A route showing every theme — Task 8. The images supplied plus the
+one already shipped — Task 6, seven in total. Stored per device — Task 6, same
+external-store shape as favourites. Applied app-wide and in the expanded player
+— Task 7, one component in both places.
+
+**The risk worth naming.** Changing a `<source>` element's `src` does not reload
+a `<video>`; the browser has already committed to what it loaded. Without the
+`key` on the video element in Task 7, switching themes would leave the old
+footage playing. It is in the code and it is manual check 4 in Task 8, because a
+build cannot see it.
+
+**Type consistency.** `useBackdrop`, `setBackdrop`, `backdropSrc`, `BACKDROPS`,
+`DEFAULT_BACKDROP`, `NO_BACKDROP` and `<AppBackdrop opacity>` are used in Tasks
+7 and 8 exactly as Task 6 declares them.
+
+**Not doing:** no colour-palette themes, no per-route backdrops, no upload. The
+request was to choose among these images.
