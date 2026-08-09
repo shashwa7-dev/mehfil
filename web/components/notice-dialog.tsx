@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Play } from "lucide-react";
+import { Check, Play } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -73,6 +73,12 @@ export function NoticeDialog() {
   // Any close — the OK button, Escape — counts as having been shown. On
   // /about that write is a no-op the next time this effect runs, since the
   // route check above short-circuits before the stored key is even read.
+  // On /about the notice is being re-read on purpose, so "Let the music play"
+  // is answering a question nobody asked — the music is already going and the
+  // page they wanted is behind the dialog. There it is an acknowledgement; the
+  // first time, it is an invitation.
+  const revisiting = pathname === "/about";
+
   function handleOpenChange(next: boolean) {
     setOpen(next);
     if (!next) markNoticeSeen();
@@ -154,7 +160,11 @@ export function NoticeDialog() {
             className="hidden h-[200px] w-full object-cover motion-reduce:block [@media(max-height:500px)]:h-24"
           />
         </div>
-        <AlertDialogHeader>
+        {/* Left at every width. The primitive centres the header below sm and
+            only switches to text-left from there, which left the title centred
+            over left-aligned paragraphs on a phone. One alignment for the whole
+            card, and left is the one the body text needs. */}
+        <AlertDialogHeader className="place-items-start text-left">
           {/* The primitive's title is text-base font-medium — the same size as the
               body beneath it, so it reads as a first line rather than a title.
               text-xl against the description's text-sm gives it somewhere to
@@ -178,17 +188,21 @@ export function NoticeDialog() {
               loading spinner, not a turntable. alt="" and aria-hidden: the
               image adds nothing a screen reader needs that the title text
               beside it does not already say. */}
-          <AlertDialogTitle className="flex items-center gap-2.5 text-xl leading-tight">
-            <span
+          <AlertDialogTitle className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xl leading-tight">
+            Welcome to
+            {/* Beside the name rather than ahead of the sentence: it is the
+                mark for the word "Mehfil", not for the greeting. rounded-lg
+                matches how the logo is drawn everywhere else in the app, and
+                it no longer turns — a boxy mark rotating read as a glitch, and
+                dressing it as a record to justify the motion was solving a
+                problem that only existed because of the motion. */}
+            <img
+              src="/logo.png"
+              alt=""
               aria-hidden
-              className="relative grid size-8 shrink-0 place-items-center rounded-full shadow-[inset_0_0_0_1px_rgba(255,255,255,0.09)] [background-image:repeating-radial-gradient(circle,rgba(255,255,255,0.07)_0_1px,transparent_1px_3px),radial-gradient(circle,#2a231d_0%,#0c0a09_100%)] motion-safe:animate-[spin_8s_linear_infinite]"
-            >
-              <img src="/logo.png" alt="" className="size-[44%] rounded-full" />
-              {/* The spindle hole. Two pixels of background colour, and the
-                  whole thing stops being a circle with a picture in it. */}
-              <span className="absolute size-[2px] rounded-full bg-popover" />
-            </span>
-            Welcome to Mehfil
+              className="size-7 shrink-0 rounded-lg"
+            />
+            Mehfil
           </AlertDialogTitle>
           {/* A div rather than the default <p>, so two paragraphs can sit
               inside without nesting a <p> in a <p>. The description id, and so
@@ -235,7 +249,10 @@ export function NoticeDialog() {
             </p>
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter>
+        {/* Under the text it belongs to, on the same edge. The primitive pushes
+            it right from sm, which is right for a confirm/cancel pair and wrong
+            for one button on a card that reads left to right. */}
+        <AlertDialogFooter className="sm:justify-start">
           {/* An invitation rather than an acknowledgement. "OK" asks someone to
               confirm they have read terms; this is a welcome, and the only
               thing waiting on the other side of it is the music. The icon is
@@ -245,8 +262,12 @@ export function NoticeDialog() {
                 svg children, but no gap, so an icon beside a label would sit
                 flush against it. The other icon-and-text buttons in the app
                 set their own for the same reason. */}
-            <Play className="size-4 fill-current" />
-            Let the music play
+            {revisiting ? (
+              <Check className="size-4" />
+            ) : (
+              <Play className="size-4 fill-current" />
+            )}
+            {revisiting ? "Got it" : "Let the music play"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
