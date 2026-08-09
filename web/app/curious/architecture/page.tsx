@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ArrowUpRight } from "lucide-react";
+import { Code, Key, Panel } from "@/components/curious-bits";
 
 export const metadata: Metadata = {
   title: "Architecture",
@@ -24,9 +25,8 @@ export default function ArchitecturePage() {
       <header>
         <h1 className="text-3xl leading-tight">Architecture</h1>
         <p className="mt-3 max-w-prose text-sm leading-relaxed text-muted-foreground">
-          Mehfil has no backend, no database at runtime, and no accounts. It is
-          a static site that reads one JSON file and borrows YouTube&apos;s
-          player for the sound. Almost every interesting decision here follows
+          Mehfil has no backend, no database at runtime, and no accounts. It is <Key>a static site that reads one JSON file</Key> and borrows
+          YouTube&apos;s player for the sound. Almost every interesting decision here follows
           from that one, and most of the work happens long before anyone visits.
         </p>
       </header>
@@ -51,13 +51,22 @@ export default function ArchitecturePage() {
 
       <Section title="The player lives above the pages">
         <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
-          Playback is a YouTube iframe, and an iframe cannot survive being
-          unmounted. So the player sits in the root layout rather than in any
+          Playback is a YouTube iframe, and <Key>an iframe cannot survive being unmounted</Key>. So the player sits in the root layout rather than in any
           page: layouts persist across navigation, pages do not. Moving from a
           station to a singer to the full song list never interrupts the music,
           and that single constraint shapes most of the component tree — the
           bar is rendered by the layout and handed down, not owned by a route.
         </p>
+        <Code caption="app/layout.tsx — the player is a sibling of every page, never a child of one">
+{`<Providers>            // react-query
+  <PlayerProvider>      // owns the YouTube iframe + the queue
+    <AppFrame>
+      {children}        // ← only this remounts on navigation
+    </AppFrame>
+  </PlayerProvider>
+</Providers>`}
+        </Code>
+
         <p className="mt-3 max-w-prose text-sm leading-relaxed text-muted-foreground">
           The same reasoning puts the expanded view in a portal on the body.
           A backdrop-blurred footer becomes a containing block for anything
@@ -68,8 +77,8 @@ export default function ArchitecturePage() {
 
       <Section title="The pipeline is where the real work is">
         <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
-          Twenty-four Python scripts turn a printed songlist into something
-          playable. The catalogue starts as the official Carvaan Gold PDF,
+          <Key>Twenty-four Python scripts</Key> turn a printed songlist into
+          something playable. The catalogue starts as the official Carvaan Gold PDF,
           which is a three-column layout that naive extraction bleeds between —
           so it is parsed from word coordinates and sliced into columns by
           x-position before lines are reconstructed at all.
@@ -82,7 +91,7 @@ export default function ArchitecturePage() {
             ["Verify", "Every match is checked for whether it actually embeds. A song that looks resolved and plays nothing is worse than one that is missing."],
             ["Export", "The playable subset becomes the JSON the app reads. Nothing else about the database ever reaches a browser."],
           ].map(([step, body], index) => (
-            <li key={step} className="flex gap-3 rounded-lg border border-white/[0.07] p-4">
+            <li key={step} className="flex gap-3 rounded-lg border border-white/[0.07] bg-card/40 p-4">
               <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-white/[0.06] font-mono text-xs text-muted-foreground">
                 {index + 1}
               </span>
@@ -95,14 +104,37 @@ export default function ArchitecturePage() {
             </li>
           ))}
         </ol>
+        <Code caption="the whole pipeline, in the order it runs">
+{`pdftotext -bbox-layout songlist.pdf full.xml
+python3 pipeline/parse_songlist.py    full.xml data/songs.json
+python3 pipeline/match_videos.py      data/carvaan.db
+python3 pipeline/verify_embeddable.py data/carvaan.db
+python3 pipeline/export_catalogue.py  data/carvaan.db \\
+                                      web/public/catalogue.json
+python3 pipeline/check_ids.py         # refuses to ship a drifted catalogue`}
+        </Code>
+
         <p className="mt-4 max-w-prose text-sm leading-relaxed text-muted-foreground">
-          Song ids come from a committed ledger and are append-only. They used
+          Song ids come from a committed ledger and are <Key>append-only</Key>. They used
           to be positions in an alphabetical list, which meant adding one song
           renumbered nearly all of them — and since videos are stored against
           those ids, the next rebuild would have handed almost every song the
           previous song&apos;s recording. Silently. A check now refuses to load
           or publish a catalogue whose ids disagree with the ledger.
         </p>
+        <Code caption="pipeline/songids.py — an id is now a name tag, not a line number">
+{`# before — the id was wherever the song happened to sort
+for song_id, song in enumerate(sorted(catalogue), start=1):
+    song["id"] = song_id
+
+# after — the id is whatever it has always been
+for song in catalogue:
+    key = song_key(song["title"], song["film"])
+    if key not in ledger:
+        ledger[key] = next_id      # a genuinely new song
+        next_id += 1
+    song["id"] = ledger[key]       # everyone else keeps theirs`}
+        </Code>
       </Section>
 
       <Section title="What the one server route is for">
@@ -110,15 +142,24 @@ export default function ArchitecturePage() {
           Reporting a wrong recording, or sending a link for a missing song,
           posts to <code className="font-mono text-xs">/api/feedback</code>,
           which forwards to a Google Apps Script that appends a row to a sheet.
-          It exists so the webhook URL stays on the server — in the browser it
+          It exists so <Key>the webhook URL stays on the server</Key> — in the browser it
           would be a public write endpoint for anyone who opened dev tools.
         </p>
         <p className="mt-3 max-w-prose text-sm leading-relaxed text-muted-foreground">
-          It refuses to say a report was saved unless the sheet confirms it.
+          <Key>It refuses to say a report was saved unless the sheet confirms it.</Key>
           Apps Script answers with HTTP 200 even when its own handler has
           thrown, reporting the failure in the body, so trusting the status code
           told people their report was recorded when nothing had been written.
         </p>
+        <Code caption="app/api/feedback/route.ts — the body is the answer, not the status">
+{`const response = await fetch(WEBHOOK, { method: "POST", … });
+
+// 200 is not the same as "a row exists"
+const replied = await response.text();
+const acknowledged = JSON.parse(replied)?.ok === true;
+
+if (!acknowledged) return error(502);   // say so, do not pretend`}
+        </Code>
       </Section>
 
       <Section title="Offline, and staying current">
@@ -134,7 +175,7 @@ export default function ArchitecturePage() {
       </Section>
 
       <Section title="What it does not do">
-        <ul className="space-y-2">
+        <Panel className="space-y-2 p-4">
           {[
             "Host any music. Every track plays through YouTube's own embedded player.",
             "Store anything about you anywhere but your own browser.",
@@ -146,7 +187,7 @@ export default function ArchitecturePage() {
               <span className="text-sm leading-relaxed text-muted-foreground">{line}</span>
             </li>
           ))}
-        </ul>
+        </Panel>
       </Section>
 
       <section className="rounded-xl border border-primary/25 bg-primary/[0.06] p-5">
@@ -182,7 +223,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function Facts({ rows }: { rows: readonly (readonly [string, string])[] }) {
   return (
-    <dl className="divide-y divide-white/[0.06] rounded-lg border border-white/[0.07]">
+    <dl className="divide-y divide-white/[0.06] rounded-lg border border-white/[0.07] bg-card/40">
       {rows.map(([term, detail]) => (
         <div key={term} className="flex flex-col gap-1 p-3 sm:flex-row sm:gap-4">
           <dt className="shrink-0 text-sm sm:w-32">{term}</dt>

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Code, Key, Panel } from "@/components/curious-bits";
 
 export const metadata: Metadata = {
   title: "Design system",
@@ -38,7 +39,7 @@ export default function DesignPage() {
         <h1 className="text-3xl leading-tight">Design system</h1>
         <p className="mt-3 max-w-prose text-sm leading-relaxed text-muted-foreground">
           Mehfil is one dark theme, one accent, and a small set of primitives.
-          There is no light mode and no second brand colour, which is less a
+          There is <Key>no light mode and no second brand colour</Key>, which is less a
           principle than an admission: a catalogue of golden-era film music
           wants brass on near-black, and everything else was a distraction.
         </p>
@@ -46,13 +47,21 @@ export default function DesignPage() {
 
       <Section
         title="Colour"
-        lead="Every colour is a CSS custom property in OKLCH, never a hex literal in a class string. OKLCH because its lightness is perceptual — the accent and the heart sit at 0.79 and 0.70, and they read as siblings rather than one shouting over the other."
+        lead={
+          <>
+            Every colour is a CSS custom property in OKLCH, never a hex literal
+            in a class string.{" "}
+            <Key>OKLCH because its lightness is perceptual</Key> — the accent
+            and the heart sit at 0.79 and 0.70, so they read as siblings rather
+            than one shouting over the other.
+          </>
+        }
       >
         <ul className="space-y-2">
           {PALETTE.map((swatch) => (
             <li
               key={swatch.token}
-              className="flex items-center gap-3 rounded-lg border border-white/[0.07] p-2.5"
+              className="flex items-center gap-3 rounded-lg border border-white/[0.07] bg-card/40 p-2.5"
             >
               <span
                 aria-hidden
@@ -77,7 +86,7 @@ export default function DesignPage() {
         title="Type"
         lead="Figtree, at one weight range, for everything. It was chosen for the company it keeps: the faces music apps favour are geometric sans, Spotify's own Circular is proprietary, and Figtree is the free one that sits nearest without imitating."
       >
-        <div className="space-y-3 rounded-lg border border-white/[0.07] p-4">
+        <div className="space-y-3 rounded-lg border border-white/[0.07] bg-card/40 p-4">
           <p className="text-3xl leading-tight">Aa Dil Se Dil Mila Le</p>
           <p className="text-lg leading-snug">Asha Bhosle · Navrang · 1959</p>
           <p className="text-sm text-muted-foreground">
@@ -90,9 +99,14 @@ export default function DesignPage() {
 
       <Section
         title="Breakpoints"
-        lead="The one genuinely unusual thing here. Tailwind's breakpoints ask about width; ours ask about height too."
+        lead={
+          <>
+            The one genuinely unusual thing here. Tailwind&apos;s breakpoints ask
+            about width; <Key>ours ask about height too</Key>.
+          </>
+        }
       >
-        <div className="overflow-x-auto rounded-lg border border-white/[0.07]">
+        <div className="overflow-x-auto rounded-lg border border-white/[0.07] bg-card/40">
           <table className="w-full text-left text-sm">
             <thead className="text-xs uppercase tracking-wider text-muted-foreground">
               <tr className="border-b border-white/[0.07]">
@@ -125,7 +139,14 @@ export default function DesignPage() {
 
       <Section
         title="Components"
-        lead="shadcn/ui, but on Base UI rather than Radix — that is the part worth knowing if you are reading the source expecting asChild and finding render props instead."
+        lead={
+          <>
+            shadcn/ui, but <Key>on Base UI rather than Radix</Key> — the part
+            worth knowing if you are reading the source expecting{" "}
+            <code className="font-mono text-xs">asChild</code> and finding
+            render props instead.
+          </>
+        }
       >
         <div className="flex flex-wrap gap-1.5">
           {PRIMITIVES.map((name) => (
@@ -147,24 +168,72 @@ export default function DesignPage() {
 
       <Section
         title="Idioms"
-        lead="Conventions the codebase keeps to, more useful to know than any single component."
+        lead="Four conventions the codebase keeps to. More useful to know than any single component, and easier to show than to describe."
       >
-        <ul className="space-y-3">
-          {[
-            ["Edges fade rather than stop.", "Artwork, overflowing titles and the backdrop all end in a mask gradient instead of a hard line. The same trick appears on the player bar, the song details wash and the welcome card."],
-            ["Motion is opt-out everywhere.", "Every animation is behind motion-safe:, and the backdrops ship a still alongside the video for anyone who has asked for less movement."],
-            ["Colour never carries meaning alone.", "Toggles that show state in the accent also set aria-pressed; emphasised text is <strong> before it is coloured."],
-            ["Tokens, not literals.", "A hex in a class string is where a palette starts drifting, so colours resolve through custom properties and shadows quote the token's own value."],
-          ].map(([title, body]) => (
-            <li key={title} className="rounded-lg border border-white/[0.07] p-4">
-              <p className="text-sm">{title}</p>
-              <p className="mt-1 max-w-prose text-sm leading-relaxed text-muted-foreground">
-                {body}
-              </p>
-            </li>
-          ))}
-        </ul>
+        <div className="space-y-4">
+          <Panel className="p-4">
+            <p className="text-sm">
+              <Key>Edges fade rather than stop.</Key>
+            </p>
+            <p className="mt-1 max-w-prose text-sm leading-relaxed text-muted-foreground">
+              Artwork, overflowing titles and the backdrop all end in a mask
+              gradient instead of a hard line.
+            </p>
+            <Code caption="components/player-bar.tsx — the artwork bleeding into the bar on a phone">
+{`<span className="absolute inset-y-0 left-0 w-[4.75rem]
+  [mask-image:linear-gradient(to_right,
+    #000 0%, rgba(0,0,0,0.75) 30%, transparent 88%)]" />`}
+            </Code>
+          </Panel>
+
+          <Panel className="p-4">
+            <p className="text-sm">
+              <Key>Motion is opt-out everywhere.</Key>
+            </p>
+            <p className="mt-1 max-w-prose text-sm leading-relaxed text-muted-foreground">
+              Every backdrop ships a still beside its video, and the pair swap
+              on the browser&apos;s own setting rather than on a preference we
+              invented.
+            </p>
+            <Code caption="components/app-backdrop.tsx — one of these is always hidden">
+{`<video className="… motion-reduce:hidden" poster={poster} />
+<img   className="hidden … motion-reduce:block" src={poster} />`}
+            </Code>
+          </Panel>
+
+          <Panel className="p-4">
+            <p className="text-sm">
+              <Key>Colour never carries meaning alone.</Key>
+            </p>
+            <p className="mt-1 max-w-prose text-sm leading-relaxed text-muted-foreground">
+              A toggle that shows its state in the accent also says so in the
+              markup, so it survives a screen reader and a colour filter.
+            </p>
+            <Code caption="components/like-button.tsx — the state is announced, not just painted">
+{`<button aria-pressed={liked} aria-label={liked
+    ? "Remove from favourites"
+    : "Add to favourites"}>
+  <Heart className={liked ? "fill-current" : ""} />
+</button>`}
+            </Code>
+          </Panel>
+
+          <Panel className="p-4">
+            <p className="text-sm">
+              <Key>Tokens, never literals.</Key>
+            </p>
+            <p className="mt-1 max-w-prose text-sm leading-relaxed text-muted-foreground">
+              A hex in a class string is where a palette starts drifting. Even
+              shadows quote the token&apos;s own value.
+            </p>
+            <Code caption="left: how the app writes colour. right: what it avoids.">
+{`bg-primary/15  text-primary  border-heart/40
+bg-[#d6a854]   text-[#f66c6d]`}
+            </Code>
+          </Panel>
+        </div>
       </Section>
+
     </div>
   );
 }
@@ -175,7 +244,7 @@ function Section({
   children,
 }: {
   title: string;
-  lead: string;
+  lead: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
