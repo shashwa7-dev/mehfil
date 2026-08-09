@@ -18,6 +18,7 @@ import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/s
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { InstallButton } from "@/components/install-prompt";
 import { LikeBurstHost } from "@/components/like-burst";
+import { NoticeDialog } from "@/components/notice-dialog";
 import { facetCards, portrait } from "@/lib/catalogue";
 import { usePlayer, usePlayerBar } from "@/components/player-provider";
 import { useCatalogue, usePhotoManifest } from "@/lib/queries";
@@ -400,6 +401,11 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
       {/* Mounted once here, regardless of route, so any heart in the app can
           fire into it. */}
       <LikeBurstHost />
+
+      {/* Same reasoning: one instance, always present, so it can open itself
+          on first run or on /about regardless of which route the app landed
+          on. */}
+      <NoticeDialog />
     </FrameContext.Provider>
   );
 }
