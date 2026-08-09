@@ -231,13 +231,54 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
               </div>
               )}
 
+              {/* Favourites and themes, one glance away at any width. Both
+                  already live in the rail/drawer nav, but that is only a
+                  touchpoint once a phone user opens the drawer — this is the
+                  fix for that. Not gated on hideSearch: hideSearch only
+                  retires the search box (nothing to search on /about or
+                  /contribute), it says nothing about these two, and hiding
+                  them there would remove the one touchpoint mobile still has
+                  on those routes. The row itself already collapses to
+                  lg:hidden on those pages, so on desktop this disappears with
+                  the rest of the row rather than needing its own check.
+                  ml-auto moves here from the Surprise button below: this is
+                  now the first element of the group that gets pushed to the
+                  right edge, and Surprise/the menu trigger ride along after
+                  it instead of pushing themselves. */}
+              <div className="ml-auto flex shrink-0 items-center gap-1.5">
+                <Link
+                  href="/favourites"
+                  title="Your favourites"
+                  aria-label="Your favourites"
+                  className={`grid size-9 place-items-center rounded-full border transition ${
+                    pathname === "/favourites"
+                      ? "border-primary/30 bg-primary/15 text-primary"
+                      : "border-white/10 bg-white/[0.06] text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Heart className="size-4" />
+                </Link>
+                <Link
+                  href="/themes"
+                  title="Themes"
+                  aria-label="Themes"
+                  className={`grid size-9 place-items-center rounded-full border transition ${
+                    pathname === "/themes"
+                      ? "border-primary/30 bg-primary/15 text-primary"
+                      : "border-white/10 bg-white/[0.06] text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Palette className="size-4" />
+                </Link>
+              </div>
+
               {/* Fills the empty right side with the one action that needs no
                   prior choice: drop into the catalogue at random. */}
               {catalogue && !hideSearch && (
                 <button
                   onClick={() => playRandom(catalogue.songs)}
                   title="Play something at random"
-                  className="group/surprise ml-auto hidden shrink-0 items-center gap-2 rounded-full border border-primary/30 bg-primary/15 px-4 py-2 text-xs font-semibold text-primary shadow-[0_0_0_0_rgba(214,168,84,0)] transition-[background-color,border-color,box-shadow] duration-300 hover:border-primary/50 hover:bg-primary/25 hover:shadow-[0_0_20px_-2px_rgba(214,168,84,0.45)] lg:inline-flex"
+                  className="group/surprise hidden shrink-0 items-center gap-2 rounded-full border border-primary/30 bg-primary/15 px-4 py-2 text-xs font-semibold text-primary shadow-[0_0_0_0_rgba(214,168,84,0)] transition-[background-color,border-color,box-shadow] duration-300 hover:border-primary/50 hover:bg-primary/25 hover:shadow-[0_0_20px_-2px_rgba(214,168,84,0.45)] lg:inline-flex"
                 >
                   {/* A record, not a shuffle glyph: this plays music at
                       random rather than reordering a list. A full revolution
@@ -285,7 +326,7 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
                   render={
                     <button
                       title="Menu"
-                      className="relative ml-auto grid size-9 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-muted-foreground transition hover:text-foreground lg:hidden"
+                      className="relative grid size-9 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-muted-foreground transition hover:text-foreground lg:hidden"
                     />
                   }
                 >
