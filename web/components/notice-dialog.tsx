@@ -97,6 +97,19 @@ export function NoticeDialog() {
           a plain one would leave both in place and lose to the attribute
           selector's specificity. */}
       <AlertDialogContent className="max-h-[85vh] overflow-hidden data-[size=default]:max-w-[calc(100vw-2rem)] data-[size=default]:sm:max-w-[475px]">
+        {/* The badge, sunk into the card as a watermark.
+            -z-10 puts it above the popup's own background but beneath every
+            in-flow child, so the text reads over it rather than around it.
+            Bled off the bottom-right corner and clipped by the popup's
+            overflow-hidden, which is what makes it read as a mark on the card
+            instead of a small picture someone placed there. */}
+        <img
+          src="/logo.png"
+          alt=""
+          aria-hidden
+          className="pointer-events-none absolute -bottom-10 -right-10 -z-10 size-44 opacity-[0.07]"
+        />
+
         {/* Full-bleed thumbnail, first inside the content so it sits above
             the header. AlertDialogContent pads and gaps its children (p-4,
             gap-4) for the header/footer case; -mx-4 -mt-4 cancels that same
@@ -156,17 +169,30 @@ export function NoticeDialog() {
           <AlertDialogDescription
             render={<div className="max-h-[38vh] space-y-3 overflow-y-auto text-left" />}
           >
+            {/* <strong> rather than a coloured span. The accent is what draws
+                the eye, but colour alone is not a way to carry meaning — the
+                emphasis has to survive for anyone reading this with a screen
+                reader or without colour, and strong is what does that. */}
             <p>
               Nearly four thousand songs from the golden age of Hindi film
-              music, and not one of them ours. They play through YouTube&apos;s
-              own player and the cover art is theirs. The backdrops are
-              illustrations we could not trace; tell us if one is yours and we
-              will credit it or remove it.
+              music, and{" "}
+              <strong className="font-medium text-primary">
+                not one of them ours
+              </strong>
+              . They play through YouTube&apos;s own player and the cover art is
+              theirs. The backdrops are illustrations we could not trace; tell
+              us if one is yours and we will credit it or remove it.
             </p>
             <p>
-              Nothing you do here leaves this browser. No account, no server, no
-              tracking. Installing Mehfil to your home screen changes none of
-              that: it asks for no permissions and sends nothing anywhere.
+              <strong className="font-medium text-primary">
+                Nothing you do here leaves this browser.
+              </strong>{" "}
+              No account, no server, no tracking. Installing Mehfil to your home
+              screen changes none of that: it asks for{" "}
+              <strong className="font-medium text-primary">
+                no permissions
+              </strong>{" "}
+              and sends nothing anywhere.
             </p>
           </AlertDialogDescription>
         </AlertDialogHeader>
