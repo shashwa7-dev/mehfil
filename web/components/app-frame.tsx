@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { InstallButton } from "@/components/install-prompt";
+import { LikeBurstHost } from "@/components/like-burst";
 import { facetCards, portrait } from "@/lib/catalogue";
 import { usePlayer, usePlayerBar } from "@/components/player-provider";
 import { useCatalogue, usePhotoManifest } from "@/lib/queries";
@@ -310,6 +311,10 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
           {playerBar}
         </div>
       </div>
+
+      {/* Mounted once here, regardless of route, so any heart in the app can
+          fire into it. */}
+      <LikeBurstHost />
     </FrameContext.Provider>
   );
 }

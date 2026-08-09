@@ -2,6 +2,7 @@
 
 import { Pause, Play } from "lucide-react";
 import { artwork, type Song } from "@/lib/catalogue";
+import { LikeButton } from "@/components/like-button";
 
 /** Bars that animate only for the row currently playing. */
 function NowPlayingBars() {
@@ -98,6 +99,7 @@ export function TrackRow({
             className="hidden size-1.5 rounded-full bg-primary/60 sm:block"
           />
         )}
+        <LikeButton songId={song.id} size={15} className="size-7" />
       </div>
     </div>
   );
