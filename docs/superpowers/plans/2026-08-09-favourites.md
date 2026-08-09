@@ -152,13 +152,17 @@ function onStorage(event: StorageEvent) {
   for (const listener of listeners) listener();
 }
 
+// Attached once, not reference-counted. Counting subscribers leaves a gap:
+// with the last component unmounted the listener is gone but the caches above
+// are not, so a write from another tab during that gap is missed permanently
+// — re-subscribing does not re-read. The next toggle would then write a set
+// built from stale data and delete the other tab's like with no error and no
+// way back. One listener for the life of the page has no such window.
+if (typeof window !== "undefined") window.addEventListener("storage", onStorage);
+
 function subscribe(listener: () => void) {
   listeners.add(listener);
-  if (listeners.size === 1) window.addEventListener("storage", onStorage);
-  return () => {
-    listeners.delete(listener);
-    if (listeners.size === 0) window.removeEventListener("storage", onStorage);
-  };
+  return () => listeners.delete(listener);
 }
 
 /** Whether a song is liked, without subscribing. For event handlers. */
@@ -948,13 +952,14 @@ function onStorage(event: StorageEvent) {
   for (const listener of listeners) listener();
 }
 
+// Once, not reference-counted — see lib/favourites.ts for why. A listener
+// attached only while something is subscribed leaves a window in which another
+// tab's write is missed and never re-read.
+if (typeof window !== "undefined") window.addEventListener("storage", onStorage);
+
 function subscribe(listener: () => void) {
   listeners.add(listener);
-  if (listeners.size === 1) window.addEventListener("storage", onStorage);
-  return () => {
-    listeners.delete(listener);
-    if (listeners.size === 0) window.removeEventListener("storage", onStorage);
-  };
+  return () => listeners.delete(listener);
 }
 
 export function useBackdrop(): string {

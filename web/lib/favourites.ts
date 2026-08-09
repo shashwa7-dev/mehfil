@@ -87,6 +87,11 @@ function commit(next: number[]) {
  * A's like is gone. This is a data-loss fix, not a nicety.
  *
  * A null key means storage.clear(), which also concerns us.
+ *
+ * The listener is attached once at module scope rather than reference-counted,
+ * so there is no window during which a write can be missed. A single global
+ * listener is cheap, and eliminates the class of gap where cache staleness
+ * could survive a 0→1 subscriber transition.
  */
 function onStorage(event: StorageEvent) {
   if (event.key !== null && event.key !== KEY) return;
@@ -96,12 +101,14 @@ function onStorage(event: StorageEvent) {
   for (const listener of listeners) listener();
 }
 
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", onStorage);
+}
+
 function subscribe(listener: () => void) {
   listeners.add(listener);
-  if (listeners.size === 1) window.addEventListener("storage", onStorage);
   return () => {
     listeners.delete(listener);
-    if (listeners.size === 0) window.removeEventListener("storage", onStorage);
   };
 }
 
