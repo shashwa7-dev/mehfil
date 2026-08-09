@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -82,6 +83,27 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     setQueueState(songs);
   }, []);
 
+  // The songs either side of the current one, kept up to date as it plays.
+  //
+  // Recorded here rather than inside step(), which only ever sees the song it
+  // is leaving — by the time that value would be needed it describes the wrong
+  // song, and playback started by a direct click never passes through step()
+  // at all. This effect fires wherever the current song settles, which is the
+  // only place that knows what is actually beside it.
+  //
+  // When the song is no longer in the queue the previous value is kept: that
+  // is precisely the case these ids exist for — unliking the playing song on
+  // /favourites removes it, and its old neighbours are how playback continues
+  // in the right place rather than jumping to the top of the list.
+  useEffect(() => {
+    const at = queue.findIndex((s) => s.id === currentId);
+    if (at === -1) return;
+    neighboursRef.current = {
+      next: queue[(at + 1) % queue.length]?.id ?? null,
+      prev: queue[(at - 1 + queue.length) % queue.length]?.id ?? null,
+    };
+  }, [currentId, queue]);
+
   const play = useCallback((id: number) => {
     setCurrentId(id);
     setPlaying(true);
@@ -123,10 +145,6 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       const at = queue.findIndex((s) => s.id === currentId);
       let targetIndex: number;
       if (at !== -1) {
-        neighboursRef.current = {
-          next: queue[(at + 1) % queue.length]?.id ?? null,
-          prev: queue[(at - 1 + queue.length) % queue.length]?.id ?? null,
-        };
         targetIndex = (at + delta + queue.length) % queue.length;
       } else {
         // The current song is no longer in the queue — most often because it
