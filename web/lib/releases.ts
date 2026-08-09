@@ -148,7 +148,7 @@ export const RELEASES: readonly Release[] = [
     date: "2026-08-02",
     title: "First working version",
     added: [
-      "The Carvaan Gold songlist parsed from the official PDF into 3,916 playable songs.",
+      "The Carvaan Gold songlist parsed from the official PDF into 3,916 songs, about 3,011 of which played at this point. Finding the rest took until 0.4.",
       "Browse by station, singer, composer, lyricist, actor, film or mood.",
       "Playback through YouTube, a virtualised song list, and installable as an app.",
     ],

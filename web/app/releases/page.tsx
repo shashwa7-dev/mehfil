@@ -1,5 +1,4 @@
-"use client";
-
+import type { Metadata } from "next";
 import { Plus, Wrench } from "lucide-react";
 import { RELEASES, type Release } from "@/lib/releases";
 
@@ -20,10 +19,21 @@ import { RELEASES, type Release } from "@/lib/releases";
  *
  * No links out to pull requests: see lib/releases.ts. The data still carries
  * the number for whoever maintains the list.
+ *
+ * A server component: it maps over a constant and has no state, no effects and
+ * nothing to hydrate. That is also why its metadata sits here rather than in a
+ * layout of its own, as the client pages in this app have to do.
  */
+export const metadata: Metadata = {
+  title: "Release notes",
+  description:
+    "Every version of Mehfil so far — what each one added, and what it " +
+    "repaired.",
+};
+
 export default function ReleasesPage() {
   return (
-    <div className="pb-16">
+    <div className="mx-auto max-w-3xl pb-16">
       <header className="max-w-prose pb-10 pt-1">
         <h2 className="text-3xl leading-tight">Release notes</h2>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">

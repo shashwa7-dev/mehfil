@@ -30,7 +30,7 @@ export default function AboutPage() {
   );
 
   return (
-    <div className="relative mx-auto max-w-2xl">
+    <div className="relative mx-auto max-w-3xl">
       <Link
         href="/"
         className="mb-8 inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] py-1.5 pl-2 pr-3 text-xs text-foreground/80 transition hover:bg-white/[0.12]"
