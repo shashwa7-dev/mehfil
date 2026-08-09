@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Compass,
+  Code2,
   ScrollText,
   Disc3,
   Heart,
@@ -168,6 +169,12 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
         </Link>
         <Link href="/releases" className={subNavClass(pathname === "/releases")}>
           <ScrollText className="size-3.5 shrink-0" /> Release notes
+        </Link>
+        <Link
+          href="/curious/design"
+          className={subNavClass(pathname.startsWith("/curious"))}
+        >
+          <Code2 className="size-3.5 shrink-0" /> For the curious
         </Link>
         <Link href="/about" className={subNavClass(pathname === "/about")}>
           <Info className="size-3.5 shrink-0" /> About &amp; credits
