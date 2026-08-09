@@ -65,11 +65,17 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   // and free of stale closures; the state is what lets the queue view show
   // what is coming without polling.
   const queueRef = useRef<RawSong[]>([]);
-  // Index at which the currently playing song was last found in the queue.
-  // step() falls back to this when the song has since left the queue — e.g.
-  // unliked mid-playback from /favourites — so Next/Previous still land on
-  // its old neighbours instead of wrapping to the top of the list.
-  const lastIndexRef = useRef(0);
+  // The songs either side of the current one, remembered by id while it is
+  // still in the queue. Ids survive a queue changing under us in a way an
+  // index cannot: unliking the playing song on /favourites removes it from
+  // the queue, and this is what lets playback continue to its old neighbour
+  // rather than jumping to the top of the list. When neither neighbour is in
+  // the new queue either — navigating to an unrelated collection, say — there
+  // is genuinely nothing to resume from, and the queue's own start is right.
+  const neighboursRef = useRef<{ next: number | null; prev: number | null }>({
+    next: null,
+    prev: null,
+  });
   const [queue, setQueueState] = useState<RawSong[]>([]);
   const setQueue = useCallback((songs: RawSong[]) => {
     queueRef.current = songs;
@@ -117,17 +123,20 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       const at = queue.findIndex((s) => s.id === currentId);
       let targetIndex: number;
       if (at !== -1) {
-        lastIndexRef.current = at;
+        neighboursRef.current = {
+          next: queue[(at + 1) % queue.length]?.id ?? null,
+          prev: queue[(at - 1 + queue.length) % queue.length]?.id ?? null,
+        };
         targetIndex = (at + delta + queue.length) % queue.length;
       } else {
         // The current song is no longer in the queue — most often because it
-        // was just unliked while playing. The song that slid into its old
-        // slot is what Next should reach; the song before that slot is what
-        // Previous should reach.
-        targetIndex =
-          delta > 0
-            ? (lastIndexRef.current + queue.length) % queue.length
-            : (lastIndexRef.current - 1 + queue.length) % queue.length;
+        // was just unliked while playing. Look its remembered neighbour up by
+        // id in the (possibly quite different) current queue; if it is not
+        // there either, there is nothing to resume from and the queue's own
+        // start is the fallback.
+        const wanted = delta > 0 ? neighboursRef.current.next : neighboursRef.current.prev;
+        const found = wanted === null ? -1 : queue.findIndex((s) => s.id === wanted);
+        targetIndex = found === -1 ? 0 : found;
       }
       const next = queue[targetIndex] ?? queue[0];
       play(next.id);
