@@ -22,6 +22,16 @@ type PlayerApi = {
   /** The same list, observable, so the queue view can render it. */
   queue: RawSong[];
   play: (id: number) => void;
+  /**
+   * What a row's own play/pause control should call instead of `play`.
+   *
+   * `play(id)` on the song already current and playing sets state to the
+   * value it already holds, so nothing re-renders and nothing pauses — the
+   * row's button would claim to pause and silently fail. This tells the bar
+   * to toggle instead, via `toggleSignal`, for exactly that one case; any
+   * other id is a plain play.
+   */
+  playOrToggle: (id: number) => void;
   playFirst: (songs: RawSong[]) => void;
   playRandom: (songs: RawSong[]) => void;
   toggleAmbient: () => void;
@@ -61,6 +71,10 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [repeat, setRepeat] = useState(false);
   const [ambient, setAmbient] = useState(true);
   const [unplayable, setUnplayable] = useState<Record<number, string>>({});
+  // A counter rather than a boolean: the bar's effect fires on every change,
+  // including two toggles in a row, which a boolean flipped back and forth
+  // could coalesce away if the second click landed before the effect ran.
+  const [toggleSignal, setToggleSignal] = useState(0);
 
   // Mirrored into state as well as a ref. The ref keeps next/previous cheap
   // and free of stale closures; the state is what lets the queue view show
@@ -108,6 +122,17 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     setCurrentId(id);
     setPlaying(true);
   }, []);
+
+  // Rows call this rather than play(): pressing the control on the row that
+  // is already playing should pause it, and play() cannot — it only ever
+  // sets state that is already set. Anything else is a plain play.
+  const playOrToggle = useCallback(
+    (id: number) => {
+      if (id === currentId) setToggleSignal((n) => n + 1);
+      else play(id);
+    },
+    [currentId, play]
+  );
 
   const playFirst = useCallback(
     (songs: RawSong[]) => {
@@ -207,12 +232,24 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       setQueue,
       queue,
       play,
+      playOrToggle,
       playFirst,
       playRandom,
       toggleAmbient: () => setAmbient((v) => !v),
       unplayable,
     }),
-    [currentId, playing, ambient, setQueue, queue, play, playFirst, playRandom, unplayable]
+    [
+      currentId,
+      playing,
+      ambient,
+      setQueue,
+      queue,
+      play,
+      playOrToggle,
+      playFirst,
+      playRandom,
+      unplayable,
+    ]
   );
 
   // Rendered by the frame rather than here, so the bar can sit inside the
@@ -223,6 +260,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       shuffle={shuffle}
       repeat={repeat}
       ambient={ambient}
+      toggleSignal={toggleSignal}
       onToggleShuffle={() => setShuffle((v) => !v)}
       onToggleRepeat={() => setRepeat((v) => !v)}
       onToggleAmbient={() => setAmbient((v) => !v)}

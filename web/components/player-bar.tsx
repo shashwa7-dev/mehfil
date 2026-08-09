@@ -335,6 +335,7 @@ export function PlayerBar({
   onUnplayable,
   ambient,
   onToggleAmbient,
+  toggleSignal,
 }: {
   song: Song | null;
   shuffle: boolean;
@@ -348,6 +349,9 @@ export function PlayerBar({
   onEnded: () => void;
   onPlayingChange: (playing: boolean) => void;
   onUnplayable: (songId: number, reason: string) => void;
+  /** Bumped by the provider when a row's control asks for the current song to
+   *  be toggled rather than (re)started. See `toggle` below. */
+  toggleSignal: number;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YTPlayer | null>(null);
@@ -644,6 +648,29 @@ export function PlayerBar({
     if (playing) player.pauseVideo();
     else player.playVideo();
   };
+
+  // A row's play button cannot call toggle() directly — it lives outside this
+  // file — so the provider bumps toggleSignal instead and this effect is the
+  // relay. `toggle` is recreated every render (it closes over `playing`), so
+  // it goes in a ref rather than the dependency array: depending on it
+  // directly would rerun this effect, and refire the toggle, on every
+  // unrelated render. Same problem `skipRef` below solves for onNext/onPrev.
+  const toggleRef = useRef(toggle);
+  useEffect(() => {
+    toggleRef.current = toggle;
+  });
+
+  // Skipped on the first run: toggleSignal starts at 0, and without this
+  // guard mounting the bar would immediately "toggle" a song that was never
+  // playing yet.
+  const skippedFirstToggleRef = useRef(false);
+  useEffect(() => {
+    if (!skippedFirstToggleRef.current) {
+      skippedFirstToggleRef.current = true;
+      return;
+    }
+    toggleRef.current();
+  }, [toggleSignal]);
 
   const seek = useCallback(
     (fraction: number) => {

@@ -16,7 +16,7 @@ export default function SongsPage() {
   const { data: catalogue, isLoading, isError, error } = useCatalogue();
   const { scrollEl, filterSlot, query } = useFrame();
   const [selected, setSelected] = useState<Record<string, Set<number>>>({});
-  const { currentId, playing, play, playFirst, playRandom, setQueue } = usePlayer();
+  const { currentId, playing, playOrToggle, playFirst, playRandom, setQueue } = usePlayer();
   const { data: photos } = usePhotoManifest();
   const { data: posters } = useStationPosters();
 
@@ -167,7 +167,7 @@ export default function SongsPage() {
               currentId={currentId}
               playing={playing}
               scrollParent={scrollEl}
-              onPlay={play}
+              onPlay={playOrToggle}
             />
           )}
         </>

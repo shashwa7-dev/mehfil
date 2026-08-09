@@ -13,7 +13,7 @@ import { useCatalogue } from "@/lib/queries";
 export default function FavouritesPage() {
   const { data: catalogue, isLoading, isError, error } = useCatalogue();
   const { scrollEl } = useFrame();
-  const { currentId, playing, play, playFirst, playRandom, setQueue } = usePlayer();
+  const { currentId, playing, playOrToggle, playFirst, playRandom, setQueue } = usePlayer();
   const ids = useFavouriteIds();
   const revision = useFavouritesRevision();
 
@@ -101,7 +101,7 @@ export default function FavouritesPage() {
               currentId={currentId}
               playing={playing}
               scrollParent={scrollEl}
-              onPlay={play}
+              onPlay={playOrToggle}
             />
           )}
         </>

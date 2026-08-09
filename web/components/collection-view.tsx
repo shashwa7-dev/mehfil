@@ -21,7 +21,7 @@ export function CollectionView({ kind, slug }: { kind: string; slug: string }) {
   const { data: photos } = usePhotoManifest();
   const { data: posters } = useStationPosters();
   const { scrollEl } = useFrame();
-  const { currentId, playing, play, playFirst, playRandom, setQueue } = usePlayer();
+  const { currentId, playing, playOrToggle, playFirst, playRandom, setQueue } = usePlayer();
 
   const facet = FACET_BY_KIND[kind];
 
@@ -78,7 +78,7 @@ export function CollectionView({ kind, slug }: { kind: string; slug: string }) {
               currentId={currentId}
               playing={playing}
               scrollParent={scrollEl}
-              onPlay={play}
+              onPlay={playOrToggle}
             />
           )}
         </>
