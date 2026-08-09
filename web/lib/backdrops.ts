@@ -38,7 +38,6 @@ export const BACKDROPS: readonly Backdrop[] = [
   { id: "stop-dusk", label: "Bus stop, dusk", note: "A cat waiting, in red light" },
   { id: "stop-night", label: "Bus stop, night", note: "The same cat, under a lamp" },
   { id: "porch", label: "Sleeping porch", note: "Two cats, entirely asleep" },
-  { id: "rain", label: "Waiting in the rain", note: "An umbrella and a long wait" },
 ];
 
 const IDS = new Set<string>(BACKDROPS.map((b) => b.id));

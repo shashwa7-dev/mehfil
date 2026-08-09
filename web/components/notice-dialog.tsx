@@ -96,7 +96,12 @@ export function NoticeDialog() {
             (landscape-phone) viewport it drops to 96px so the media doesn't
             dominate what little height max-h-[85vh] leaves — the text is the
             part with the acknowledgement in it. */}
-        <div className="-mx-4 -mt-4 overflow-hidden rounded-t-xl">
+        {/* Faded out at the bottom rather than stopped. A picture that ends on
+            a hard horizontal line reads as a banner bolted above the text; the
+            same picture dissolving into the card's own background reads as
+            part of it. The same trick the player bar uses on its artwork and
+            song-details uses on its corner wash. */}
+        <div className="-mx-4 -mt-4 overflow-hidden rounded-t-xl [mask-image:linear-gradient(to_bottom,#000_0%,#000_55%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_bottom,#000_0%,#000_55%,transparent_100%)]">
           <video
             autoPlay
             muted
