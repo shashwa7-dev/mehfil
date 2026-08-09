@@ -74,13 +74,12 @@ export function NoticeDialog() {
 
   return (
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
-      {/* The generated primitive centres the popup with no height cap, and a
-          250px thumbnail plus three paragraphs is tall enough to overflow a
-          short viewport — a landscape phone especially. Capping the height
-          and scrolling the overflow keeps the dialog on-screen rather than
-          letting it run past the top and bottom edges with the OK button
-          unreachable. */}
-      <AlertDialogContent className="max-h-[85vh] overflow-y-auto">
+      {/* Capped, but nothing scrolls at this level. Scrolling the whole popup
+          would carry the picture and the OK button away with the text, which
+          is how the button ends up somewhere the eye has to go looking for it.
+          The height cap stays so a short viewport cannot push the dialog past
+          the screen edges; the overflow is handled by the text alone, below. */}
+      <AlertDialogContent className="max-h-[85vh] overflow-hidden">
         {/* Full-bleed thumbnail, first inside the content so it sits above
             the header. AlertDialogContent pads and gaps its children (p-4,
             gap-4) for the header/footer case; -mx-4 -mt-4 cancels that same
@@ -118,29 +117,27 @@ export function NoticeDialog() {
         </div>
         <AlertDialogHeader>
           <AlertDialogTitle>Before you start</AlertDialogTitle>
-          {/* Rendered as a div rather than the default <p>, purely so three
-              short paragraphs can sit inside it without nesting a <p> in a
-              <p>. The description id — and so the aria-describedby wiring —
-              moves with the render override, so all three are still
-              announced as the dialog's description. */}
-          <AlertDialogDescription render={<div className="space-y-3 text-left" />}>
+          {/* A div rather than the default <p>, so two paragraphs can sit
+              inside without nesting a <p> in a <p>. The description id, and so
+              the aria-describedby wiring, moves with the render override, so
+              both are still announced as the dialog's description.
+
+              This is the only thing that scrolls. Bounding it here rather than
+              on the popup keeps the picture and the OK button fixed while long
+              text moves under them. */}
+          <AlertDialogDescription
+            render={<div className="max-h-[38vh] space-y-3 overflow-y-auto text-left" />}
+          >
             <p>
-              Nothing here is ours. Songs play through YouTube&apos;s own
-              embedded player, and cover art is YouTube&apos;s thumbnails. The
-              backdrops are illustrations we have not been able to trace to an
-              artist — tell us if one is yours and we will credit it or take
-              it down.
+              Nothing here is ours. Songs play through YouTube&apos;s own player
+              and the cover art is theirs. The backdrops are illustrations we
+              could not trace; tell us if one is yours and we will credit it or
+              remove it.
             </p>
             <p>
-              Nothing is stored anywhere but this browser: no account, no
-              server, no analytics, no tracking. Favourites and your chosen
-              backdrop live on this device alone.
-            </p>
-            <p>
-              Installing Mehfil to your home screen changes none of that. It
-              asks for no permissions, reaches nothing else on your device,
-              and still sends nothing anywhere — the same page, in its own
-              window.
+              Nothing is stored beyond this browser. No account, no server, no
+              tracking. Installing Mehfil to your home screen changes none of
+              that: it asks for no permissions and sends nothing anywhere.
             </p>
           </AlertDialogDescription>
         </AlertDialogHeader>
