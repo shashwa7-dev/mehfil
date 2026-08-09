@@ -1141,20 +1141,9 @@ export function PlayerBar({
             would mean the player is never created at all. */}
         {/* The whole now-playing region expands, not just the thumbnail, and
             a swipe up does the same on touch. */}
-        {/* A div rather than a button, for the same reason as a track row: it
-            now has to hold a real like button, and a button cannot contain
-            another button. */}
-        <div
+        <button
           {...barSwipe}
           onClick={() => setExpanded(true)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              setExpanded(true);
-            }
-          }}
-          role="button"
-          tabIndex={0}
           title="Expand to video"
           // A fixed width, so the block occupies the same space whatever is
           // playing. Titles here range from "Aa" to a full line of Devanagari,
@@ -1210,26 +1199,14 @@ export function PlayerBar({
               )}
             </span>
           </span>
-
-          {/* ml-1: the parent's gap is 0 below md, so without it the heart
-              would sit flush against the fading title text. */}
-          {song && <LikeButton songId={song.id} size={16} className="size-8 shrink-0 ml-1" />}
-        </div>
+        </button>
 
         {/* The phone's transport, after the title rather than before it. Its
             own cluster instead of reordering the desktop one: the two hold
-            different controls, and shuffle and repeat belong on the bar here
-            because there is no room for them anywhere else. */}
+            different controls. Shuffle and repeat moved into the "More" menu
+            below to make room here for the one control that belongs beside
+            play/next on a phone: the heart. */}
         <div className="flex items-center justify-self-end md:hidden">
-          <button
-            onClick={onToggleShuffle}
-            title="Shuffle"
-            className={`grid size-8 place-items-center rounded-full transition active:scale-90 ${
-              shuffle ? "text-primary" : "text-muted-foreground"
-            }`}
-          >
-            <Shuffle className="size-[18px]" />
-          </button>
           <button
             onClick={onPrev}
             disabled={!song}
@@ -1260,15 +1237,7 @@ export function PlayerBar({
           >
             <SkipForward className="size-[18px] fill-current" />
           </button>
-          <button
-            onClick={onToggleRepeat}
-            title="Repeat one"
-            className={`grid size-8 place-items-center rounded-full transition active:scale-90 ${
-              repeat ? "text-primary" : "text-muted-foreground"
-            }`}
-          >
-            <Repeat className="size-[18px]" />
-          </button>
+          <LikeButton songId={song.id} size={18} className="size-8" />
           <button
             onClick={() => setMenuOpen(true)}
             title="More"
