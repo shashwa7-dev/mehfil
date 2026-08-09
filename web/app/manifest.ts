@@ -20,7 +20,12 @@ export default function manifest(): MetadataRoute.Manifest {
     // Matched to the app shell so the splash screen does not flash white.
     background_color: "#1a1613",
     theme_color: "#1a1613",
-    orientation: "any",
+    // Phones stay upright. The layout is built for a tall narrow window and
+    // there is nothing a 400px-tall one can show well; tilting produced a
+    // wider, shorter version of a design that needed the height. Honoured by
+    // installed apps only — a browser tab still rotates, which is why the
+    // breakpoints in globals.css carry a height condition as well.
+    orientation: "portrait",
     categories: ["music", "entertainment"],
     icons: [
       // "any" and "maskable" are listed separately: Android crops maskable
