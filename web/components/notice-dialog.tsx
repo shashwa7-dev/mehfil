@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { Play } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,7 +14,12 @@ import {
 } from "@/components/ui/alert-dialog";
 
 /**
- * The one-time notice: what this app does not own, and what it does not store.
+ * The one-time welcome: what this app does not own, and what it does not store.
+ *
+ * Framed as a greeting rather than a consent gate, because that is what it is —
+ * nothing here needs agreeing to, and there is no version of this someone can
+ * decline. Saying it warmly costs nothing and reads as courtesy instead of
+ * paperwork.
  *
  * Unlike lib/favourites.ts and lib/backdrops.ts, this reads localStorage once,
  * from one component, so useSyncExternalStore's subscriber machinery buys
@@ -132,7 +138,7 @@ export function NoticeDialog() {
           />
         </div>
         <AlertDialogHeader>
-          <AlertDialogTitle>Before you start</AlertDialogTitle>
+          <AlertDialogTitle>Welcome to the mehfil</AlertDialogTitle>
           {/* A div rather than the default <p>, so two paragraphs can sit
               inside without nesting a <p> in a <p>. The description id, and so
               the aria-describedby wiring, moves with the render override, so
@@ -145,21 +151,31 @@ export function NoticeDialog() {
             render={<div className="max-h-[38vh] space-y-3 overflow-y-auto text-left" />}
           >
             <p>
-              Nothing here is ours. Songs play through YouTube&apos;s own player
-              and the cover art is theirs. The backdrops are illustrations we
-              could not trace; tell us if one is yours and we will credit it or
-              remove it.
+              Nearly four thousand songs from the golden age of Hindi film
+              music, and not one of them ours. They play through YouTube&apos;s
+              own player and the cover art is theirs. The backdrops are
+              illustrations we could not trace; tell us if one is yours and we
+              will credit it or remove it.
             </p>
             <p>
-              Nothing is stored beyond this browser. No account, no server, no
+              Nothing you do here leaves this browser. No account, no server, no
               tracking. Installing Mehfil to your home screen changes none of
               that: it asks for no permissions and sends nothing anywhere.
             </p>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogAction onClick={() => handleOpenChange(false)}>
-            OK
+          {/* An invitation rather than an acknowledgement. "OK" asks someone to
+              confirm they have read terms; this is a welcome, and the only
+              thing waiting on the other side of it is the music. The icon is
+              filled to match the play controls it is about to hand them. */}
+          <AlertDialogAction className="gap-2" onClick={() => handleOpenChange(false)}>
+            {/* gap-2 explicitly: the button base sets items-center and sizes
+                svg children, but no gap, so an icon beside a label would sit
+                flush against it. The other icon-and-text buttons in the app
+                set their own for the same reason. */}
+            <Play className="size-4 fill-current" />
+            Start listening
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
