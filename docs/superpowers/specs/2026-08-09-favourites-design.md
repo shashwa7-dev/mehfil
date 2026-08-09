@@ -21,21 +21,49 @@ anyone to another device, and clearing site data destroys them with no recovery.
 That is a real cost and it is deliberate. It can be revisited without changing
 anything below.
 
-## Identity, and the constraint it places on the pipeline
+## Identity, and the pipeline change this requires first
 
-Song ids come from `id INTEGER PRIMARY KEY` in `data/carvaan.db`, which is
-committed. They are persisted keys, not positions in an export, so they survive
-re-running the pipeline — which is what makes them safe to write to a user's
-disk.
+Song ids are declared `id INTEGER PRIMARY KEY`, which makes them look persisted.
+They are not. `parse_songlist.py` assigns them by counting through an
+alphabetically sorted list:
+
+    catalogue = sorted(songs.values(), key=lambda s: (s["title"].lower(), s["film"] or ""))
+    for song_id, song in enumerate(catalogue, start=1):
+        song["id"] = song_id
+
+An id is a position in a sort, and the database takes whatever the parse
+produced. So a single new song does not append: one landing at position 49
+shifts 3,867 ids — 99% of the catalogue — by one. Correcting a title moves it in
+the sort and does the same.
+
+Deploys are unaffected: no CI runs the pipeline, and Vercel runs `next build`
+against the committed `catalogue.json`. Only re-running `parse_songlist` renumbers.
 
 `lib/routes.ts` already refuses to put facet indices in URLs for exactly this
-reason: an index "would silently point at a different artist after a rebuild".
-Song ids are the stable kind, but only while the database file is.
+reason — an index "would silently point at a different artist after a rebuild".
+Song ids have the same defect and are used far more widely.
 
-**This gives the pipeline a new obligation: `data/carvaan.db` must not be
-rebuilt from scratch.** Doing so would reassign every primary key, and every
-stored like would then point at a different song — silently, with no error and
-no way to detect it after the fact.
+### This is not only a favourites problem
+
+`resolutions` maps `song_id → video_id`, and `songs` upserts with
+`ON CONFLICT(id) DO UPDATE SET title=...`. A re-parse after any addition would
+rewrite each row's title to the next song's while its resolution stayed put,
+reassigning nearly every video to the wrong song — silently, with nothing to
+detect it afterwards. That hazard exists today, independent of this feature.
+
+### Prerequisite: an id ledger
+
+`data/song_ids.json`, committed, mapping `normalise(title)|normalise(film)` to an
+id. `parse_songlist` consults it, reuses the id for any song it has seen before,
+assigns `max + 1` for new ones, and never reuses a retired id.
+
+Ids become append-only, which is what the rest of the pipeline already assumes
+they are. **This lands before favourites ships**, because writing positional ids
+to users' disks would make a latent corruption bug permanent.
+
+The alternative considered and rejected: deriving a key from title and film in
+the web app instead. It needs no pipeline change and costs about 133 KB of
+storage, but it leaves the resolutions hazard entirely in place.
 
 ## Storage
 
