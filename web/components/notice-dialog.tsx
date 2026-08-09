@@ -160,12 +160,15 @@ export function NoticeDialog() {
               text-xl against the description's text-sm gives it somewhere to
               stand. leading-tight matches the page headings elsewhere.
 
-              The badge moved here from its old life as a background watermark
-              — the owner's call, since a mark bled across the whole card read
-              as decoration where a small one beside the name reads as a logo.
-              size-7 keeps it in proportion to text-xl rather than competing
-              with it, and rounded-full is what turns a square PNG into
-              something that reads as a record rather than an app tile.
+              The badge is a record, not a rounded logo. Simply clipping a
+              square PNG into a circle and turning it did not read as vinyl —
+              the artwork inside is boxy, so the rotation looked like a glitch
+              rather than a spin. So the disc is drawn here: a repeating radial
+              gradient for the grooves, a dark centre-to-edge wash under it, an
+              inset hairline for the edge, and the logo dropped in at 44% as
+              the label with a two-pixel spindle hole through it. The thing
+              that turns is now genuinely round, and the boxy part is the only
+              part that is supposed to look printed on.
               motion-safe: only — this spins for as long as the dialog is open,
               and a perpetual animation is exactly what prefers-reduced-motion
               exists to stop, so under that setting it just sits still as a
@@ -175,13 +178,16 @@ export function NoticeDialog() {
               loading spinner, not a turntable. alt="" and aria-hidden: the
               image adds nothing a screen reader needs that the title text
               beside it does not already say. */}
-          <AlertDialogTitle className="flex items-center gap-2 text-xl leading-tight">
-            <img
-              src="/logo.png"
-              alt=""
+          <AlertDialogTitle className="flex items-center gap-2.5 text-xl leading-tight">
+            <span
               aria-hidden
-              className="size-7 shrink-0 rounded-full motion-safe:animate-[spin_8s_linear_infinite]"
-            />
+              className="relative grid size-8 shrink-0 place-items-center rounded-full shadow-[inset_0_0_0_1px_rgba(255,255,255,0.09)] [background-image:repeating-radial-gradient(circle,rgba(255,255,255,0.07)_0_1px,transparent_1px_3px),radial-gradient(circle,#2a231d_0%,#0c0a09_100%)] motion-safe:animate-[spin_8s_linear_infinite]"
+            >
+              <img src="/logo.png" alt="" className="size-[44%] rounded-full" />
+              {/* The spindle hole. Two pixels of background colour, and the
+                  whole thing stops being a circle with a picture in it. */}
+              <span className="absolute size-[2px] rounded-full bg-popover" />
+            </span>
             Welcome to Mehfil
           </AlertDialogTitle>
           {/* A div rather than the default <p>, so two paragraphs can sit
