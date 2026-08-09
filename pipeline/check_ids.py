@@ -28,7 +28,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from songids import LEDGER_PATH as LEDGER, song_key  # noqa: E402
+from songids import load_ledger, song_key  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PARSED = os.path.join(ROOT, "data", "songs.json")
@@ -49,7 +49,7 @@ def main():
         if not ok:
             failures.append(name)
 
-    ledger = load(LEDGER)
+    ledger = load_ledger()
     parsed = load(PARSED)
 
     print("ledger")

@@ -20,6 +20,15 @@ ones written to other people's devices, which we cannot reach to correct.
 This module exists so that every stage computes identity the same way. It was
 three copies of one function before, and three copies that must agree are the
 same hazard the ledger is here to remove.
+
+One consequence to know about: identity is the title and film, so *changing a
+title changes which song it is*. A re-parse that renames one gives it a fresh id
+with no resolution attached, while the row under the old title keeps both its id
+and its video. Since only resolved songs are published, the visible effect is
+that the correction appears to do nothing rather than that anything breaks. If a
+title ever does need correcting, the ledger entry has to be repointed by hand —
+deliberately, because the alternative is guessing that two differently-named
+songs are the same one.
 """
 
 import json
@@ -46,8 +55,25 @@ def song_key(title, film):
 
 
 def load_ledger(path=LEDGER_PATH):
-    with open(path, encoding="utf-8") as fh:
-        return json.load(fh)
+    """Read the ledger, or explain what is wrong with it.
+
+    Every stage now depends on this file, so a raw FileNotFoundError or a
+    JSONDecodeError from four call sites is a poor way to learn that it was lost
+    to a bad merge. It is committed; if it is gone, restoring it from git is the
+    fix, and losing it is never something to work around by regenerating.
+    """
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return json.load(fh)
+    except FileNotFoundError:
+        raise SystemExit(
+            f"missing id ledger at {path}\n"
+            "It is committed — restore it with: git checkout data/song_ids.json\n"
+            "Do not regenerate it: new ids would not match the ones already in "
+            "the database, in the published catalogue, and on people's devices."
+        )
+    except json.JSONDecodeError as err:
+        raise SystemExit(f"id ledger at {path} is not valid JSON: {err}")
 
 
 def assign_ids(catalogue, path=LEDGER_PATH):

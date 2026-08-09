@@ -27,6 +27,23 @@ PERSON_KINDS = frozenset(ROLE_KINDS)
 def main(db_path, out_path, stations_path="data/stations.json"):
     conn = store.connect(db_path)
 
+    # The second door an id passes through. Everything exported below is written
+    # for other people to load, and a wrong id here reaches devices we cannot
+    # correct afterwards.
+    #
+    # Checked first, before any of the work: the export cannot write a bad
+    # catalogue either way, but failing at the start says so in a second rather
+    # than after building the whole payload. The rows being exported are what is
+    # checked, not a file alongside them — anything else would verify one thing
+    # and publish another.
+    songids.require_agreement(
+        [
+            {"id": r[0], "title": r[1], "film": r[2]}
+            for r in conn.execute("SELECT id,title,film FROM songs")
+        ],
+        "data/carvaan.db",
+    )
+
     rows = conn.execute(
         "SELECT s.id, s.title, s.film, r.video_id, r.confidence "
         "FROM songs s JOIN resolutions r ON r.song_id = s.id "
@@ -107,20 +124,6 @@ def main(db_path, out_path, stations_path="data/stations.json"):
                 # First name only: it is the poster subject, not the credit.
                 "person": people[0] if kind in PERSON_KINDS and people else None,
             }
-
-    # The second door. Everything below is written for other people to load, and
-    # a wrong id here reaches devices we cannot correct afterwards.
-    #
-    # The rows being exported are checked, not a file alongside them: the export
-    # reads from this connection, so anything else would verify one thing and
-    # publish another.
-    songids.require_agreement(
-        [
-            {"id": r[0], "title": r[1], "film": r[2]}
-            for r in conn.execute("SELECT id,title,film FROM songs")
-        ],
-        "data/carvaan.db",
-    )
 
     payload = {"facets": lists, "songs": songs, "stationMeta": station_meta}
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
