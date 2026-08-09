@@ -10,6 +10,7 @@ import {
   LayoutGrid,
   ListMusic,
   Menu,
+  Palette,
   Search,
   X,
 } from "lucide-react";
@@ -146,6 +147,12 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
       {/* Stacked, not a row. The rail is 18rem wide and these two links do not
           fit on one line at 11px, so side by side they wrapped mid-phrase. */}
       <div className="flex flex-col gap-1 text-[11px]">
+        <Link
+          href="/themes"
+          className="flex items-center gap-1.5 text-muted-foreground transition hover:text-foreground"
+        >
+          <Palette className="size-3" /> Themes
+        </Link>
         <Link
           href="/about"
           className="text-muted-foreground transition hover:text-foreground"

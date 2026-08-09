@@ -92,10 +92,12 @@ export default function AboutPage() {
           remain the property of their photographers.
         </p>
         <p>
-          The animated backdrop behind the app is an illustrated loop, warmed
-          to sit with the rest of the palette. If you hold the rights to it and
-          would rather it were not used, it comes down on request like anything
-          else here.
+          The backdrops offered under Themes are illustrated loops, re-encoded
+          and warmed to sit with the rest of the palette. We have not been able
+          to identify who made them, and one or two depict characters belonging
+          to someone else. They are used decoratively, at low opacity, and for
+          nothing else. If you made one, or hold the rights to one, tell us and
+          we will credit it or take it down — whichever you would prefer.
         </p>
         <p>
           Decorative artwork elsewhere in the interface may include film poster
