@@ -124,9 +124,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     setPlaying(true);
   }, []);
 
-  // Counted here rather than at each button, because every route into playback
-  // ends up in play() — a row, a shuffle, the welcome, auto-advance. One call
-  // site cannot drift from another if there is only one.
+  // Every start goes through here, and each says where it came from. play()
+  // itself stays a bare state setter: wrapping the counting around it rather
+  // than inside it keeps the one function that must never grow a side effect
+  // free of one, and makes the label a decision at each call rather than a
+  // guess made in the middle.
   const playFrom = useCallback(
     (id: number, from: string) => {
       track("play", { from });
@@ -141,9 +143,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const playOrToggle = useCallback(
     (id: number) => {
       if (id === currentId) setToggleSignal((n) => n + 1);
-      else play(id);
+      else playFrom(id, "row");
     },
-    [currentId, play]
+    [currentId, playFrom]
   );
 
   const playFirst = useCallback(
@@ -168,7 +170,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   );
 
   const step = useCallback(
-    (delta: number) => {
+    (delta: number, from = delta > 0 ? "next" : "previous") => {
       const queue = queueRef.current;
       if (queue.length === 0) return;
       if (shuffle && delta > 0) {
@@ -179,7 +181,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         // wrong even if it did work.
         const elsewhere = queue.filter((s) => s.id !== currentId);
         const pool = elsewhere.length > 0 ? elsewhere : queue;
-        play(pool[Math.floor(Math.random() * pool.length)].id);
+        playFrom(pool[Math.floor(Math.random() * pool.length)].id, from);
         return;
       }
       const at = queue.findIndex((s) => s.id === currentId);
@@ -197,9 +199,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         targetIndex = found === -1 ? 0 : found;
       }
       const next = queue[targetIndex] ?? queue[0];
-      play(next.id);
+      playFrom(next.id, from);
     },
-    [currentId, play, shuffle]
+    [currentId, playFrom, shuffle]
   );
 
   const onEnded = useCallback(() => {
@@ -210,7 +212,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       window.setTimeout(() => setCurrentId(id), 0);
       return;
     }
-    step(1);
+    step(1, "auto");
   }, [repeat, currentId, step]);
 
   const handleUnplayable = useCallback(
@@ -225,12 +227,12 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         const candidate = queue[(at + i) % queue.length];
         if (!candidate || candidate.id === songId) break;
         if (!unplayable[candidate.id]) {
-          play(candidate.id);
+          playFrom(candidate.id, "skip");
           return;
         }
       }
     },
-    [currentId, play, unplayable]
+    [currentId, playFrom, unplayable]
   );
 
   const currentSong = useMemo(() => {
