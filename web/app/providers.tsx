@@ -100,6 +100,30 @@ export function Providers({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  /**
+   * Ask an installed app to stay upright.
+   *
+   * The manifest already declares portrait, but a manifest is read at install
+   * time: an app installed before that change keeps the orientation it was
+   * installed with until it is reinstalled. This reaches those.
+   *
+   * It resolves only where the platform has an orientation to lock — an
+   * installed app or a fullscreen document. A browser tab rejects, which is
+   * correct rather than a failure: a tab has no business locking the device,
+   * and the height-guarded breakpoints are what handle a tab being turned.
+   * iOS does not implement lock at all, hence the check before calling.
+   */
+  useEffect(() => {
+    // lock() is absent from the DOM types this project builds against, and it
+    // is genuinely absent at runtime on iOS, so the declaration is optional and
+    // the check below is a real one rather than a formality.
+    const orientation = window.screen?.orientation as
+      | (ScreenOrientation & { lock?: (to: "portrait") => Promise<void> })
+      | undefined;
+    if (typeof orientation?.lock !== "function") return;
+    orientation.lock("portrait").catch(() => {});
+  }, []);
+
   // Created in state so the client is stable across re-renders but never
   // shared between requests.
   const [client] = useState(
