@@ -38,12 +38,22 @@ Each stage is independently runnable, idempotent, and resumable. All state lives
 in one SQLite file; every write is an UPSERT and no stage deletes resolved rows,
 so an interrupted run only ever loses the in-flight batch.
 
+Song ids come from `data/song_ids.json`, a committed ledger keyed by title and
+film. They are append-only: a new song takes the next free number and no
+existing song ever moves. This matters because `resolutions` maps `song_id` to a
+video and nothing rewrites it when songs are re-parsed — ids that shifted would
+leave every row holding the previous song's video under the next song's name,
+silently. Ingest and export both refuse to run if the ids in hand disagree with
+the ledger, and `check_ids.py` verifies the four files that hold ids still
+agree.
+
 ```bash
 # 1. Parse the songlist PDF (column-aware: naive extraction bleeds columns)
 pdftotext -bbox-layout songlist.pdf full.xml
 python3 pipeline/parse_songlist.py full.xml data/songs.json
 
-# 2. Load catalogue + station role taxonomy into SQLite
+# 2. Load catalogue + station role taxonomy into SQLite (refuses ids that
+#    disagree with the ledger, since this is where they enter the database)
 python3 -c "import sys; sys.path.insert(0,'pipeline'); import store; \
   store.ingest_catalogue(store.connect('data/carvaan.db'), \
   'data/songs.json','data/stations.json')"
@@ -60,8 +70,14 @@ python3 pipeline/verify_embeddable.py data/carvaan.db
 # 5. Portraits from Wikidata / Wikimedia Commons
 python3 pipeline/fetch_artist_photos.py data/carvaan.db web/public/artists
 
-# 6. Export the static catalogue the app reads
+# 6. Export the static catalogue the app reads (same refusal: what ships here
+#    reaches devices that cannot be corrected afterwards)
 python3 pipeline/export_catalogue.py data/carvaan.db web/public/catalogue.json
+
+# 7. Confirm the ledger, the parse, the database and the published catalogue
+#    still agree about what each id means. Drift between them has no symptom
+#    other than songs playing the wrong recording, so this is the only check.
+python3 pipeline/check_ids.py
 
 # Durability tests
 python3 pipeline/test_resume.py

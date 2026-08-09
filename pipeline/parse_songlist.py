@@ -13,10 +13,14 @@ Usage:
 """
 
 import json
+import os
 import re
 import sys
-import unicodedata
 from collections import defaultdict
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from songids import assign_ids, normalise  # noqa: E402
 
 # Column gutters, from the x-position histogram: entry numbers sit at x≈21/211/401
 # and their text at x≈44/233/423, with empty bands at 180-210 and 360-400.
@@ -87,14 +91,6 @@ def split_artists(raw):
     """Credits are comma-separated; '&' also appears in a handful of entries."""
     parts = re.split(r",|\s+&\s+", raw)
     return [p.strip(" .,") for p in parts if p.strip(" .,")]
-
-
-def normalise(text):
-    """Fold to a comparison key: strip accents, punctuation, case, extra spaces."""
-    text = unicodedata.normalize("NFKD", text)
-    text = "".join(c for c in text if not unicodedata.combining(c))
-    text = re.sub(r"[^\w\s]", " ", text.lower())
-    return re.sub(r"\s+", " ", text).strip()
 
 
 def parse_entries(lines, station, page_no):
@@ -205,9 +201,10 @@ def main(xml_path, out_path):
             song["stations"].append(row["station"])
         song["pages"].append(row["page"])
 
+    # Still sorted by title, for a readable diff — but the order no longer says
+    # anything about identity, which is the point of the ledger below.
     catalogue = sorted(songs.values(), key=lambda s: (s["title"].lower(), s["film"] or ""))
-    for song_id, song in enumerate(catalogue, start=1):
-        song["id"] = song_id
+    added = assign_ids(catalogue)
 
     with open(out_path, "w", encoding="utf-8") as fh:
         json.dump(catalogue, fh, ensure_ascii=False, indent=1)
@@ -218,6 +215,11 @@ def main(xml_path, out_path):
     print(f"unique songs        : {len(catalogue)}")
     print(f"stations            : {len(stations)}")
     print(f"multi-station songs : {multi}")
+    print(f"new ids assigned    : {len(added)}")
+    for title in added[:10]:
+        print(f"  + {title}")
+    if len(added) > 10:
+        print(f"  ... and {len(added) - 10} more")
     print(f"missing film        : {sum(1 for s in catalogue if not s['film'])}")
     print(f"missing artists     : {sum(1 for s in catalogue if not s['artists'])}")
     if pages_without_station:
