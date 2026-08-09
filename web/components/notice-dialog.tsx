@@ -74,12 +74,23 @@ export function NoticeDialog() {
 
   return (
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
-      {/* Capped, but nothing scrolls at this level. Scrolling the whole popup
-          would carry the picture and the OK button away with the text, which
-          is how the button ends up somewhere the eye has to go looking for it.
-          The height cap stays so a short viewport cannot push the dialog past
-          the screen edges; the overflow is handled by the text alone, below. */}
-      <AlertDialogContent className="max-h-[85vh] overflow-hidden">
+      {/* Capped in height, wider than the primitive, and scrolling nothing
+          itself.
+
+          Nothing scrolls here because scrolling the popup would carry the
+          picture and the OK button off with the text, which is how a confirm
+          button ends up somewhere the eye has to go looking for it. The cap
+          stays so a short viewport cannot push the dialog past the screen
+          edges; the text below handles its own overflow.
+
+          The width override exists because the primitive's presets top out at
+          20rem on a phone and 24rem from sm — sized for a sentence and a pair
+          of buttons, which with a picture above the text reads as a column. It
+          has to repeat the data-[size] variant rather than set a bare max-w-*:
+          tailwind-merge treats differently-modified utilities as unrelated, so
+          a plain one would leave both in place and lose to the attribute
+          selector's specificity. */}
+      <AlertDialogContent className="max-h-[85vh] overflow-hidden data-[size=default]:max-w-[calc(100vw-2rem)] data-[size=default]:sm:max-w-lg">
         {/* Full-bleed thumbnail, first inside the content so it sits above
             the header. AlertDialogContent pads and gaps its children (p-4,
             gap-4) for the header/footer case; -mx-4 -mt-4 cancels that same
@@ -92,7 +103,7 @@ export function NoticeDialog() {
             to this one clip rather than reading from the theme store — a
             notice illustration has no "current backdrop" to key off, and
             importing AppBackdrop here would wire this dialog to state it has
-            no business depending on. 250px is the owner's brief; on a short
+            no business depending on. 200px against a 32rem card; on a short
             (landscape-phone) viewport it drops to 96px so the media doesn't
             dominate what little height max-h-[85vh] leaves — the text is the
             part with the acknowledgement in it. */}
@@ -109,7 +120,7 @@ export function NoticeDialog() {
             playsInline
             poster="/notice.jpg"
             aria-hidden
-            className="h-[250px] w-full object-cover motion-reduce:hidden [@media(max-height:500px)]:h-24"
+            className="h-[200px] w-full object-cover motion-reduce:hidden [@media(max-height:500px)]:h-24"
           >
             <source src="/notice.mp4" type="video/mp4" />
           </video>
@@ -117,7 +128,7 @@ export function NoticeDialog() {
             src="/notice.jpg"
             alt=""
             aria-hidden
-            className="hidden h-[250px] w-full object-cover motion-reduce:block [@media(max-height:500px)]:h-24"
+            className="hidden h-[200px] w-full object-cover motion-reduce:block [@media(max-height:500px)]:h-24"
           />
         </div>
         <AlertDialogHeader>
