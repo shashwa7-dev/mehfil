@@ -26,12 +26,12 @@
 
 /** Name -> what it means, in the words shown to anyone who asks. */
 export const EVENTS = {
-  play: "A song started, and how — a row, shuffle, next, previous, the end of the last one, or a skip past a broken video",
+  play: "A song started, and how — a row, the queue, shuffle, next, previous, the end of the last one, or a skip past a broken video",
   search: "Somebody searched — never what they typed",
   favourite: "A song was liked or unliked. The count, not which song",
   collection: "A collection was opened, and whether it was a singer, film, station or mood",
   theme: "A backdrop was chosen, and which one",
-  install: "The app was installed, or the offer was declined",
+  install: "What came of the install offer — installed, declined at the browser's own prompt, put off, or shown the iOS instructions",
   report: "A wrong recording was reported, or a missing song was sent in",
 } as const;
 

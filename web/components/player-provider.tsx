@@ -22,7 +22,14 @@ type PlayerApi = {
   setQueue: (songs: RawSong[]) => void;
   /** The same list, observable, so the queue view can render it. */
   queue: RawSong[];
-  play: (id: number) => void;
+  /**
+   * The queue panel's own entry, and its only consumer.
+   *
+   * Named for where it is used rather than exposed as a bare `play`, because
+   * a bare one is how a route into playback ends up uncounted: it looks like
+   * the obvious thing to reach for and carries no label with it.
+   */
+  playQueued: (id: number) => void;
   /**
    * What a row's own play/pause control should call instead of `play`.
    *
@@ -148,6 +155,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     [currentId, playFrom]
   );
 
+  const playQueued = useCallback(
+    (id: number) => playFrom(id, "queue"),
+    [playFrom]
+  );
+
   const playFirst = useCallback(
     (songs: RawSong[]) => {
       if (songs.length === 0) return;
@@ -248,7 +260,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       ambient,
       setQueue,
       queue,
-      play,
+      playQueued,
       playOrToggle,
       playFirst,
       playRandom,
@@ -261,7 +273,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       ambient,
       setQueue,
       queue,
-      play,
+      playQueued,
       playOrToggle,
       playFirst,
       playRandom,

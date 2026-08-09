@@ -89,8 +89,11 @@ export function InstallCard() {
   }, [armed, canInstall, installed]);
 
   async function accept() {
-    track("install", { action: "accepted" });
-    await install();
+    // After, not before. The browser's dialog is what decides, and recording
+    // "accepted" on the click recorded a fact we did not have yet — someone
+    // could press this, dismiss the real prompt, and be counted as installed.
+    const outcome = await install();
+    track("install", { action: outcome });
     close();
   }
 
@@ -114,7 +117,7 @@ export function InstallCard() {
       open={open && pathname !== "/about"}
       onOpenChange={(next) => {
         if (!next) {
-          if (open) track("install", { action: "declined" });
+          if (open) track("install", { action: "not-now" });
           close();
         }
       }}

@@ -12,6 +12,9 @@ import { Download, Share, SquarePlus, X } from "lucide-react";
  */
 export const DISMISSED_KEY = "mehfil.installDismissed";
 
+/** What came of asking. "instructions" is iOS, where nothing can be known. */
+export type InstallOutcome = "accepted" | "dismissed" | "instructions" | "unavailable";
+
 type InstallEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
@@ -89,17 +92,30 @@ export function useInstall() {
     };
   }, []);
 
-  const install = useCallback(async () => {
+  /**
+   * Returns what actually happened, rather than that it was asked.
+   *
+   * The browser's own dialog is the thing that decides, and its answer used to
+   * be read and thrown away — so a caller could only know the button had been
+   * pressed, which is a different and much weaker fact than an install. On iOS
+   * there is no answer to have: the instructions open and whether anyone
+   * follows them is not observable, so it says so instead of guessing.
+   */
+  const install = useCallback(async (): Promise<InstallOutcome> => {
     if (deferred) {
       await deferred.prompt();
       const { outcome } = await deferred.userChoice;
       // The event is single-use; a declined prompt cannot be replayed.
       setCapturedPrompt(null);
       if (outcome === "accepted") setInstalled(true);
-      return;
+      return outcome;
     }
     // No programmatic path on iOS — show the manual steps instead.
-    if (isIOS) setShowIOSHelp(true);
+    if (isIOS) {
+      setShowIOSHelp(true);
+      return "instructions";
+    }
+    return "unavailable";
   }, [deferred, isIOS]);
 
   return {

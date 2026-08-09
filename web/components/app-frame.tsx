@@ -242,15 +242,16 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
                 <input
                   value={query}
                   onChange={(e) => {
+                    // Once per search, on the empty-to-typed edge. Gating this
+                    // on the redirect below meant searching was only ever
+                    // counted when it moved you to /songs — so every search
+                    // made once you were already there, which is most of them,
+                    // went unrecorded. Still no query text, only that it began.
+                    if (!query.trim() && e.target.value.trim()) track("search");
                     setQuery(e.target.value);
                     // Searching from anywhere lands on the list that can show
                     // results, rather than silently doing nothing.
-                    // Once per search, when it takes someone to the results —
-                    // not once per keystroke, and never with the text. That
-                    // somebody searched is the useful part; what they typed is
-                    // a diary.
                     if (pathname !== "/songs" && e.target.value) {
-                      track("search");
                       router.push("/songs");
                     }
                   }}
