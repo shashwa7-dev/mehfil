@@ -95,38 +95,21 @@ export function InstallCard() {
           primitive's presets, and scrolling nothing at this level. See
           notice-dialog.tsx for why each of those is what it is. */}
       <AlertDialogContent className="flex max-h-[85dvh] flex-col overflow-hidden data-[size=default]:max-w-[calc(100vw-2rem)] data-[size=default]:sm:max-w-[475px]">
-        {/* The same video-with-poster block the welcome uses, and for the same
-            reasons: h264 rather than the GIF it came from, because a GIF is
-            decoded on the CPU and re-decoded every loop while a YouTube player
-            may already be running; the still is both the poster and what
-            anyone who has asked for reduced motion gets instead; and the mask
-            fades it into the card so it ends in the background rather than on
-            a hard line. 688K of GIF became 28K.
+        {/* A still, not a loop. The artwork is a lit phone in the dark, which
+            is the thing being offered rather than a decoration beside it, and
+            it holds without motion — so there is no video to decode, no poster
+            to pair, and nothing for reduced-motion to suppress. 64K became 22K.
 
-            object-cover, so it fills the card edge to edge. The source is 4:3
-            against a much wider box, so covering crops top and bottom — and
-            the two numbers here are the ones that survive it. At 220px the
-            visible window is 208px of source, exactly what the character needs
-            from headphones to feet; anything shorter cuts one end off whatever
-            the position. 35% rather than centred, because the artwork sits
-            high in its own frame with the shadow below it. */}
+            Only 54px of it is cropped: the source is 1.73:1 against a 2.16:1
+            box, so covering barely bites, and the face sits below the middle
+            anyway — which is why the position is nudged down rather than
+            centred. The mask fades it into the card, as the welcome's does. */}
         <div className="-mx-4 -mt-4 overflow-hidden rounded-t-xl [mask-image:linear-gradient(to_bottom,#000_0%,#000_60%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_bottom,#000_0%,#000_60%,transparent_100%)]">
-          <video
-            autoPlay
-            muted
-            loop
-            playsInline
-            poster="/install.jpg"
-            aria-hidden
-            className="h-[220px] w-full object-cover object-[center_35%] motion-reduce:hidden [@media(max-height:500px)]:h-24"
-          >
-            <source src="/install.mp4" type="video/mp4" />
-          </video>
           <img
             src="/install.jpg"
             alt=""
             aria-hidden
-            className="hidden h-[220px] w-full object-cover object-[center_35%] motion-reduce:block [@media(max-height:500px)]:h-24"
+            className="h-[220px] w-full object-cover object-[center_60%] [@media(max-height:500px)]:h-24"
           />
         </div>
 
