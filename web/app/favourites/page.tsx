@@ -1,0 +1,96 @@
+"use client";
+
+import { useEffect, useMemo } from "react";
+import Link from "next/link";
+import { Heart, Play, Shuffle } from "lucide-react";
+import { CatalogueGate } from "@/components/catalogue-gate";
+import { useFrame } from "@/components/app-frame";
+import { usePlayer } from "@/components/player-provider";
+import { SongList } from "@/components/song-list";
+import { useFavouriteIds, useFavouritesRevision } from "@/lib/favourites";
+import { useCatalogue } from "@/lib/queries";
+
+export default function FavouritesPage() {
+  const { data: catalogue, isLoading, isError, error } = useCatalogue();
+  const { scrollEl } = useFrame();
+  const { currentId, playing, play, playFirst, playRandom, setQueue } = usePlayer();
+  const ids = useFavouriteIds();
+  const revision = useFavouritesRevision();
+
+  const results = useMemo(() => {
+    if (!catalogue) return [];
+    const byId = new Map(catalogue.songs.map((song) => [song.id, song]));
+    // Newest first, and ids missing from the catalogue are skipped rather than
+    // removed from storage: a failed catalogue fetch would otherwise look
+    // exactly like every song having been deleted.
+    return ids
+      .map((id) => byId.get(id))
+      .filter((song): song is NonNullable<typeof song> => Boolean(song))
+      .reverse();
+  }, [catalogue, ids]);
+
+  // The player advances through whatever this route is showing.
+  useEffect(() => setQueue(results), [results, setQueue]);
+
+  return (
+    <CatalogueGate isLoading={isLoading} isError={isError} error={error}>
+      {catalogue && (
+        <>
+          <div className="flex flex-wrap items-end justify-between gap-3 pb-4">
+            <div className="min-w-0">
+              <h2 className="truncate pt-1 text-2xl leading-tight">Your favourites</h2>
+              <p className="text-xs text-muted-foreground">
+                {results.length.toLocaleString()}{" "}
+                {results.length === 1 ? "song" : "songs"} · kept on this device
+              </p>
+            </div>
+            {results.length > 0 && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => playRandom(results)}
+                  title="Shuffle"
+                  className="grid size-10 place-items-center rounded-full border border-white/15 transition hover:bg-white/10"
+                >
+                  <Shuffle className="size-4" />
+                </button>
+                <button
+                  onClick={() => playFirst(results)}
+                  title="Play"
+                  className="grid size-12 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg transition hover:scale-105"
+                >
+                  <Play className="size-5 translate-x-px fill-current" />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {results.length === 0 ? (
+            <div className="py-20 text-center">
+              <Heart className="mx-auto size-8 text-muted-foreground/40" />
+              <p className="mt-4 text-sm text-muted-foreground">
+                Nothing here yet. Tap the heart beside any song and it will be
+                waiting for you.
+              </p>
+              <Link
+                href="/songs"
+                className="mt-4 inline-block rounded-full border border-white/15 px-4 py-2 text-xs transition hover:bg-white/10"
+              >
+                Browse all songs
+              </Link>
+            </div>
+          ) : (
+            <SongList
+              catalogue={catalogue}
+              songs={results}
+              filterKey={`favourites:${revision}`}
+              currentId={currentId}
+              playing={playing}
+              scrollParent={scrollEl}
+              onPlay={play}
+            />
+          )}
+        </>
+      )}
+    </CatalogueGate>
+  );
+}

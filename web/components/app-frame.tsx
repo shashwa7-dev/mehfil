@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Disc3,
+  Heart,
   HeartHandshake,
   LayoutGrid,
   ListMusic,
@@ -105,6 +106,9 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
         </Link>
         <Link href="/songs" className={navClass(pathname === "/songs")}>
           <ListMusic className="size-4" /> All songs
+        </Link>
+        <Link href="/favourites" className={navClass(pathname === "/favourites")}>
+          <Heart className="size-4" /> Your favourites
         </Link>
         <Link href="/contribute" className={navClass(pathname === "/contribute")}>
           <HeartHandshake className="size-4" /> Help us find songs
