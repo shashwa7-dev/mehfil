@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { InstallButton } from "@/components/install-prompt";
 import { LikeBurstHost } from "@/components/like-burst";
 import { facetCards, portrait } from "@/lib/catalogue";
@@ -101,7 +102,9 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
         </Link>
       </div>
 
-      <div className="shrink-0 space-y-0.5 px-2 pb-2">
+      {/* A real nav, not a div: this is the app's primary way to move between
+          routes, and the rail and the mobile drawer both render it. */}
+      <nav aria-label="Primary" className="shrink-0 space-y-0.5 px-2 pb-2">
         <Link href="/" className={navClass(onBrowse)}>
           <LayoutGrid className="size-4" /> Browse
         </Link>
@@ -115,7 +118,7 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
           <HeartHandshake className="size-4" /> Help us find songs
         </Link>
         <InstallButton />
-      </div>
+      </nav>
     </>
   );
 
@@ -227,6 +230,7 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
                 {query && (
                   <button
                     onClick={() => setQuery("")}
+                    aria-label="Clear search"
                     className="absolute right-3 top-1/2 grid size-5 -translate-y-1/2 place-items-center rounded-full text-muted-foreground transition hover:bg-white/10 hover:text-foreground"
                   >
                     <X className="size-3.5" />
@@ -250,73 +254,97 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
                   right edge, and Surprise/the menu trigger ride along after
                   it instead of pushing themselves. */}
               <div className="ml-auto flex shrink-0 items-center gap-1.5">
-                <Link
-                  href="/favourites"
-                  title="Your favourites"
-                  aria-label="Your favourites"
-                  className={`grid size-9 place-items-center rounded-full border transition ${
-                    pathname === "/favourites"
-                      ? "border-primary/30 bg-primary/15 text-primary"
-                      : "border-white/10 bg-white/[0.06] text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <Heart className="size-4" />
-                </Link>
-                <Link
-                  href="/themes"
-                  title="Themes"
-                  aria-label="Themes"
-                  className={`grid size-9 place-items-center rounded-full border transition ${
-                    pathname === "/themes"
-                      ? "border-primary/30 bg-primary/15 text-primary"
-                      : "border-white/10 bg-white/[0.06] text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <Palette className="size-4" />
-                </Link>
+                {/* aria-label carries the accessible name regardless of what a
+                    screen reader does with the tooltip; the tooltip is only
+                    there for the sighted mouse user who has nothing else to
+                    go on before clicking an icon-only link. */}
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Link
+                        href="/favourites"
+                        aria-label="Your favourites"
+                        className={`grid size-9 place-items-center rounded-full border transition ${
+                          pathname === "/favourites"
+                            ? "border-primary/30 bg-primary/15 text-primary"
+                            : "border-white/10 bg-white/[0.06] text-muted-foreground hover:text-foreground"
+                        }`}
+                      />
+                    }
+                  >
+                    <Heart className="size-4" />
+                  </TooltipTrigger>
+                  <TooltipContent>Your favourites</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Link
+                        href="/themes"
+                        aria-label="Themes"
+                        className={`grid size-9 place-items-center rounded-full border transition ${
+                          pathname === "/themes"
+                            ? "border-primary/30 bg-primary/15 text-primary"
+                            : "border-white/10 bg-white/[0.06] text-muted-foreground hover:text-foreground"
+                        }`}
+                      />
+                    }
+                  >
+                    <Palette className="size-4" />
+                  </TooltipTrigger>
+                  <TooltipContent>Themes</TooltipContent>
+                </Tooltip>
               </div>
 
               {/* Fills the empty right side with the one action that needs no
                   prior choice: drop into the catalogue at random. */}
               {catalogue && !hideSearch && (
-                <button
-                  onClick={() => playRandom(catalogue.songs)}
-                  title="Play something at random"
-                  className="group/surprise hidden shrink-0 items-center gap-2 rounded-full border border-primary/30 bg-primary/15 px-4 py-2 text-xs font-semibold text-primary shadow-[0_0_0_0_rgba(214,168,84,0)] transition-[background-color,border-color,box-shadow] duration-300 hover:border-primary/50 hover:bg-primary/25 hover:shadow-[0_0_20px_-2px_rgba(214,168,84,0.45)] lg:inline-flex"
-                >
-                  {/* A record, not a shuffle glyph: this plays music at
-                      random rather than reordering a list. A full revolution
-                      ends where it began — the old half turn stopped upside
-                      down and read as a glitch. */}
-                  <Disc3 className="size-4 shrink-0 transition-transform duration-[900ms] ease-out motion-safe:group-hover/surprise:rotate-[360deg]" />
-                  Surprise
+                // "Surprise" already labels the button, but not what it does —
+                // the tooltip carries that, which is why this keeps a tooltip
+                // despite the visible text.
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <button
+                        onClick={() => playRandom(catalogue.songs)}
+                        className="group/surprise hidden shrink-0 items-center gap-2 rounded-full border border-primary/30 bg-primary/15 px-4 py-2 text-xs font-semibold text-primary shadow-[0_0_0_0_rgba(214,168,84,0)] transition-[background-color,border-color,box-shadow] duration-300 hover:border-primary/50 hover:bg-primary/25 hover:shadow-[0_0_20px_-2px_rgba(214,168,84,0.45)] lg:inline-flex"
+                      />
+                    }
+                  >
+                    {/* A record, not a shuffle glyph: this plays music at
+                        random rather than reordering a list. A full revolution
+                        ends where it began — the old half turn stopped upside
+                        down and read as a glitch. */}
+                    <Disc3 className="size-4 shrink-0 transition-transform duration-[900ms] ease-out motion-safe:group-hover/surprise:rotate-[360deg]" />
+                    Surprise
 
-                  {/* The faces fan out on hover. Transform only, never margin:
-                      margins are laid out, so animating one reflows the button
-                      every frame — which is both why this was not smooth and
-                      why the control grew as it played. A transform is composited
-                      and moves nothing around it. */}
-                  {faces.length > 0 && (
-                    <span className="flex shrink-0 -space-x-2">
-                      {faces.map((face, index) => (
-                        <img
-                          key={face.name}
-                          src={face.src}
-                          alt=""
-                          title={face.name}
-                          loading="lazy"
-                          style={
-                            {
-                              "--fan": `${index * 5}px`,
-                              transitionDelay: `${index * 45}ms`,
-                            } as React.CSSProperties
-                          }
-                          className="size-5 rounded-full object-cover object-top ring-2 ring-card transition-transform duration-300 ease-out motion-safe:group-hover/surprise:translate-x-[var(--fan)]"
-                        />
-                      ))}
-                    </span>
-                  )}
-                </button>
+                    {/* The faces fan out on hover. Transform only, never margin:
+                        margins are laid out, so animating one reflows the button
+                        every frame — which is both why this was not smooth and
+                        why the control grew as it played. A transform is composited
+                        and moves nothing around it. */}
+                    {faces.length > 0 && (
+                      <span className="flex shrink-0 -space-x-2">
+                        {faces.map((face, index) => (
+                          <img
+                            key={face.name}
+                            src={face.src}
+                            alt=""
+                            loading="lazy"
+                            style={
+                              {
+                                "--fan": `${index * 5}px`,
+                                transitionDelay: `${index * 45}ms`,
+                              } as React.CSSProperties
+                            }
+                            className="size-5 rounded-full object-cover object-top ring-2 ring-card transition-transform duration-300 ease-out motion-safe:group-hover/surprise:translate-x-[var(--fan)]"
+                          />
+                        ))}
+                      </span>
+                    )}
+                  </TooltipTrigger>
+                  <TooltipContent>Play something at random</TooltipContent>
+                </Tooltip>
               )}
 
               {/* Keyed on the route, and otherwise uncontrolled. Navigating
@@ -330,6 +358,7 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
                   render={
                     <button
                       title="Menu"
+                      aria-label="Menu"
                       className="relative grid size-9 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-muted-foreground transition hover:text-foreground lg:hidden"
                     />
                   }
