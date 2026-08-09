@@ -36,8 +36,14 @@ export default function FavouritesPage() {
       .reverse();
   }, [byId, ids]);
 
-  // The player advances through whatever this route is showing.
-  useEffect(() => setQueue(results), [results, setQueue]);
+  // Only when there is something to play. An empty list would replace a queue
+  // that is currently playing with nothing, and the player has no way back
+  // from that — Next, Previous and auto-advance all stop for the session.
+  // Someone landing on an empty /favourites has almost certainly got music
+  // going from somewhere else, and it should keep going.
+  useEffect(() => {
+    if (results.length > 0) setQueue(results);
+  }, [results, setQueue]);
 
   return (
     <CatalogueGate isLoading={isLoading} isError={isError} error={error}>
