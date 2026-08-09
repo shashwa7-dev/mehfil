@@ -3,7 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { Download, Share, SquarePlus, X } from "lucide-react";
 
-const DISMISSED_KEY = "mehfil.installDismissed";
+/**
+ * Shared with InstallCard, which is what writes it now.
+ *
+ * Exported rather than repeated: two copies of a storage key is how one of
+ * them quietly stops matching the other, and the failure — a nudge that will
+ * not stay dismissed — looks like a bug in the dialog rather than a typo.
+ */
+export const DISMISSED_KEY = "mehfil.installDismissed";
 
 type InstallEvent = Event & {
   prompt: () => Promise<void>;
@@ -160,83 +167,25 @@ export function InstallButton({ className = "" }: { className?: string }) {
   const { install, installed, isIOS, canInstall, showIOSHelp, dismissIOSHelp } =
     useInstall();
   const [showHelp, setShowHelp] = useState(false);
-  const [dismissed, setDismissed] = useState(true);
-
-  useEffect(() => {
-    try {
-      // Starts dismissed so the accented state never flashes before we know
-      // whether it was already turned down. localStorage cannot be read during
-      // render or on the server.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setDismissed(Boolean(localStorage.getItem(DISMISSED_KEY)));
-    } catch {
-      setDismissed(false);
-    }
-  }, []);
 
   if (installed) return null;
 
   /**
-   * The nudge is this row, wearing a colour.
+   * The permanent way in, and deliberately quiet.
    *
-   * It used to be a separate card floating above the player on the browse page
-   * only — covering content, on one route, in a place the eye goes to for the
-   * music rather than for settings. There was already an install control in
-   * the sidebar; the floating one made two.
-   *
-   * So there is one control now. While the browser will accept an install and
-   * nobody has said no, it wears the accent and offers a dismiss. Afterwards it
-   * is a quiet row like its neighbours, still there for anyone who changes
-   * their mind. The sidebar renders in the desktop rail and the mobile drawer
-   * from the same markup, so this is both platforms without a second layout.
+   * The nudging is InstallCard's job — a card, shown once, on a visit after
+   * the welcome. This row is what remains afterwards for anyone who said not
+   * now and then changed their mind, so it reads like its neighbours rather
+   * than competing with them.
    */
-  const nudging = canInstall && !dismissed;
-
-  const dismiss = (event: React.MouseEvent) => {
-    // The row is a button and this sits inside it; without this the dismiss
-    // would also fire the install prompt it is meant to decline.
-    event.stopPropagation();
-    setDismissed(true);
-    try {
-      localStorage.setItem(DISMISSED_KEY, "1");
-    } catch {
-      // Storage unavailable; it will simply offer again next visit.
-    }
-  };
-
   return (
     <>
       <button
         onClick={() => (canInstall ? install() : setShowHelp(true))}
-        className={`flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition ${
-          nudging
-            ? "bg-primary/12 text-primary hover:bg-primary/20"
-            : "text-muted-foreground hover:bg-white/[0.06] hover:text-foreground"
-        } ${className}`}
+        className={`flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground ${className}`}
       >
         <Download className="size-4 shrink-0" />
-        <span className="min-w-0 flex-1 truncate text-left">
-          {nudging ? (isIOS ? "Add to home screen" : "Install Mehfil") : "Install Mehfil"}
-        </span>
-        {nudging && (
-          <span
-            role="button"
-            tabIndex={0}
-            onClick={dismiss}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                event.stopPropagation();
-                dismiss(event as unknown as React.MouseEvent);
-              }
-            }}
-            aria-label="Not now"
-            title="Not now"
-            className="-mr-1 shrink-0 rounded-full p-1 text-primary/70 transition hover:bg-white/10 hover:text-primary"
-          >
-            <X className="size-3.5" />
-          </span>
-        )}
+        <span className="min-w-0 flex-1 truncate text-left">Install Mehfil</span>
       </button>
       {showIOSHelp && <IOSInstallHelp onClose={dismissIOSHelp} />}
       {showHelp && !isIOS && <ManualInstallHelp onClose={() => setShowHelp(false)} />}
