@@ -59,7 +59,6 @@
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
-  --color-surprise: var(--surprise);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
@@ -203,12 +202,6 @@
   --popover-foreground: oklch(0.97 0.004 80);
 
   --primary: oklch(0.79 0.135 78);
-  /* The one warm red in the palette, for the single control that is meant to
-     interrupt rather than blend: "Surprise" sits in a header of brass and
-     muted greys, and in brass it read as one more piece of furniture. Kept
-     close to the brass in lightness and chroma so it belongs to the same
-     family — it is a neighbour of the accent, not a second brand colour. */
-  --surprise: oklch(0.70 0.17 22);
   --primary-foreground: oklch(0.19 0.02 60);
 
   --secondary: oklch(0.27 0.009 60);

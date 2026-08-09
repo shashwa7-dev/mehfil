@@ -308,7 +308,7 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
                     render={
                       <button
                         onClick={() => playRandom(catalogue.songs)}
-                        className="group/surprise hidden shrink-0 items-center gap-2 rounded-full border border-surprise/35 bg-surprise/15 px-4 py-2 text-xs font-semibold text-surprise shadow-[0_0_0_0_rgba(240,110,120,0)] transition-[background-color,border-color,box-shadow] duration-300 hover:border-surprise/55 hover:bg-surprise/25 hover:shadow-[0_0_20px_-2px_rgba(240,110,120,0.45)] lg:inline-flex"
+                        className="group/surprise hidden shrink-0 items-center gap-2 rounded-full border border-primary/30 bg-primary/15 px-4 py-2 text-xs font-semibold text-primary shadow-[0_0_0_0_rgba(214,168,84,0)] transition-[background-color,border-color,box-shadow] duration-300 hover:border-primary/50 hover:bg-primary/25 hover:shadow-[0_0_20px_-2px_rgba(214,168,84,0.45)] lg:inline-flex"
                       />
                     }
                   >
