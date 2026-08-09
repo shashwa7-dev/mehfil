@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Check, Play } from "lucide-react";
 import { usePlayer } from "@/components/player-provider";
+import { hasSeenWelcome, markWelcomeSeen } from "@/lib/welcome";
 import { useCatalogue } from "@/lib/queries";
 import {
   AlertDialog,
@@ -34,28 +35,6 @@ import {
  * repeatable on demand rather than left to a first-run localStorage.
  */
 
-const SEEN_KEY = "mehfil:notice-seen:v1";
-
-function hasSeenNotice(): boolean {
-  try {
-    return localStorage.getItem(SEEN_KEY) === "1";
-  } catch {
-    // Private browsing refuses localStorage. Showing the notice again is the
-    // safe failure: the alternative is a permissions notice that silently
-    // never appears on a browser that cannot remember having shown it.
-    return false;
-  }
-}
-
-function markNoticeSeen() {
-  try {
-    localStorage.setItem(SEEN_KEY, "1");
-  } catch {
-    // Nothing to persist to. The dialog opens again next visit, which is a
-    // worse first run than a crash, not the app failing.
-  }
-}
-
 export function NoticeDialog() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -71,7 +50,7 @@ export function NoticeDialog() {
       setOpen(true);
       return;
     }
-    if (!hasSeenNotice()) setOpen(true);
+    if (!hasSeenWelcome()) setOpen(true);
   }, [pathname]);
 
   // Any close — the OK button, Escape — counts as having been shown. On
@@ -85,7 +64,7 @@ export function NoticeDialog() {
 
   function handleOpenChange(next: boolean) {
     setOpen(next);
-    if (!next) markNoticeSeen();
+    if (!next) markWelcomeSeen();
   }
 
   /**

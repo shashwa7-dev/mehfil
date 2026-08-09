@@ -14,6 +14,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { DISMISSED_KEY, useInstall } from "@/components/install-prompt";
+import { hasSeenWelcome, onWelcomeSeen } from "@/lib/welcome";
 
 /**
  * The install invitation, as a card rather than a coloured row.
@@ -22,48 +23,56 @@ import { DISMISSED_KEY, useInstall } from "@/components/install-prompt";
  * one action — because they are the same kind of moment and two different
  * treatments would read as two different apps.
  *
- * It never shares a screen with the welcome. The welcome is the first thing
- * anyone sees and asking to install in the same breath is asking for something
- * before having given anything; this waits until a visit *after* that was
- * dismissed, which is also when someone has had a reason to want it.
+ * It never shares a screen with the welcome. That one is the first thing anyone
+ * sees, and asking to install in the same breath is asking for something before
+ * having given anything. So this waits for the welcome to be dismissed and then
+ * counts five seconds — long enough for the song it started to be playing, which
+ * is the first moment anyone has a reason to want the app rather than the page.
  */
 
-/** The welcome's own key. Read, never written — see `seenBefore` below. */
-const NOTICE_SEEN_KEY = "mehfil:notice-seen:v1";
+/** Long enough to be listening, short enough to still be the same thought. */
+const DELAY_MS = 5000;
 
 export function InstallCard() {
   const pathname = usePathname();
   const { install, installed, isIOS, canInstall } = useInstall();
-  const [eligible, setEligible] = useState(false);
+  const [armed, setArmed] = useState(false);
   const [open, setOpen] = useState(false);
 
+  // Armed when the welcome is out of the way: either it was seen on an earlier
+  // visit, or it is dismissed while this is mounted. Subscribing rather than
+  // re-reading storage because a write from this same tab fires no storage
+  // event, so polling would be the only alternative.
   useEffect(() => {
     try {
-      // Read once, on mount, and deliberately not again. The welcome writes its
-      // key the moment it is dismissed, so re-reading later in the same session
-      // would let this open the instant that one closed — two modals in a row,
-      // the second asking for something. Reading at mount means "was it seen
-      // before this page load", which is the question actually being asked.
-      const seenBefore = Boolean(localStorage.getItem(NOTICE_SEEN_KEY));
-      const alreadyAsked = Boolean(localStorage.getItem(DISMISSED_KEY));
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setEligible(seenBefore && !alreadyAsked);
+      if (localStorage.getItem(DISMISSED_KEY)) return;
     } catch {
-      // No storage: never nudge. Without somewhere to record a refusal this
-      // would ask again on every single load, which is worse than not asking.
-      setEligible(false);
+      // No storage means no way to remember a refusal, and a nudge that cannot
+      // be refused would return on every load. Better never to ask.
+      return;
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (hasSeenWelcome()) setArmed(true);
+    return onWelcomeSeen(() => setArmed(true));
   }, []);
 
+  // The wait starts when everything else is already true, so the five seconds
+  // are five seconds of the app being used, not five seconds of a catalogue
+  // still loading or a prompt the browser has not offered yet.
+  //
+  // Route is deliberately not a dependency. Making it one restarts the timer on
+  // every navigation, so anyone browsing while it counts would never reach the
+  // end of it — the one person most likely to want the app. Where they are is
+  // handled at render instead.
   useEffect(() => {
-    // /about reopens the welcome on every visit, so staying away keeps the two
-    // from stacking there.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setOpen(eligible && canInstall && !installed && pathname !== "/about");
-  }, [eligible, canInstall, installed, pathname]);
+    if (!armed || !canInstall || installed) return;
+    const timer = window.setTimeout(() => setOpen(true), DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [armed, canInstall, installed]);
 
   function close() {
     setOpen(false);
+    setArmed(false);
     try {
       localStorage.setItem(DISMISSED_KEY, "1");
     } catch {
@@ -73,7 +82,11 @@ export function InstallCard() {
 
   return (
     <AlertDialog
-      open={open}
+      // /about reopens the welcome on every visit, so this stays out of the way
+      // there. Holding it at the render rather than the timer means someone who
+      // happens to be on /about when the wait ends still gets it on the next
+      // page, instead of the nudge being lost to where they were standing.
+      open={open && pathname !== "/about"}
       onOpenChange={(next) => {
         if (!next) close();
       }}
