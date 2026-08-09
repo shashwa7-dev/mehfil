@@ -1257,6 +1257,7 @@ export function PlayerBar({
               unverified
             </span>
           )}
+          <LikeButton songId={song.id} size={16} className="size-9" />
           {/* Credits and reporting sit next to the track they are about. The
               bar has room for a title and a line of singers, so the composer
               and lyricist are one press away rather than absent. */}

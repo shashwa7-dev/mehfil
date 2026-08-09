@@ -29,8 +29,9 @@ export function LikeButton({
       aria-label={liked ? "Remove from favourites" : "Add to favourites"}
       title={liked ? "Remove from favourites" : "Add to favourites"}
       onClick={(event) => {
-        // The row this sits in is itself a button that starts the song, so the
-        // click must stop here or liking would also play something.
+        // In a track row this sits inside a button that starts the song, so the
+        // click must stop here or liking would also play something. Harmless at
+        // the player's own call sites, where nothing above it acts on a click.
         event.stopPropagation();
 
         // Read before toggling: the burst celebrates liking, and firing it on
