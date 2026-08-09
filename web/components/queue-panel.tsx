@@ -70,6 +70,7 @@ export function QueuePanel({
           <button
             onClick={onClose}
             title="Close"
+            aria-label="Close queue"
             className="rounded-full p-2 text-muted-foreground transition hover:bg-white/10 hover:text-foreground"
           >
             <X className="size-4" />

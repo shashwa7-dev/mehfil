@@ -121,6 +121,7 @@ export function IOSInstallHelp({ onClose }: { onClose: () => void }) {
           </div>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="rounded-full p-1.5 text-muted-foreground transition hover:bg-white/10 hover:text-foreground"
           >
             <X className="size-4" />
@@ -191,6 +192,7 @@ function ManualInstallHelp({ onClose }: { onClose: () => void }) {
           </div>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="rounded-full p-1.5 text-muted-foreground transition hover:bg-white/10 hover:text-foreground"
           >
             <X className="size-4" />
@@ -267,6 +269,7 @@ export function InstallPrompt() {
           <button
             onClick={dismiss}
             title="Dismiss"
+            aria-label="Dismiss install prompt"
             className="shrink-0 rounded-full p-1.5 text-muted-foreground transition hover:bg-white/10 hover:text-foreground"
           >
             <X className="size-4" />

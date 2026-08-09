@@ -107,6 +107,7 @@ export default function SongsPage() {
                 <button
                   onClick={() => playRandom(results)}
                   title="Shuffle"
+                  aria-label="Shuffle results"
                   className="grid size-10 place-items-center rounded-full border border-white/15 transition hover:bg-white/10"
                 >
                   <Shuffle className="size-4" />
@@ -114,6 +115,7 @@ export default function SongsPage() {
                 <button
                   onClick={() => playFirst(results)}
                   title="Play"
+                  aria-label="Play results"
                   className="grid size-12 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg transition hover:scale-105"
                 >
                   <Play className="size-5 translate-x-px fill-current" />

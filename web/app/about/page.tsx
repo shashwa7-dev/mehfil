@@ -136,6 +136,7 @@ export default function AboutPage() {
                     href={credit.source}
                     target="_blank"
                     rel="noopener noreferrer"
+                    aria-label={`Source for ${station} artwork`}
                     className="ml-1 inline-flex text-primary hover:underline"
                   >
                     <ExternalLink className="size-3" />
@@ -172,6 +173,7 @@ export default function AboutPage() {
                     href={credit.source}
                     target="_blank"
                     rel="noopener noreferrer"
+                    aria-label={`Source for ${credit.name} portrait`}
                     className="ml-1 inline-flex text-primary hover:underline"
                   >
                     <ExternalLink className="size-3" />
@@ -205,6 +207,7 @@ export default function AboutPage() {
                     href={credit.page}
                     target="_blank"
                     rel="noopener noreferrer"
+                    aria-label={`Where the ${credit.name} portrait was found`}
                     className="ml-1 inline-flex text-primary hover:underline"
                   >
                     <ExternalLink className="size-3" />

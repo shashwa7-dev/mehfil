@@ -65,6 +65,7 @@ function FacetSection({
           <button
             onClick={() => onClearFacet(facet)}
             title={`Clear ${FACET_LABEL[facet]}`}
+            aria-label={`Clear ${FACET_LABEL[facet]} filters`}
             className="px-3 text-muted-foreground transition hover:text-foreground"
           >
             <X className="size-3" />
@@ -199,6 +200,7 @@ export function FacetPanel({
           {needle && (
             <button
               onClick={() => setNeedle("")}
+              aria-label="Clear filter search"
               className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
               <X className="size-3" />
