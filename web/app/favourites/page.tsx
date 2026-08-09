@@ -17,9 +17,16 @@ export default function FavouritesPage() {
   const ids = useFavouriteIds();
   const revision = useFavouritesRevision();
 
+  // Keyed on the catalogue alone: it only changes on a fetch, whereas ids
+  // changes on every like and unlike, and rebuilding a 3,900-entry Map for
+  // that would be work with nothing to show for it.
+  const byId = useMemo(() => {
+    if (!catalogue) return null;
+    return new Map(catalogue.songs.map((song) => [song.id, song]));
+  }, [catalogue]);
+
   const results = useMemo(() => {
-    if (!catalogue) return [];
-    const byId = new Map(catalogue.songs.map((song) => [song.id, song]));
+    if (!byId) return [];
     // Newest first, and ids missing from the catalogue are skipped rather than
     // removed from storage: a failed catalogue fetch would otherwise look
     // exactly like every song having been deleted.
@@ -27,7 +34,7 @@ export default function FavouritesPage() {
       .map((id) => byId.get(id))
       .filter((song): song is NonNullable<typeof song> => Boolean(song))
       .reverse();
-  }, [catalogue, ids]);
+  }, [byId, ids]);
 
   // The player advances through whatever this route is showing.
   useEffect(() => setQueue(results), [results, setQueue]);

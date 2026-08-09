@@ -202,7 +202,11 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
                 hideSearch ? "flex lg:hidden" : "flex"
               }`}
             >
-              <Link href="/" className="flex shrink-0 items-center gap-2 lg:hidden">
+              {/* Hidden below sm: brandAndNav's Browse row already points at
+                  `/`, so the drawer loses nothing, and the logo was the
+                  easiest 40px to give back on a phone narrow enough that the
+                  search box was losing its placeholder text to it. */}
+              <Link href="/" className="hidden shrink-0 items-center gap-2 sm:flex lg:hidden">
                 <img src="/logo.png" alt="" width={32} height={32} className="size-8 rounded-lg" />
               </Link>
 

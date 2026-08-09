@@ -25,7 +25,7 @@ export type Backdrop = {
   note: string;
 };
 
-export const DEFAULT_BACKDROP = "lofi";
+const DEFAULT_BACKDROP = "lofi";
 
 /** Absence, chosen on purpose. Not every room wants weather in it. */
 export const NO_BACKDROP = "none";

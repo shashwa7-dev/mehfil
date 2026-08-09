@@ -94,6 +94,10 @@ export function burstAt(x: number, y: number) {
   // the duration is a number we chose. It also survives a tab backgrounded
   // mid-animation, where animation events never arrive at all.
   window.setTimeout(() => {
+    // The cap can have evicted this burst already, in which case removing it
+    // again is a no-op that would still allocate a fresh array and notify
+    // every listener for a change nobody can observe.
+    if (!bursts.some((burst) => burst.key === key)) return;
     publish(bursts.filter((burst) => burst.key !== key));
   }, LIFETIME);
 }
