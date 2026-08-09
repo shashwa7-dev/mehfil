@@ -32,6 +32,7 @@ export const NO_BACKDROP = "none";
 
 export const BACKDROPS: readonly Backdrop[] = [
   { id: "lofi", label: "Lofi room", note: "A studio with the hills outside" },
+  { id: "reading", label: "Reading room", note: "A dog asleep, a book open, a laptop playing something" },
   { id: "meadow", label: "Meadow", note: "A sheep, a dog, an afternoon" },
   { id: "flock", label: "Evening flock", note: "The whole flock at sunset" },
   { id: "stop-dusk", label: "Bus stop, dusk", note: "A cat waiting, in red light" },
