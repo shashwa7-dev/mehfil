@@ -377,3 +377,10 @@
       scale(var(--end-scale)) rotate(var(--rot));
   }
 }
+
+/* The backdrop arriving after hydration. See components/app-backdrop.tsx. */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}

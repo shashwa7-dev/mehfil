@@ -30,6 +30,7 @@ import {
   setPosition,
 } from "@/lib/media-session";
 import { LikeButton } from "@/components/like-button";
+import { AppBackdrop } from "@/components/app-backdrop";
 import { ReportDialog } from "@/components/report-dialog";
 import { SongDetails } from "@/components/song-details";
 import { PlayerMenu } from "@/components/player-menu";
@@ -730,22 +731,7 @@ export function PlayerBar({
           aria-hidden
           className="pointer-events-none absolute inset-0 -z-20 hidden md:block"
         >
-          <video
-            autoPlay
-            muted
-            loop
-            playsInline
-            poster="/backdrop.jpg"
-            className="absolute inset-0 size-full object-cover opacity-[0.20] motion-reduce:hidden"
-          >
-            <source src="/backdrop.mp4" type="video/mp4" />
-          </video>
-          <img
-            src="/backdrop.jpg"
-            alt=""
-            className="absolute inset-0 hidden size-full object-cover opacity-[0.20] motion-reduce:block"
-          />
-          <div className="absolute inset-0 bg-[oklch(0.79_0.135_78)]/[0.06]" />
+          <AppBackdrop opacity={0.2} />
         </div>
       )}
 

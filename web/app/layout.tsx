@@ -4,6 +4,7 @@ import { Providers } from "./providers";
 import { PlayerProvider } from "@/components/player-provider";
 import { OfflineNotice } from "@/components/offline-notice";
 import { AppFrame } from "@/components/app-frame";
+import { AppBackdrop } from "@/components/app-backdrop";
 import "./globals.css";
 
 // Figtree: a geometric sans in the same family as the faces music apps favour.
@@ -127,42 +128,15 @@ export default function RootLayout({
       className={`dark ${figtree.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col overflow-hidden">
-        {/* App-wide backdrop.
+        {/* App-wide backdrop. Fixed and behind everything, so it holds still
+            while content scrolls over it.
 
-            A video rather than the GIF it came from. A GIF is decoded on the
-            CPU and re-decoded every loop; the same footage as h264 is smaller
-            and decodes in hardware, which matters when a YouTube player is
-            already running. The still beside it is both the poster and what
-            anyone who has asked for reduced motion gets instead.
-
-            Fixed and behind everything, so it holds still while content
-            scrolls over it. The opacity is a balance rather than a maximum:
-            the content area lays bg-card/40 over it, so 60% of whatever this
-            sets ends up behind the song rows. At 38% the footage read well in
-            the open margins but crowded the rows; 24% keeps it present there
-            and lets the cards and titles sit clearly in front of it. */}
+            24%, and that is a balance rather than a maximum: the content area
+            lays bg-card/40 over it, so 60% of whatever is set here ends up
+            behind the song rows. At 38% the footage read well in the open
+            margins but crowded the rows. */}
         <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
-          <video
-            autoPlay
-            muted
-            loop
-            playsInline
-            poster="/backdrop.jpg"
-            className="absolute inset-0 size-full object-cover opacity-[0.24] motion-reduce:hidden"
-          >
-            <source src="/backdrop.mp4" type="video/mp4" />
-          </video>
-          {/* Shown only when motion is unwanted; the video is hidden then. */}
-          <img
-            src="/backdrop.jpg"
-            alt=""
-            className="absolute inset-0 hidden size-full object-cover opacity-[0.24] motion-reduce:block"
-          />
-
-          {/* Warm wash, so the backdrop belongs to the brass palette rather
-              than merely sitting under it. */}
-          <div className="absolute inset-0 bg-[oklch(0.79_0.135_78)]/[0.07]" />
-
+          <AppBackdrop opacity={0.24} />
           {/* Only the bottom, and gently. A gradient from the top would undo
               the opacity chosen above. */}
           <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-background/70 to-transparent" />
