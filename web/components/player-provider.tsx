@@ -65,6 +65,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   // and free of stale closures; the state is what lets the queue view show
   // what is coming without polling.
   const queueRef = useRef<RawSong[]>([]);
+  // Index at which the currently playing song was last found in the queue.
+  // step() falls back to this when the song has since left the queue — e.g.
+  // unliked mid-playback from /favourites — so Next/Previous still land on
+  // its old neighbours instead of wrapping to the top of the list.
+  const lastIndexRef = useRef(0);
   const [queue, setQueueState] = useState<RawSong[]>([]);
   const setQueue = useCallback((songs: RawSong[]) => {
     queueRef.current = songs;
@@ -110,7 +115,21 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       const at = queue.findIndex((s) => s.id === currentId);
-      const next = queue[(at + delta + queue.length) % queue.length] ?? queue[0];
+      let targetIndex: number;
+      if (at !== -1) {
+        lastIndexRef.current = at;
+        targetIndex = (at + delta + queue.length) % queue.length;
+      } else {
+        // The current song is no longer in the queue — most often because it
+        // was just unliked while playing. The song that slid into its old
+        // slot is what Next should reach; the song before that slot is what
+        // Previous should reach.
+        targetIndex =
+          delta > 0
+            ? (lastIndexRef.current + queue.length) % queue.length
+            : (lastIndexRef.current - 1 + queue.length) % queue.length;
+      }
+      const next = queue[targetIndex] ?? queue[0];
       play(next.id);
     },
     [currentId, play, shuffle]

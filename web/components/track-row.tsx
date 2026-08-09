@@ -36,6 +36,10 @@ export function TrackRow({
     <div
       onClick={onPlay}
       onKeyDown={(e) => {
+        // Only the row's own keystrokes. The heart nested inside is a real
+        // button with its own Enter and Space handling, and without this the
+        // row would preventDefault its activation and start the song instead.
+        if (e.target !== e.currentTarget) return;
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           onPlay();

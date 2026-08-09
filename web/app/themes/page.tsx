@@ -1,5 +1,6 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
 import { Check, ImageOff } from "lucide-react";
 import {
   BACKDROPS,
@@ -21,7 +22,17 @@ import {
  * behind the page is the moving version already.
  */
 export default function ThemesPage() {
+  // Before hydration the store reports "none", which for AppBackdrop means
+  // "draw nothing" but here would read as "None is your choice" — and would
+  // ship in the prerendered HTML with the check badge on it. Until the real
+  // value arrives, nothing is selected.
+  const hydrated = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
   const chosen = useBackdrop();
+  const selectedId = hydrated ? chosen : null;
 
   return (
     <>
@@ -34,7 +45,7 @@ export default function ThemesPage() {
 
       <div className="grid grid-cols-2 gap-3 pb-8 sm:grid-cols-3">
         {BACKDROPS.map((backdrop) => {
-          const selected = chosen === backdrop.id;
+          const selected = selectedId === backdrop.id;
           return (
             <button
               key={backdrop.id}
@@ -73,16 +84,16 @@ export default function ThemesPage() {
             everyone's taste and should not need a browser setting to escape. */}
         <button
           onClick={() => setBackdrop(NO_BACKDROP)}
-          aria-pressed={chosen === NO_BACKDROP}
+          aria-pressed={selectedId === NO_BACKDROP}
           className={`group overflow-hidden rounded-xl border text-left transition ${
-            chosen === NO_BACKDROP
+            selectedId === NO_BACKDROP
               ? "border-primary/60 ring-1 ring-primary/40"
               : "border-white/10 hover:border-white/25"
           }`}
         >
           <span className="relative grid aspect-video place-items-center bg-black/30">
             <ImageOff className="size-6 text-muted-foreground" />
-            {chosen === NO_BACKDROP && (
+            {selectedId === NO_BACKDROP && (
               <span className="absolute right-2 top-2 grid size-6 place-items-center rounded-full bg-primary text-primary-foreground">
                 <Check className="size-3.5" />
               </span>
