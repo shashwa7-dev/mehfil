@@ -90,7 +90,7 @@ export function NoticeDialog() {
           tailwind-merge treats differently-modified utilities as unrelated, so
           a plain one would leave both in place and lose to the attribute
           selector's specificity. */}
-      <AlertDialogContent className="max-h-[85vh] overflow-hidden data-[size=default]:max-w-[calc(100vw-2rem)] data-[size=default]:sm:max-w-lg">
+      <AlertDialogContent className="max-h-[85vh] overflow-hidden data-[size=default]:max-w-[calc(100vw-2rem)] data-[size=default]:sm:max-w-[475px]">
         {/* Full-bleed thumbnail, first inside the content so it sits above
             the header. AlertDialogContent pads and gaps its children (p-4,
             gap-4) for the header/footer case; -mx-4 -mt-4 cancels that same
@@ -103,7 +103,7 @@ export function NoticeDialog() {
             to this one clip rather than reading from the theme store — a
             notice illustration has no "current backdrop" to key off, and
             importing AppBackdrop here would wire this dialog to state it has
-            no business depending on. 200px against a 32rem card; on a short
+            no business depending on. 200px against a 475px card; on a short
             (landscape-phone) viewport it drops to 96px so the media doesn't
             dominate what little height max-h-[85vh] leaves — the text is the
             part with the acknowledgement in it. */}
