@@ -1,3 +1,21 @@
+          <Panel className="p-4">
+            <p className="text-sm">
+              <Key>Colour resolves through tokens.</Key>
+            </p>
+            <p className="mt-1 max-w-prose text-sm leading-relaxed text-muted-foreground">
+              A literal in a class string is where a palette starts drifting, so
+              colour is written as a token with an opacity rather than a value.
+              Honestly: a handful of places still break this — the backdrop&apos;s
+              warm wash and four glow shadows quote raw values, because Tailwind
+              cannot interpolate a custom property inside an arbitrary shadow.
+              They are the exceptions, and they are on the list.
+            </p>
+            <Code caption="left: how colour is written. right: the four places that still are not.">
+{`bg-primary/15   text-primary   border-heart/40
+shadow-[0_0_20px_-2px_rgba(214,168,84,0.45)]   // app-frame.tsx
+bg-[oklch(0.79_0.135_78)]/[0.07]               // app-backdrop.tsx`}
+            </Code>
+          </Panel>
 import type { Metadata } from "next";
 import { Code, Key, Panel } from "@/components/curious-bits";
 
@@ -20,8 +38,8 @@ export const metadata: Metadata = {
 const PALETTE = [
   { token: "--primary", value: "oklch(0.79 0.135 78)", name: "Brass", note: "Accents, the play button, everything that means yes" },
   { token: "--heart", value: "oklch(0.70 0.17 22)", name: "Heart", note: "Favourites only. Warm red at the brass's own lightness" },
-  { token: "--background", value: "oklch(0.145 0 0)", name: "Ground", note: "The room the whole app sits in" },
-  { token: "--card", value: "oklch(0.205 0 0)", name: "Card", note: "Panels and dialogs" },
+  { token: "--background", value: "oklch(0.16 0.006 60)", name: "Ground", note: "The room the whole app sits in" },
+  { token: "--card", value: "oklch(0.21 0.008 60)", name: "Card", note: "Panels and dialogs" },
   { token: "--sidebar", value: "oklch(0.115 0.005 60)", name: "Sidebar", note: "Darker than the ground, so the rail recedes" },
   { token: "--muted-foreground", value: "oklch(0.72 0.012 70)", name: "Muted", note: "Second-line text: singers, counts, dates" },
   { token: "--border", value: "oklch(1 0 0 / 9%)", name: "Border", note: "White at nine per cent, never a grey" },
@@ -49,8 +67,8 @@ export default function DesignPage() {
         title="Colour"
         lead={
           <>
-            Every colour is a CSS custom property in OKLCH, never a hex literal
-            in a class string.{" "}
+            Colour is a CSS custom property in OKLCH almost everywhere, rather
+            than a value written into a class string.{" "}
             <Key>OKLCH because its lightness is perceptual</Key> — the accent
             and the heart sit at 0.79 and 0.70, so they read as siblings rather
             than one shouting over the other.
@@ -179,10 +197,13 @@ export default function DesignPage() {
               Artwork, overflowing titles and the backdrop all end in a mask
               gradient instead of a hard line.
             </p>
-            <Code caption="components/player-bar.tsx — the artwork bleeding into the bar on a phone">
-{`<span className="absolute inset-y-0 left-0 w-[4.75rem]
-  [mask-image:linear-gradient(to_right,
-    #000 0%, rgba(0,0,0,0.75) 30%, transparent 88%)]" />`}
+            <Code caption="components/player-bar.tsx — abridged. Underscores, not spaces: that is Tailwind v4's arbitrary-value syntax, and it will not compile with real ones.">
+{`<span className="absolute inset-y-0 left-0 w-[4.75rem] overflow-hidden
+  [mask-image:linear-gradient(to_right,#000_0%,transparent_88%)]
+  [-webkit-mask-image:linear-gradient(to_right,#000_0%,transparent_88%)]
+  md:hidden">
+  <img src={artwork(song.video)} className="size-full object-cover" />
+</span>`}
             </Code>
           </Panel>
 
@@ -209,12 +230,15 @@ export default function DesignPage() {
               A toggle that shows its state in the accent also says so in the
               markup, so it survives a screen reader and a colour filter.
             </p>
-            <Code caption="components/like-button.tsx — the state is announced, not just painted">
-{`<button aria-pressed={liked} aria-label={liked
-    ? "Remove from favourites"
-    : "Add to favourites"}>
+            <Code caption="components/like-button.tsx — abridged. Note the render prop: that is the Base UI idiom, where Radix would take asChild.">
+{`<TooltipTrigger render={
+  <button
+    aria-pressed={liked}
+    aria-label={liked ? "Remove from favourites"
+                      : "Add to favourites"} />
+}>
   <Heart className={liked ? "fill-current" : ""} />
-</button>`}
+</TooltipTrigger>`}
             </Code>
           </Panel>
 

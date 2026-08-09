@@ -104,10 +104,14 @@ export default function ArchitecturePage() {
             </li>
           ))}
         </ol>
-        <Code caption="the whole pipeline, in the order it runs">
+        <Code caption="the shape of it — the full sequence, including three more resolvers and the portrait pass, is in the README">
 {`pdftotext -bbox-layout songlist.pdf full.xml
 python3 pipeline/parse_songlist.py    full.xml data/songs.json
+# load into SQLite: store.ingest_catalogue(conn, songs, stations)
+python3 pipeline/import_labnol.py     <dir> data/carvaan.db   # community
+python3 pipeline/harvest_youtube.py   data/carvaan.db         # channels
 python3 pipeline/match_videos.py      data/carvaan.db
+python3 pipeline/search_youtube.py    data/carvaan.db         # per song
 python3 pipeline/verify_embeddable.py data/carvaan.db
 python3 pipeline/export_catalogue.py  data/carvaan.db \\
                                       web/public/catalogue.json
