@@ -138,7 +138,13 @@ export function NoticeDialog() {
           />
         </div>
         <AlertDialogHeader>
-          <AlertDialogTitle>Welcome to the mehfil</AlertDialogTitle>
+          {/* The primitive's title is text-base font-medium — the same size as the
+              body beneath it, so it reads as a first line rather than a title.
+              text-xl against the description's text-sm gives it somewhere to
+              stand. leading-tight matches the page headings elsewhere. */}
+          <AlertDialogTitle className="text-xl leading-tight">
+            Welcome to Mehfil
+          </AlertDialogTitle>
           {/* A div rather than the default <p>, so two paragraphs can sit
               inside without nesting a <p> in a <p>. The description id, and so
               the aria-describedby wiring, moves with the render override, so
@@ -175,7 +181,7 @@ export function NoticeDialog() {
                 flush against it. The other icon-and-text buttons in the app
                 set their own for the same reason. */}
             <Play className="size-4 fill-current" />
-            Start listening
+            Let the music play
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
