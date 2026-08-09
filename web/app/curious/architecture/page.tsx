@@ -184,7 +184,7 @@ if (!acknowledged) return error(502);   // say so, do not pretend`}
             "Host any music. Every track plays through YouTube's own embedded player.",
             "Store anything about you anywhere but your own browser.",
             "Ask you to sign in, or have anywhere to sign in to.",
-            "Build any picture of you. Umami counts visits with no cookies and no identifier that outlives the page, so there is nothing here that could be joined to a person later.",
+            "Build any picture of you. Umami is cookieless and sets no identifier that survives the page. Your IP reaches its servers as it would any host; Umami's stated design is to hash rather than keep it, which is their word rather than something this code can prove.",
           ].map((line) => (
             <li key={line} className="flex max-w-prose gap-2.5">
               <span aria-hidden className="mt-[0.55rem] size-1 shrink-0 rounded-full bg-muted-foreground/50" />
