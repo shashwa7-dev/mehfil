@@ -74,36 +74,73 @@ export function NoticeDialog() {
 
   return (
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
-      {/* The generated primitive centres the popup with no height cap, and the
-          first paragraph now runs long enough (the artist-credit sentence) to
-          overflow a short viewport — a landscape phone especially. Capping the
-          height and scrolling the overflow keeps the dialog on-screen rather
-          than letting it run past the top and bottom edges with the OK button
+      {/* The generated primitive centres the popup with no height cap, and a
+          250px thumbnail plus three paragraphs is tall enough to overflow a
+          short viewport — a landscape phone especially. Capping the height
+          and scrolling the overflow keeps the dialog on-screen rather than
+          letting it run past the top and bottom edges with the OK button
           unreachable. */}
       <AlertDialogContent className="max-h-[85vh] overflow-y-auto">
+        {/* Full-bleed thumbnail, first inside the content so it sits above
+            the header. AlertDialogContent pads and gaps its children (p-4,
+            gap-4) for the header/footer case; -mx-4 -mt-4 cancels that same
+            padding on this one edge, the same trick AlertDialogFooter already
+            uses at the opposite edge to sit flush with the popup's own
+            bottom. rounded-t-xl + overflow-hidden then re-clip the video to
+            match the popup's own top corners, since escaping the padding
+            also escapes the popup's own clip.
+            Same video-with-poster-fallback pattern as AppBackdrop, but fixed
+            to this one clip rather than reading from the theme store — a
+            notice illustration has no "current backdrop" to key off, and
+            importing AppBackdrop here would wire this dialog to state it has
+            no business depending on. 250px is the owner's brief; on a short
+            (landscape-phone) viewport it drops to 96px so the media doesn't
+            dominate what little height max-h-[85vh] leaves — the text is the
+            part with the acknowledgement in it. */}
+        <div className="-mx-4 -mt-4 overflow-hidden rounded-t-xl">
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            poster="/notice.jpg"
+            aria-hidden
+            className="h-[250px] w-full object-cover motion-reduce:hidden [@media(max-height:500px)]:h-24"
+          >
+            <source src="/notice.mp4" type="video/mp4" />
+          </video>
+          <img
+            src="/notice.jpg"
+            alt=""
+            aria-hidden
+            className="hidden h-[250px] w-full object-cover motion-reduce:block [@media(max-height:500px)]:h-24"
+          />
+        </div>
         <AlertDialogHeader>
-          <AlertDialogTitle>Two things, before you start</AlertDialogTitle>
-          {/* Rendered as a div rather than the default <p>, purely so two
-              paragraphs can sit inside it without nesting a <p> in a <p>.
-              The description id — and so the aria-describedby wiring — moves
-              with the render override, so both paragraphs are still announced
-              as the dialog's description. */}
+          <AlertDialogTitle>Before you start</AlertDialogTitle>
+          {/* Rendered as a div rather than the default <p>, purely so three
+              short paragraphs can sit inside it without nesting a <p> in a
+              <p>. The description id — and so the aria-describedby wiring —
+              moves with the render override, so all three are still
+              announced as the dialog's description. */}
           <AlertDialogDescription render={<div className="space-y-3 text-left" />}>
             <p>
-              Nothing here is ours to claim. The catalogue is metadata compiled
-              from a public songlist; every track plays through YouTube&apos;s
-              own embedded player; cover art is YouTube&apos;s video
-              thumbnails. The backdrops under Themes are illustrations by artists
-              we have not been able to identify, and one or two depict characters
-              belonging to someone else. If you made one, or hold the rights to
-              one, tell us and we will credit it or take it down. Nothing is
-              hosted or claimed by this project.
+              Nothing here is ours. Songs play through YouTube&apos;s own
+              embedded player, and cover art is YouTube&apos;s thumbnails. The
+              backdrops are illustrations we have not been able to trace to an
+              artist — tell us if one is yours and we will credit it or take
+              it down.
             </p>
             <p>
-              Mehfil stores nothing either. There is no account, no server, no
-              analytics, no tracking. The only things it remembers — your
-              favourites and your chosen backdrop — live in this browser&apos;s
-              own storage, on this device, and go nowhere else.
+              Nothing is stored anywhere but this browser: no account, no
+              server, no analytics, no tracking. Favourites and your chosen
+              backdrop live on this device alone.
+            </p>
+            <p>
+              Installing Mehfil to your home screen changes none of that. It
+              asks for no permissions, reaches nothing else on your device,
+              and still sends nothing anywhere — the same page, in its own
+              window.
             </p>
           </AlertDialogDescription>
         </AlertDialogHeader>
