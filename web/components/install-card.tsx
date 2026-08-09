@@ -18,6 +18,7 @@ import {
   IOSInstallHelp,
   useInstall,
 } from "@/components/install-prompt";
+import { track } from "@/lib/analytics";
 import { hasSeenWelcome, onWelcomeSeen } from "@/lib/welcome";
 
 /**
@@ -88,6 +89,7 @@ export function InstallCard() {
   }, [armed, canInstall, installed]);
 
   async function accept() {
+    track("install", { action: "accepted" });
     await install();
     close();
   }
@@ -111,7 +113,10 @@ export function InstallCard() {
       // page, instead of the nudge being lost to where they were standing.
       open={open && pathname !== "/about"}
       onOpenChange={(next) => {
-        if (!next) close();
+        if (!next) {
+          if (open) track("install", { action: "declined" });
+          close();
+        }
       }}
     >
       {/* Same geometry as the welcome: capped on dvh, wider than the

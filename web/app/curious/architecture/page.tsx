@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ArrowUpRight } from "lucide-react";
 import { Code, Key, Panel } from "@/components/curious-bits";
+import { EVENTS } from "@/lib/analytics";
 
 export const metadata: Metadata = {
   title: "Architecture",
@@ -38,7 +39,7 @@ export default function ArchitecturePage() {
             ["Facets", "415 singers, 1,379 films, 66 stations, 23 composers, 12 lyricists, 12 moods"],
             ["Framework", "Next.js 16 App Router, React 19, Tailwind v4"],
             ["Server code", "One route — /api/feedback — and nothing else"],
-            ["Storage", "Four localStorage keys, no cookies. Visits counted anonymously with Umami"],
+            ["Storage", "Four localStorage keys, no cookies. Seven anonymous counts via Umami — the list is below"],
           ]}
         />
         <p className="mt-4 max-w-prose text-sm leading-relaxed text-muted-foreground">
@@ -175,6 +176,35 @@ if (!acknowledged) return error(502);   // say so, do not pretend`}
           URL carrying the build id, because a worker is only replaced when its
           own bytes change — and a static worker file meant installed apps sat
           on a complete, working, months-old build.
+        </p>
+      </Section>
+
+      <Section title="What is counted">
+        <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
+          Seven events, and this list is not a description of them — it{" "}
+          <Key>is</Key> them. The same array renders this table and gates what
+          the tracker will send, so an event that is not written here cannot
+          fire, and one that fires cannot go undescribed.
+        </p>
+        <dl className="mt-4 divide-y divide-white/[0.06] rounded-lg border border-white/[0.07] bg-card/40">
+          {Object.entries(EVENTS).map(([name, meaning]) => (
+            <div key={name} className="flex flex-col gap-1 p-3 sm:flex-row sm:gap-4">
+              <dt className="shrink-0 font-mono text-xs text-foreground sm:w-28 sm:pt-0.5">
+                {name}
+              </dt>
+              <dd className="min-w-0 text-sm leading-relaxed text-muted-foreground">
+                {meaning}
+              </dd>
+            </div>
+          ))}
+        </dl>
+        <p className="mt-4 max-w-prose text-sm leading-relaxed text-muted-foreground">
+          Everything sent is a count or a value from a fixed set — a theme name,
+          a collection kind, &ldquo;liked&rdquo; or &ldquo;unliked&rdquo;.{" "}
+          <Key>Nothing free-typed ever leaves the browser</Key>: searching is
+          counted, what was typed into the box is not. There is no user id, no
+          session id and no device fingerprint, so two plays by one person and
+          two plays by two people are the same thing here.
         </p>
       </Section>
 

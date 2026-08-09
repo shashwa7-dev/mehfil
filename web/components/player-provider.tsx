@@ -11,6 +11,7 @@ import {
 } from "react";
 import { PlayerBar } from "@/components/player-bar";
 import { hydrate, type Catalogue, type RawSong } from "@/lib/catalogue";
+import { track } from "@/lib/analytics";
 import { useCatalogue } from "@/lib/queries";
 
 type PlayerApi = {
@@ -123,6 +124,17 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     setPlaying(true);
   }, []);
 
+  // Counted here rather than at each button, because every route into playback
+  // ends up in play() — a row, a shuffle, the welcome, auto-advance. One call
+  // site cannot drift from another if there is only one.
+  const playFrom = useCallback(
+    (id: number, from: string) => {
+      track("play", { from });
+      play(id);
+    },
+    [play]
+  );
+
   // Rows call this rather than play(): pressing the control on the row that
   // is already playing should pause it, and play() cannot — it only ever
   // sets state that is already set. Anything else is a plain play.
@@ -138,18 +150,21 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     (songs: RawSong[]) => {
       if (songs.length === 0) return;
       setQueue(songs);
-      play(shuffle ? songs[Math.floor(Math.random() * songs.length)].id : songs[0].id);
+      playFrom(
+        shuffle ? songs[Math.floor(Math.random() * songs.length)].id : songs[0].id,
+        "list"
+      );
     },
-    [play, setQueue, shuffle]
+    [playFrom, setQueue, shuffle]
   );
 
   const playRandom = useCallback(
     (songs: RawSong[]) => {
       if (songs.length === 0) return;
       setQueue(songs);
-      play(songs[Math.floor(Math.random() * songs.length)].id);
+      playFrom(songs[Math.floor(Math.random() * songs.length)].id, "shuffle");
     },
-    [play, setQueue]
+    [playFrom, setQueue]
   );
 
   const step = useCallback(

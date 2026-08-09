@@ -231,12 +231,11 @@ export function NoticeDialog() {
                 There is no account and nothing to sign in to.
               </strong>{" "}
               Your favourites and your chosen backdrop stay in this browser. We
-              count visits, anonymously and{" "}
+              count a little of what happens here — visits, plays, searches —{" "}
               <strong className="font-medium text-primary">
-                without cookies
+                without cookies and without anything that identifies you
               </strong>
-              , and that is the whole of it. Installing Mehfil changes none of
-              that.
+              . The full list is on the For the curious page, and it is short.
             </p>
           </AlertDialogDescription>
         </AlertDialogHeader>

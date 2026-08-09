@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+
+import { track } from "@/lib/analytics";
 import { Check, Loader2, X } from "lucide-react";
 import { sendReport, type Report, type ReportKind } from "@/lib/feedback";
 
@@ -79,6 +81,10 @@ export function ReportDialog({
       setError(failure);
       return;
     }
+    // Only on a confirmed write. Counting attempts would tell us how often
+    // people try, which is a different and less useful number than how often
+    // the catalogue actually gets a correction out of it.
+    track("report", { kind });
     setSent(true);
     setTimeout(onClose, 1600);
   }

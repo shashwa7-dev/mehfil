@@ -2,6 +2,8 @@
 
 import { useSyncExternalStore } from "react";
 
+import { track } from "@/lib/analytics";
+
 /**
  * Which animated backdrop the app is wearing.
  *
@@ -68,6 +70,7 @@ function current(): string {
 }
 
 export function setBackdrop(id: string) {
+  track("theme", { theme: id });
   chosen = id;
   try {
     localStorage.setItem(KEY, id);

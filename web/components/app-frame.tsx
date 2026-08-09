@@ -23,6 +23,7 @@ import { InstallButton } from "@/components/install-prompt";
 import { InstallCard } from "@/components/install-card";
 import { LikeBurstHost } from "@/components/like-burst";
 import { NoticeDialog } from "@/components/notice-dialog";
+import { track } from "@/lib/analytics";
 import { facetCards, portrait } from "@/lib/catalogue";
 import { usePlayer, usePlayerBar } from "@/components/player-provider";
 import { useCatalogue, usePhotoManifest } from "@/lib/queries";
@@ -244,7 +245,14 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
                     setQuery(e.target.value);
                     // Searching from anywhere lands on the list that can show
                     // results, rather than silently doing nothing.
-                    if (pathname !== "/songs" && e.target.value) router.push("/songs");
+                    // Once per search, when it takes someone to the results —
+                    // not once per keystroke, and never with the text. That
+                    // somebody searched is the useful part; what they typed is
+                    // a diary.
+                    if (pathname !== "/songs" && e.target.value) {
+                      track("search");
+                      router.push("/songs");
+                    }
                   }}
                   placeholder="Search songs, films, singers…"
                   className="h-10 w-full rounded-full border border-white/10 bg-white/[0.07] pl-10 pr-9 text-sm outline-none transition placeholder:text-muted-foreground/70 hover:border-white/20 hover:bg-white/[0.09] focus:border-primary/50 focus:bg-white/[0.1] focus:ring-4 focus:ring-primary/10"
