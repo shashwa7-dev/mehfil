@@ -121,7 +121,17 @@ export function Providers({ children }: { children: React.ReactNode }) {
       | (ScreenOrientation & { lock?: (to: "portrait") => Promise<void> })
       | undefined;
     if (typeof orientation?.lock !== "function") return;
-    orientation.lock("portrait").catch(() => {});
+
+    // try/catch around the call as well as .catch on the promise. The spec
+    // says lock() rejects when the platform will not honour it, but not every
+    // engine agrees — some throw outright — and this effect runs inside the
+    // provider that wraps the entire app. A cosmetic orientation request must
+    // not be able to take the app down with it.
+    try {
+      orientation.lock("portrait").catch(() => {});
+    } catch {
+      // Nothing to do: the layout does not depend on this succeeding.
+    }
   }, []);
 
   // Created in state so the client is stable across re-renders but never
