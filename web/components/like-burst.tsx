@@ -39,8 +39,13 @@ const LIFETIME = 1100;
  */
 const MAX = 4;
 
+/** Frozen and hoisted: React compares successive getServerSnapshot results by
+ *  reference during hydration, so returning a fresh array each call trips its
+ *  "should be cached to avoid an infinite loop" check. */
+const NONE: readonly Burst[] = Object.freeze([]);
+
 let sequence = 0;
-let bursts: readonly Burst[] = Object.freeze([]);
+let bursts: readonly Burst[] = NONE;
 const listeners = new Set<() => void>();
 
 function publish(next: Burst[]) {
@@ -97,7 +102,7 @@ export function LikeBurstHost() {
   const active = useSyncExternalStore(
     subscribe,
     () => bursts,
-    () => Object.freeze([]) as readonly Burst[]
+    () => NONE
   );
 
   // Nothing to draw, and — because the server snapshot is always empty — this
