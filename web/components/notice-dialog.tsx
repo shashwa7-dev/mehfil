@@ -95,21 +95,25 @@ export function NoticeDialog() {
           has to repeat the data-[size] variant rather than set a bare max-w-*:
           tailwind-merge treats differently-modified utilities as unrelated, so
           a plain one would leave both in place and lose to the attribute
-          selector's specificity. */}
-      <AlertDialogContent className="max-h-[85vh] overflow-hidden data-[size=default]:max-w-[calc(100vw-2rem)] data-[size=default]:sm:max-w-[475px]">
-        {/* The badge, sunk into the card as a watermark.
-            -z-10 puts it above the popup's own background but beneath every
-            in-flow child, so the text reads over it rather than around it.
-            Bled off the bottom-right corner and clipped by the popup's
-            overflow-hidden, which is what makes it read as a mark on the card
-            instead of a small picture someone placed there. */}
-        <img
-          src="/logo.png"
-          alt=""
-          aria-hidden
-          className="pointer-events-none absolute -bottom-10 -right-10 -z-10 size-44 opacity-[0.07]"
-        />
+          selector's specificity.
 
+          flex flex-col replaces the primitive's own `grid` (both are bare
+          display utilities with no modifier, so tailwind-merge treats them as
+          the same slot and the later one wins — confirmed by grepping the
+          compiled CSS for `alert-dialog-content` and checking `display` is
+          `flex`, not `grid`, in the class this component actually renders).
+          With that, media, header and footer stack in document order and the
+          description is the only child asked to size itself against
+          whatever's left, via flex-1 below, rather than every child guessing
+          a share of the viewport up front.
+
+          dvh, not vh, for the same reason the media below hides at
+          `max-height:500px` rather than a Tailwind breakpoint: mobile
+          Safari's `vh` is the *large* viewport — the address bar counted as
+          hidden — so `85vh` overstates what is actually on screen the moment
+          the bar is showing, which is exactly the moment a first-run dialog
+          appears. */}
+      <AlertDialogContent className="flex max-h-[85dvh] flex-col overflow-hidden data-[size=default]:max-w-[calc(100vw-2rem)] data-[size=default]:sm:max-w-[475px]">
         {/* Full-bleed thumbnail, first inside the content so it sits above
             the header. AlertDialogContent pads and gaps its children (p-4,
             gap-4) for the header/footer case; -mx-4 -mt-4 cancels that same
@@ -124,7 +128,7 @@ export function NoticeDialog() {
             importing AppBackdrop here would wire this dialog to state it has
             no business depending on. 200px against a 475px card; on a short
             (landscape-phone) viewport it drops to 96px so the media doesn't
-            dominate what little height max-h-[85vh] leaves — the text is the
+            dominate what little height max-h-[85dvh] leaves — the text is the
             part with the acknowledgement in it. */}
         {/* Faded out at the bottom rather than stopped. A picture that ends on
             a hard horizontal line reads as a banner bolted above the text; the
@@ -154,8 +158,30 @@ export function NoticeDialog() {
           {/* The primitive's title is text-base font-medium — the same size as the
               body beneath it, so it reads as a first line rather than a title.
               text-xl against the description's text-sm gives it somewhere to
-              stand. leading-tight matches the page headings elsewhere. */}
-          <AlertDialogTitle className="text-xl leading-tight">
+              stand. leading-tight matches the page headings elsewhere.
+
+              The badge moved here from its old life as a background watermark
+              — the owner's call, since a mark bled across the whole card read
+              as decoration where a small one beside the name reads as a logo.
+              size-7 keeps it in proportion to text-xl rather than competing
+              with it, and rounded-full is what turns a square PNG into
+              something that reads as a record rather than an app tile.
+              motion-safe: only — this spins for as long as the dialog is open,
+              and a perpetual animation is exactly what prefers-reduced-motion
+              exists to stop, so under that setting it just sits still as a
+              badge. 8s linear is a record's own slow, even turn; Tailwind's
+              animate-spin keyframe is reused via an arbitrary duration rather
+              than defining a duplicate, since its default 1s reads as a
+              loading spinner, not a turntable. alt="" and aria-hidden: the
+              image adds nothing a screen reader needs that the title text
+              beside it does not already say. */}
+          <AlertDialogTitle className="flex items-center gap-2 text-xl leading-tight">
+            <img
+              src="/logo.png"
+              alt=""
+              aria-hidden
+              className="size-7 shrink-0 rounded-full motion-safe:animate-[spin_8s_linear_infinite]"
+            />
             Welcome to Mehfil
           </AlertDialogTitle>
           {/* A div rather than the default <p>, so two paragraphs can sit
@@ -163,11 +189,18 @@ export function NoticeDialog() {
               the aria-describedby wiring, moves with the render override, so
               both are still announced as the dialog's description.
 
-              This is the only thing that scrolls. Bounding it here rather than
-              on the popup keeps the picture and the OK button fixed while long
-              text moves under them. */}
+              This is the only thing that scrolls, and now the only thing that
+              is asked to give something up when space is short. min-h-0
+              overrides the grid item's own automatic minimum size — without
+              it a scrollable child still refuses to shrink below its content,
+              which is the same clipping bug wearing a different hat — and
+              flex-1 asks for whatever the header has left over after the
+              title. There is no max-h-[38vh] any more: that was a guess at a
+              fraction of the viewport, and guesses are how a footer ends up
+              needing 590px of screen to stay on screen. Sizing to "whatever
+              is actually left" needs no guess. */}
           <AlertDialogDescription
-            render={<div className="max-h-[38vh] space-y-3 overflow-y-auto text-left" />}
+            render={<div className="min-h-0 flex-1 space-y-3 overflow-y-auto text-left" />}
           >
             {/* <strong> rather than a coloured span. The accent is what draws
                 the eye, but colour alone is not a way to carry meaning — the
