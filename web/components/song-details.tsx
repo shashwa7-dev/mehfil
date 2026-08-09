@@ -56,11 +56,11 @@ export function SongDetails({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[95] grid place-items-center bg-black/70 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[95] flex items-center justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="relative max-h-[85vh] w-full max-w-md overflow-hidden rounded-xl border border-white/10 bg-card shadow-2xl"
+        className="relative max-h-[85dvh] w-full min-w-0 max-w-md overflow-hidden rounded-xl border border-white/10 bg-card shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
         {/* The song's own artwork behind the credits, radiating out of the top
@@ -83,7 +83,7 @@ export function SongDetails({
 
         <div className="relative max-h-[85vh] overflow-y-auto p-5">
           <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="text-base leading-tight">{song.title}</p>
               {song.film && (
                 <Link

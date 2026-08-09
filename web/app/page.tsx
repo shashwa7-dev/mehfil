@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Disc3 } from "lucide-react";
 import { BrowseGrid } from "@/components/browse-grid";
 import { CatalogueGate } from "@/components/catalogue-gate";
-import { InstallPrompt } from "@/components/install-prompt";
 import { useFrame } from "@/components/app-frame";
 import { usePlayer } from "@/components/player-provider";
 import { artwork, filterSongs, type Catalogue } from "@/lib/catalogue";
@@ -99,7 +98,6 @@ export default function BrowsePage() {
               router.push(collectionHref(facet, label));
             }}
           />
-          <InstallPrompt />
         </>
       )}
     </CatalogueGate>

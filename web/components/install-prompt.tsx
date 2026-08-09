@@ -109,8 +109,8 @@ export function useInstall() {
 /** Steps for Safari, which has no install API. */
 export function IOSInstallHelp({ onClose }: { onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-[90] grid place-items-center bg-black/70 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-sm rounded-xl border border-white/10 bg-card p-5 shadow-2xl">
+    <div className="fixed inset-0 z-[90] flex items-center justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm">
+      <div className="w-full min-w-0 max-w-sm rounded-xl border border-white/10 bg-card p-5 shadow-2xl">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="" width={40} height={40} className="size-10 rounded-lg" />
@@ -160,16 +160,83 @@ export function InstallButton({ className = "" }: { className?: string }) {
   const { install, installed, isIOS, canInstall, showIOSHelp, dismissIOSHelp } =
     useInstall();
   const [showHelp, setShowHelp] = useState(false);
+  const [dismissed, setDismissed] = useState(true);
+
+  useEffect(() => {
+    try {
+      // Starts dismissed so the accented state never flashes before we know
+      // whether it was already turned down. localStorage cannot be read during
+      // render or on the server.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDismissed(Boolean(localStorage.getItem(DISMISSED_KEY)));
+    } catch {
+      setDismissed(false);
+    }
+  }, []);
 
   if (installed) return null;
+
+  /**
+   * The nudge is this row, wearing a colour.
+   *
+   * It used to be a separate card floating above the player on the browse page
+   * only — covering content, on one route, in a place the eye goes to for the
+   * music rather than for settings. There was already an install control in
+   * the sidebar; the floating one made two.
+   *
+   * So there is one control now. While the browser will accept an install and
+   * nobody has said no, it wears the accent and offers a dismiss. Afterwards it
+   * is a quiet row like its neighbours, still there for anyone who changes
+   * their mind. The sidebar renders in the desktop rail and the mobile drawer
+   * from the same markup, so this is both platforms without a second layout.
+   */
+  const nudging = canInstall && !dismissed;
+
+  const dismiss = (event: React.MouseEvent) => {
+    // The row is a button and this sits inside it; without this the dismiss
+    // would also fire the install prompt it is meant to decline.
+    event.stopPropagation();
+    setDismissed(true);
+    try {
+      localStorage.setItem(DISMISSED_KEY, "1");
+    } catch {
+      // Storage unavailable; it will simply offer again next visit.
+    }
+  };
 
   return (
     <>
       <button
         onClick={() => (canInstall ? install() : setShowHelp(true))}
-        className={`flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground ${className}`}
+        className={`flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition ${
+          nudging
+            ? "bg-primary/12 text-primary hover:bg-primary/20"
+            : "text-muted-foreground hover:bg-white/[0.06] hover:text-foreground"
+        } ${className}`}
       >
-        <Download className="size-4" /> Install Mehfil
+        <Download className="size-4 shrink-0" />
+        <span className="min-w-0 flex-1 truncate text-left">
+          {nudging ? (isIOS ? "Add to home screen" : "Install Mehfil") : "Install Mehfil"}
+        </span>
+        {nudging && (
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={dismiss}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                event.stopPropagation();
+                dismiss(event as unknown as React.MouseEvent);
+              }
+            }}
+            aria-label="Not now"
+            title="Not now"
+            className="-mr-1 shrink-0 rounded-full p-1 text-primary/70 transition hover:bg-white/10 hover:text-primary"
+          >
+            <X className="size-3.5" />
+          </span>
+        )}
       </button>
       {showIOSHelp && <IOSInstallHelp onClose={dismissIOSHelp} />}
       {showHelp && !isIOS && <ManualInstallHelp onClose={() => setShowHelp(false)} />}
@@ -180,8 +247,8 @@ export function InstallButton({ className = "" }: { className?: string }) {
 /** Fallback for browsers with no install API and no prompt event. */
 function ManualInstallHelp({ onClose }: { onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-[90] grid place-items-center bg-black/70 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-sm rounded-xl border border-white/10 bg-card p-5 shadow-2xl">
+    <div className="fixed inset-0 z-[90] flex items-center justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm">
+      <div className="w-full min-w-0 max-w-sm rounded-xl border border-white/10 bg-card p-5 shadow-2xl">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="" width={40} height={40} className="size-10 rounded-lg" />
@@ -221,62 +288,3 @@ function ManualInstallHelp({ onClose }: { onClose: () => void }) {
 }
 
 /** One-time banner. Dismissal is remembered; the sidebar control is not. */
-export function InstallPrompt() {
-  const { install, canInstall, isIOS, showIOSHelp, dismissIOSHelp } = useInstall();
-  const [dismissed, setDismissed] = useState(true);
-
-  useEffect(() => {
-    try {
-      // localStorage is unavailable during render and on the server, so the
-      // dismissal can only be read once mounted.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setDismissed(Boolean(localStorage.getItem(DISMISSED_KEY)));
-    } catch {
-      setDismissed(false);
-    }
-  }, []);
-
-  const dismiss = () => {
-    setDismissed(true);
-    try {
-      localStorage.setItem(DISMISSED_KEY, "1");
-    } catch {
-      // Storage unavailable; it will simply offer again next visit.
-    }
-  };
-
-  if (dismissed || !canInstall) {
-    return showIOSHelp ? <IOSInstallHelp onClose={dismissIOSHelp} /> : null;
-  }
-
-  return (
-    <>
-      <div className="pointer-events-none fixed inset-x-0 bottom-[96px] z-[80] flex justify-center px-3">
-        <div className="pointer-events-auto flex w-full max-w-md items-center gap-3 rounded-xl border border-white/10 bg-card/95 p-3 shadow-2xl backdrop-blur">
-          <img src="/logo.png" alt="" width={40} height={40} className="size-10 rounded-lg" />
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium">Install Mehfil</p>
-            <p className="text-xs text-muted-foreground">
-              {isIOS ? "Add it to your home screen" : "Full screen, no browser bars"}
-            </p>
-          </div>
-          <button
-            onClick={install}
-            className="flex shrink-0 items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition hover:opacity-90"
-          >
-            <Download className="size-3.5" /> Install
-          </button>
-          <button
-            onClick={dismiss}
-            title="Dismiss"
-            aria-label="Dismiss install prompt"
-            className="shrink-0 rounded-full p-1.5 text-muted-foreground transition hover:bg-white/10 hover:text-foreground"
-          >
-            <X className="size-4" />
-          </button>
-        </div>
-      </div>
-      {showIOSHelp && <IOSInstallHelp onClose={dismissIOSHelp} />}
-    </>
-  );
-}
