@@ -3,7 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { Download, Share, SquarePlus, X } from "lucide-react";
 
-const DISMISSED_KEY = "mehfil.installDismissed";
+/**
+ * Shared with InstallCard, which is what writes it now.
+ *
+ * Exported rather than repeated: two copies of a storage key is how one of
+ * them quietly stops matching the other, and the failure — a nudge that will
+ * not stay dismissed — looks like a bug in the dialog rather than a typo.
+ */
+export const DISMISSED_KEY = "mehfil.installDismissed";
 
 type InstallEvent = Event & {
   prompt: () => Promise<void>;
@@ -109,8 +116,8 @@ export function useInstall() {
 /** Steps for Safari, which has no install API. */
 export function IOSInstallHelp({ onClose }: { onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-[90] grid place-items-center bg-black/70 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-sm rounded-xl border border-white/10 bg-card p-5 shadow-2xl">
+    <div className="fixed inset-0 z-[90] flex items-center justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm">
+      <div className="w-full min-w-0 max-w-sm rounded-xl border border-white/10 bg-card p-5 shadow-2xl">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="" width={40} height={40} className="size-10 rounded-lg" />
@@ -163,13 +170,22 @@ export function InstallButton({ className = "" }: { className?: string }) {
 
   if (installed) return null;
 
+  /**
+   * The permanent way in, and deliberately quiet.
+   *
+   * The nudging is InstallCard's job — a card, shown once, on a visit after
+   * the welcome. This row is what remains afterwards for anyone who said not
+   * now and then changed their mind, so it reads like its neighbours rather
+   * than competing with them.
+   */
   return (
     <>
       <button
         onClick={() => (canInstall ? install() : setShowHelp(true))}
         className={`flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition hover:bg-white/[0.06] hover:text-foreground ${className}`}
       >
-        <Download className="size-4" /> Install Mehfil
+        <Download className="size-4 shrink-0" />
+        <span className="min-w-0 flex-1 truncate text-left">Install Mehfil</span>
       </button>
       {showIOSHelp && <IOSInstallHelp onClose={dismissIOSHelp} />}
       {showHelp && !isIOS && <ManualInstallHelp onClose={() => setShowHelp(false)} />}
@@ -180,8 +196,8 @@ export function InstallButton({ className = "" }: { className?: string }) {
 /** Fallback for browsers with no install API and no prompt event. */
 function ManualInstallHelp({ onClose }: { onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-[90] grid place-items-center bg-black/70 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-sm rounded-xl border border-white/10 bg-card p-5 shadow-2xl">
+    <div className="fixed inset-0 z-[90] flex items-center justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm">
+      <div className="w-full min-w-0 max-w-sm rounded-xl border border-white/10 bg-card p-5 shadow-2xl">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="" width={40} height={40} className="size-10 rounded-lg" />
@@ -220,63 +236,3 @@ function ManualInstallHelp({ onClose }: { onClose: () => void }) {
   );
 }
 
-/** One-time banner. Dismissal is remembered; the sidebar control is not. */
-export function InstallPrompt() {
-  const { install, canInstall, isIOS, showIOSHelp, dismissIOSHelp } = useInstall();
-  const [dismissed, setDismissed] = useState(true);
-
-  useEffect(() => {
-    try {
-      // localStorage is unavailable during render and on the server, so the
-      // dismissal can only be read once mounted.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setDismissed(Boolean(localStorage.getItem(DISMISSED_KEY)));
-    } catch {
-      setDismissed(false);
-    }
-  }, []);
-
-  const dismiss = () => {
-    setDismissed(true);
-    try {
-      localStorage.setItem(DISMISSED_KEY, "1");
-    } catch {
-      // Storage unavailable; it will simply offer again next visit.
-    }
-  };
-
-  if (dismissed || !canInstall) {
-    return showIOSHelp ? <IOSInstallHelp onClose={dismissIOSHelp} /> : null;
-  }
-
-  return (
-    <>
-      <div className="pointer-events-none fixed inset-x-0 bottom-[96px] z-[80] flex justify-center px-3">
-        <div className="pointer-events-auto flex w-full max-w-md items-center gap-3 rounded-xl border border-white/10 bg-card/95 p-3 shadow-2xl backdrop-blur">
-          <img src="/logo.png" alt="" width={40} height={40} className="size-10 rounded-lg" />
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium">Install Mehfil</p>
-            <p className="text-xs text-muted-foreground">
-              {isIOS ? "Add it to your home screen" : "Full screen, no browser bars"}
-            </p>
-          </div>
-          <button
-            onClick={install}
-            className="flex shrink-0 items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition hover:opacity-90"
-          >
-            <Download className="size-3.5" /> Install
-          </button>
-          <button
-            onClick={dismiss}
-            title="Dismiss"
-            aria-label="Dismiss install prompt"
-            className="shrink-0 rounded-full p-1.5 text-muted-foreground transition hover:bg-white/10 hover:text-foreground"
-          >
-            <X className="size-4" />
-          </button>
-        </div>
-      </div>
-      {showIOSHelp && <IOSInstallHelp onClose={dismissIOSHelp} />}
-    </>
-  );
-}

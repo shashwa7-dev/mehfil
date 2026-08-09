@@ -87,22 +87,28 @@ export function ReportDialog({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[95] grid place-items-center bg-black/70 p-4 backdrop-blur-sm"
+      // Flex, not grid. `grid place-items-center` gives the card an implicit
+      // column sized to its own max-content, so `w-full` on the card resolved
+      // against that instead of the screen: a long song title made the column
+      // wider than the viewport and the whole dialog hung off the right edge.
+      // A flex centre sizes the child against the container, which is what the
+      // max-width was always meant to be measured from.
+      className="fixed inset-0 z-[95] flex items-center justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-xl border border-white/10 bg-card p-5 shadow-2xl"
+        className="max-h-[90dvh] w-full min-w-0 max-w-md overflow-y-auto rounded-xl border border-white/10 bg-card p-5 shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="text-sm font-medium">
               {wrong ? "Report the wrong recording" : "Add a link for this song"}
             </p>
-            <p className="truncate text-xs text-muted-foreground">
-              {songTitle}
-              {songFilm ? ` · ${songFilm}` : ""}
-            </p>
+            <p className="truncate text-xs text-muted-foreground">{songTitle}</p>
+            {songFilm && (
+              <p className="truncate text-xs text-muted-foreground/70">{songFilm}</p>
+            )}
           </div>
           <button
             onClick={onClose}
