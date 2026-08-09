@@ -81,7 +81,7 @@ export function SongDetails({
           />
         </span>
 
-        <div className="relative max-h-[85vh] overflow-y-auto p-5">
+        <div className="relative max-h-[85dvh] overflow-y-auto p-5">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <p className="text-base leading-tight">{song.title}</p>

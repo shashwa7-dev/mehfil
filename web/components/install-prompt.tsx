@@ -236,4 +236,3 @@ function ManualInstallHelp({ onClose }: { onClose: () => void }) {
   );
 }
 
-/** One-time banner. Dismissal is remembered; the sidebar control is not. */

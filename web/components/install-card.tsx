@@ -13,7 +13,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { DISMISSED_KEY, useInstall } from "@/components/install-prompt";
+import {
+  DISMISSED_KEY,
+  IOSInstallHelp,
+  useInstall,
+} from "@/components/install-prompt";
 import { hasSeenWelcome, onWelcomeSeen } from "@/lib/welcome";
 
 /**
@@ -35,7 +39,8 @@ const DELAY_MS = 5000;
 
 export function InstallCard() {
   const pathname = usePathname();
-  const { install, installed, isIOS, canInstall } = useInstall();
+  const { install, installed, isIOS, canInstall, showIOSHelp, dismissIOSHelp } =
+    useInstall();
   const [armed, setArmed] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -53,7 +58,19 @@ export function InstallCard() {
     }
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (hasSeenWelcome()) setArmed(true);
-    return onWelcomeSeen(() => setArmed(true));
+    return onWelcomeSeen(() => {
+      // Re-checked on every notification, not just at mount. /about reopens the
+      // welcome on every visit, so without this a refusal made earlier in the
+      // session is undone the moment someone reads the about page and dismisses
+      // that welcome again — the card returns five seconds later having already
+      // been told no.
+      try {
+        if (localStorage.getItem(DISMISSED_KEY)) return;
+      } catch {
+        return;
+      }
+      setArmed(true);
+    });
   }, []);
 
   // The wait starts when everything else is already true, so the five seconds
@@ -70,6 +87,11 @@ export function InstallCard() {
     return () => window.clearTimeout(timer);
   }, [armed, canInstall, installed]);
 
+  async function accept() {
+    await install();
+    close();
+  }
+
   function close() {
     setOpen(false);
     setArmed(false);
@@ -81,6 +103,7 @@ export function InstallCard() {
   }
 
   return (
+    <>
     <AlertDialog
       // /about reopens the welcome on every visit, so this stays out of the way
       // there. Holding it at the render rather than the timer means someone who
@@ -137,7 +160,14 @@ export function InstallCard() {
         </AlertDialogHeader>
 
         <AlertDialogFooter className="sm:justify-start">
-          <AlertDialogAction className="gap-2" onClick={install}>
+          {/* Closes itself either way. On Android and desktop the native
+              dialog answers and leaving this one up would ask again for
+              something just granted; on iOS install() only opens the
+              instructions, and they are rendered outside this dialog precisely
+              so they survive it closing. Dismissing here also records the
+              refusal key, which is right: whichever way it went, there is
+              nothing left to nudge about. */}
+          <AlertDialogAction className="gap-2" onClick={() => void accept()}>
             {isIOS ? <Share className="size-4" /> : <Download className="size-4" />}
             {isIOS ? "Show me how" : "Install"}
           </AlertDialogAction>
@@ -148,5 +178,10 @@ export function InstallCard() {
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+    {/* A sibling of the dialog, not a child. Safari has no install API, so this
+        is the whole of the iOS path — and it has to keep standing after the
+        card closes, which a child of the card could not. */}
+    {showIOSHelp && <IOSInstallHelp onClose={dismissIOSHelp} />}
+    </>
   );
 }
