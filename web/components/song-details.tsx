@@ -98,6 +98,7 @@ export function SongDetails({
             <button
               onClick={onClose}
               title="Close"
+              aria-label="Close"
               className="shrink-0 rounded-full p-1.5 text-muted-foreground transition hover:bg-white/10 hover:text-foreground"
             >
               <X className="size-4" />

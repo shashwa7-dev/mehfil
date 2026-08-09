@@ -59,6 +59,7 @@
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
+  --color-heart: var(--heart);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
@@ -202,6 +203,12 @@
   --popover-foreground: oklch(0.97 0.004 80);
 
   --primary: oklch(0.79 0.135 78);
+  /* For hearts, and only hearts. A heart rendered in the brass accent is a
+     heart the eye files with every other control; a warm red is the colour the
+     gesture already has everywhere else on the web. Kept at the brass's own
+     lightness and chroma so it reads as a neighbour in the same palette rather
+     than a second brand colour dropped in. */
+  --heart: oklch(0.70 0.17 22);
   --primary-foreground: oklch(0.19 0.02 60);
 
   --secondary: oklch(0.27 0.009 60);
@@ -352,5 +359,35 @@
       #000 calc(100% - 20px),
       transparent 100%
     );
+  }
+}
+
+/* A liked heart throwing off smaller ones.
+ *
+ * One static rule for every particle: each is handed its own drift, rise,
+ * rotation, end scale and delay as custom properties, so six differ without six
+ * keyframe definitions.
+ *
+ * Transform and opacity only. Both are composited, so the whole burst runs off
+ * the main thread and cannot cause layout while a song is starting. */
+@keyframes like-rise {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4) rotate(0deg);
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy)))
+      scale(var(--end-scale)) rotate(var(--rot));
+  }
+}
+
+/* The backdrop arriving after hydration. See components/app-backdrop.tsx. */
+@keyframes fade-in {
+  from {
+    opacity: 0;
   }
 }

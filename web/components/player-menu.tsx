@@ -92,6 +92,7 @@ export function PlayerMenu({
           <button
             onClick={onClose}
             title="Close"
+            aria-label="Close"
             className="rounded-full p-1.5 text-muted-foreground transition hover:bg-white/10 hover:text-foreground"
           >
             <X className="size-4" />
@@ -112,14 +113,14 @@ export function PlayerMenu({
 
         {/* Toggles stay open: they change state here rather than sending you
             somewhere, and turning both on is one gesture that way. */}
-        <button onClick={onToggleShuffle} className={row}>
+        <button onClick={onToggleShuffle} aria-pressed={shuffle} className={row}>
           <Shuffle className={`size-4 ${shuffle ? "text-primary" : "text-muted-foreground"}`} />
           Shuffle
           <span className={`ml-auto text-xs ${shuffle ? "text-primary" : "text-muted-foreground"}`}>
             {shuffle ? "On" : "Off"}
           </span>
         </button>
-        <button onClick={onToggleRepeat} className={row}>
+        <button onClick={onToggleRepeat} aria-pressed={repeat} className={row}>
           <Repeat className={`size-4 ${repeat ? "text-primary" : "text-muted-foreground"}`} />
           Repeat one
           <span className={`ml-auto text-xs ${repeat ? "text-primary" : "text-muted-foreground"}`}>

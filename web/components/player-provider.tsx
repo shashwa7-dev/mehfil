@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -21,6 +22,16 @@ type PlayerApi = {
   /** The same list, observable, so the queue view can render it. */
   queue: RawSong[];
   play: (id: number) => void;
+  /**
+   * What a row's own play/pause control should call instead of `play`.
+   *
+   * `play(id)` on the song already current and playing sets state to the
+   * value it already holds, so nothing re-renders and nothing pauses — the
+   * row's button would claim to pause and silently fail. This tells the bar
+   * to toggle instead, via `toggleSignal`, for exactly that one case; any
+   * other id is a plain play.
+   */
+  playOrToggle: (id: number) => void;
   playFirst: (songs: RawSong[]) => void;
   playRandom: (songs: RawSong[]) => void;
   toggleAmbient: () => void;
@@ -60,21 +71,68 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [repeat, setRepeat] = useState(false);
   const [ambient, setAmbient] = useState(true);
   const [unplayable, setUnplayable] = useState<Record<number, string>>({});
+  // A counter rather than a boolean: the bar's effect fires on every change,
+  // including two toggles in a row, which a boolean flipped back and forth
+  // could coalesce away if the second click landed before the effect ran.
+  const [toggleSignal, setToggleSignal] = useState(0);
 
   // Mirrored into state as well as a ref. The ref keeps next/previous cheap
   // and free of stale closures; the state is what lets the queue view show
   // what is coming without polling.
   const queueRef = useRef<RawSong[]>([]);
+  // The songs either side of the current one, remembered by id while it is
+  // still in the queue. Ids survive a queue changing under us in a way an
+  // index cannot: unliking the playing song on /favourites removes it from
+  // the queue, and this is what lets playback continue to its old neighbour
+  // rather than jumping to the top of the list. When neither neighbour is in
+  // the new queue either — navigating to an unrelated collection, say — there
+  // is genuinely nothing to resume from, and the queue's own start is right.
+  const neighboursRef = useRef<{ next: number | null; prev: number | null }>({
+    next: null,
+    prev: null,
+  });
   const [queue, setQueueState] = useState<RawSong[]>([]);
   const setQueue = useCallback((songs: RawSong[]) => {
     queueRef.current = songs;
     setQueueState(songs);
   }, []);
 
+  // The songs either side of the current one, kept up to date as it plays.
+  //
+  // Recorded here rather than inside step(), which only ever sees the song it
+  // is leaving — by the time that value would be needed it describes the wrong
+  // song, and playback started by a direct click never passes through step()
+  // at all. This effect fires wherever the current song settles, which is the
+  // only place that knows what is actually beside it.
+  //
+  // When the song is no longer in the queue the previous value is kept: that
+  // is precisely the case these ids exist for — unliking the playing song on
+  // /favourites removes it, and its old neighbours are how playback continues
+  // in the right place rather than jumping to the top of the list.
+  useEffect(() => {
+    const at = queue.findIndex((s) => s.id === currentId);
+    if (at === -1) return;
+    neighboursRef.current = {
+      next: queue[(at + 1) % queue.length]?.id ?? null,
+      prev: queue[(at - 1 + queue.length) % queue.length]?.id ?? null,
+    };
+  }, [currentId, queue]);
+
   const play = useCallback((id: number) => {
     setCurrentId(id);
     setPlaying(true);
   }, []);
+
+  // Rows call this rather than play(): pressing the control on the row that
+  // is already playing should pause it, and play() cannot — it only ever
+  // sets state that is already set. Anything else is a plain play.
+  const playOrToggle = useCallback(
+    (id: number) => {
+      if (id === currentId) setToggleSignal((n) => n + 1);
+      else play(id);
+    },
+    [currentId, play]
+  );
 
   const playFirst = useCallback(
     (songs: RawSong[]) => {
@@ -110,7 +168,20 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       const at = queue.findIndex((s) => s.id === currentId);
-      const next = queue[(at + delta + queue.length) % queue.length] ?? queue[0];
+      let targetIndex: number;
+      if (at !== -1) {
+        targetIndex = (at + delta + queue.length) % queue.length;
+      } else {
+        // The current song is no longer in the queue — most often because it
+        // was just unliked while playing. Look its remembered neighbour up by
+        // id in the (possibly quite different) current queue; if it is not
+        // there either, there is nothing to resume from and the queue's own
+        // start is the fallback.
+        const wanted = delta > 0 ? neighboursRef.current.next : neighboursRef.current.prev;
+        const found = wanted === null ? -1 : queue.findIndex((s) => s.id === wanted);
+        targetIndex = found === -1 ? 0 : found;
+      }
+      const next = queue[targetIndex] ?? queue[0];
       play(next.id);
     },
     [currentId, play, shuffle]
@@ -161,12 +232,24 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       setQueue,
       queue,
       play,
+      playOrToggle,
       playFirst,
       playRandom,
       toggleAmbient: () => setAmbient((v) => !v),
       unplayable,
     }),
-    [currentId, playing, ambient, setQueue, queue, play, playFirst, playRandom, unplayable]
+    [
+      currentId,
+      playing,
+      ambient,
+      setQueue,
+      queue,
+      play,
+      playOrToggle,
+      playFirst,
+      playRandom,
+      unplayable,
+    ]
   );
 
   // Rendered by the frame rather than here, so the bar can sit inside the
@@ -177,6 +260,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       shuffle={shuffle}
       repeat={repeat}
       ambient={ambient}
+      toggleSignal={toggleSignal}
       onToggleShuffle={() => setShuffle((v) => !v)}
       onToggleRepeat={() => setRepeat((v) => !v)}
       onToggleAmbient={() => setAmbient((v) => !v)}

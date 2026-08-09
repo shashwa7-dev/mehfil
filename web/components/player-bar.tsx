@@ -29,9 +29,12 @@ import {
   setPlaybackState,
   setPosition,
 } from "@/lib/media-session";
+import { LikeButton } from "@/components/like-button";
+import { AppBackdrop } from "@/components/app-backdrop";
 import { ReportDialog } from "@/components/report-dialog";
 import { SongDetails } from "@/components/song-details";
 import { PlayerMenu } from "@/components/player-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useCatalogue, useSongCredits } from "@/lib/queries";
 import { QueuePanel } from "@/components/queue-panel";
 
@@ -249,6 +252,76 @@ function Scrubber({
   );
 }
 
+/**
+ * An icon-only transport control.
+ *
+ * The bar has a dozen of these, and every one needs both a tooltip (for the
+ * mouse, which has no other clue what a bare glyph does) and an accessible
+ * name (for a screen reader, which may never surface the tooltip at all).
+ * Wiring both from a single `label` prop is what keeps them from drifting
+ * apart the way the old `title`-only buttons never could.
+ */
+function ControlButton({
+  label,
+  onClick,
+  disabled,
+  pressed,
+  className,
+  children,
+}: {
+  label: string;
+  onClick?: () => void;
+  disabled?: boolean;
+  /** Only for genuine toggles — shuffle, repeat, mute. Omitted elsewhere. */
+  pressed?: boolean;
+  className: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          disabled ? (
+            // A natively `disabled` <button> never gets the pointer/mouse-enter
+            // events the tooltip's hover interaction listens for, so the tooltip
+            // would otherwise never open here — unlike the `title` this replaced,
+            // which still showed on hover of a disabled control. This span is
+            // nothing but a hover surface standing in for the dead button: no
+            // styling, tabindex or role of its own, so it adds neither a tab stop
+            // nor an accessible name of its own — `aria-label` stays on the real
+            // button underneath. Resist deleting this as a stray wrapper; the
+            // enabled branch right below is the plain button on its own.
+            <span>
+              <button
+                type="button"
+                onClick={onClick}
+                disabled={disabled}
+                aria-label={label}
+                aria-pressed={pressed}
+                className={className}
+              >
+                {children}
+              </button>
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={onClick}
+              disabled={disabled}
+              aria-label={label}
+              aria-pressed={pressed}
+              className={className}
+            />
+          )
+        }
+      >
+        {children}
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 export function PlayerBar({
   song,
   shuffle,
@@ -262,6 +335,7 @@ export function PlayerBar({
   onUnplayable,
   ambient,
   onToggleAmbient,
+  toggleSignal,
 }: {
   song: Song | null;
   shuffle: boolean;
@@ -275,6 +349,9 @@ export function PlayerBar({
   onEnded: () => void;
   onPlayingChange: (playing: boolean) => void;
   onUnplayable: (songId: number, reason: string) => void;
+  /** Bumped by the provider when a row's control asks for the current song to
+   *  be toggled rather than (re)started. See `toggle` below. */
+  toggleSignal: number;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YTPlayer | null>(null);
@@ -572,6 +649,29 @@ export function PlayerBar({
     else player.playVideo();
   };
 
+  // A row's play button cannot call toggle() directly — it lives outside this
+  // file — so the provider bumps toggleSignal instead and this effect is the
+  // relay. `toggle` is recreated every render (it closes over `playing`), so
+  // it goes in a ref rather than the dependency array: depending on it
+  // directly would rerun this effect, and refire the toggle, on every
+  // unrelated render. Same problem `skipRef` below solves for onNext/onPrev.
+  const toggleRef = useRef(toggle);
+  useEffect(() => {
+    toggleRef.current = toggle;
+  });
+
+  // Skipped on the first run: toggleSignal starts at 0, and without this
+  // guard mounting the bar would immediately "toggle" a song that was never
+  // playing yet.
+  const skippedFirstToggleRef = useRef(false);
+  useEffect(() => {
+    if (!skippedFirstToggleRef.current) {
+      skippedFirstToggleRef.current = true;
+      return;
+    }
+    toggleRef.current();
+  }, [toggleSignal]);
+
   const seek = useCallback(
     (fraction: number) => {
       const player = playerRef.current;
@@ -655,43 +755,52 @@ export function PlayerBar({
       {/* Generous gaps and a large play button: this is the one surface with
           room for the controls to be sized for a thumb rather than a cursor. */}
       <div className="flex items-center gap-5 sm:gap-7">
-        <button
+        <ControlButton
+          label="Shuffle"
           onClick={onToggleShuffle}
-          title="Shuffle"
+          pressed={shuffle}
           className={`${iconButton} ${shuffle ? "text-primary hover:text-primary" : ""}`}
         >
           <Shuffle className="size-5" />
-        </button>
-        <button onClick={onPrev} disabled={!song} className={iconButton} title="Previous">
+        </ControlButton>
+        <ControlButton label="Previous" onClick={onPrev} disabled={!song} className={iconButton}>
           <SkipBack className="size-5 fill-current" />
-        </button>
-        <button
-          onClick={toggle}
-          disabled={!song || !ready}
-          title={playing ? "Pause" : "Play"}
-          // The one filled control, so it carries the weight: a soft brass ring
-          // and a lift on hover rather than a flat disc. active:scale keeps the
-          // press physical instead of instantaneous.
-          className="grid size-16 place-items-center rounded-full bg-foreground text-background shadow-[0_4px_20px_-4px_rgba(0,0,0,0.6)] ring-1 ring-primary/20 transition-all duration-200 hover:scale-105 hover:shadow-[0_6px_26px_-4px_rgba(214,168,84,0.5)] hover:ring-primary/40 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:hover:scale-100"
-        >
-          {loading ? (
-            <Loader2 className="size-6 animate-spin" />
-          ) : playing ? (
-            <Pause className="size-6 fill-current" />
-          ) : (
-            <Play className="size-6 translate-x-0.5 fill-current" />
-          )}
-        </button>
-        <button onClick={onNext} disabled={!song} className={iconButton} title="Next">
+        </ControlButton>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <button
+                onClick={toggle}
+                disabled={!song || !ready}
+                aria-label={playing ? "Pause" : "Play"}
+                // The one filled control, so it carries the weight: a soft brass ring
+                // and a lift on hover rather than a flat disc. active:scale keeps the
+                // press physical instead of instantaneous.
+                className="grid size-16 place-items-center rounded-full bg-foreground text-background shadow-[0_4px_20px_-4px_rgba(0,0,0,0.6)] ring-1 ring-primary/20 transition-all duration-200 hover:scale-105 hover:shadow-[0_6px_26px_-4px_rgba(214,168,84,0.5)] hover:ring-primary/40 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:hover:scale-100"
+              />
+            }
+          >
+            {loading ? (
+              <Loader2 className="size-6 animate-spin" />
+            ) : playing ? (
+              <Pause className="size-6 fill-current" />
+            ) : (
+              <Play className="size-6 translate-x-0.5 fill-current" />
+            )}
+          </TooltipTrigger>
+          <TooltipContent>{playing ? "Pause" : "Play"}</TooltipContent>
+        </Tooltip>
+        <ControlButton label="Next" onClick={onNext} disabled={!song} className={iconButton}>
           <SkipForward className="size-5 fill-current" />
-        </button>
-        <button
+        </ControlButton>
+        <ControlButton
+          label="Repeat one"
           onClick={onToggleRepeat}
-          title="Repeat one"
+          pressed={repeat}
           className={`${iconButton} ${repeat ? "text-primary hover:text-primary" : ""}`}
         >
           <Repeat className="size-5" />
-        </button>
+        </ControlButton>
       </div>
 
     </div>
@@ -729,22 +838,7 @@ export function PlayerBar({
           aria-hidden
           className="pointer-events-none absolute inset-0 -z-20 hidden md:block"
         >
-          <video
-            autoPlay
-            muted
-            loop
-            playsInline
-            poster="/backdrop.jpg"
-            className="absolute inset-0 size-full object-cover opacity-[0.20] motion-reduce:hidden"
-          >
-            <source src="/backdrop.mp4" type="video/mp4" />
-          </video>
-          <img
-            src="/backdrop.jpg"
-            alt=""
-            className="absolute inset-0 hidden size-full object-cover opacity-[0.20] motion-reduce:block"
-          />
-          <div className="absolute inset-0 bg-[oklch(0.79_0.135_78)]/[0.06]" />
+          <AppBackdrop opacity={0.2} />
         </div>
       )}
 
@@ -787,13 +881,13 @@ export function PlayerBar({
         <div className="relative z-10 mx-auto flex w-full max-w-4xl shrink-0 items-center gap-3 px-4 py-4 sm:px-0">
           {/* Collapse leads, as the way out of a full-screen view. A chevron
               alone was easy to miss against the picture behind it. */}
-          <button
+          <ControlButton
+            label="Collapse"
             onClick={() => setExpanded(false)}
-            title="Collapse"
             className="grid size-9 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-foreground/80 backdrop-blur transition hover:bg-white/[0.14] hover:text-foreground"
           >
             <ChevronDown className="size-5" />
-          </button>
+          </ControlButton>
 
           <span className="flex-1 truncate text-center text-[11px] uppercase tracking-widest text-muted-foreground">
             Now playing
@@ -974,39 +1068,52 @@ export function PlayerBar({
                 particular sat in the header as though it were a way out of the
                 view. */}
             <div className="flex items-center justify-center gap-1">
+              {song && (
+                <LikeButton songId={song.id} size={16} className={secondaryAction} />
+              )}
+              {/* The label beside each icon is `hidden sm:inline` — gone from
+                  the accessibility tree as well as from view below sm, not
+                  merely styled out of sight — so aria-label carries the name
+                  at every width rather than only where there happens to be
+                  room to print it. No tooltip here: from sm up the label is
+                  already on screen, and a tooltip repeating it would be noise. */}
               <button
                 onClick={() => setDetailsOpen(true)}
                 title="Credits for this song"
+                aria-label="Credits for this song"
                 className={secondaryAction}
               >
                 <Info className="size-4" />
-                <span className="hidden sm:inline">Credits</span>
+                <span className="hidden sm:inline" aria-hidden>Credits</span>
               </button>
               <button
                 onClick={() => setQueueOpen(true)}
                 title="Queue"
+                aria-label="Queue"
                 className={secondaryAction}
               >
                 <ListVideo className="size-4" />
-                <span className="hidden sm:inline">Queue</span>
+                <span className="hidden sm:inline" aria-hidden>Queue</span>
               </button>
               <button
                 onClick={onToggleAmbient}
                 role="switch"
                 aria-checked={ambient}
+                aria-label={ambient ? "Turn ambient off" : "Turn ambient on"}
                 title={ambient ? "Turn ambient off" : "Turn ambient on"}
                 className={`${secondaryAction} ${ambient ? "text-primary hover:text-primary" : ""}`}
               >
                 <Sparkles className="size-4" />
-                <span className="hidden sm:inline">Ambient</span>
+                <span className="hidden sm:inline" aria-hidden>Ambient</span>
               </button>
               <button
                 onClick={() => setReportOpen(true)}
                 title="Wrong recording? Tell us"
+                aria-label="Wrong recording? Tell us"
                 className={secondaryAction}
               >
                 <Flag className="size-4" />
-                <span className="hidden sm:inline">Report</span>
+                <span className="hidden sm:inline" aria-hidden>Report</span>
               </button>
             </div>
           </div>
@@ -1032,7 +1139,10 @@ export function PlayerBar({
         // edge, so clipping the footer cut its upper half off and left it
         // looking like it hung below the line. Only the ambient wash actually
         // needs clipping, and it now clips itself.
-        <footer className="relative z-50 shrink-0 border-t bg-card/80 backdrop-blur lg:rounded-lg lg:border">
+        <footer
+          aria-label="Player"
+          className="relative z-50 shrink-0 border-t bg-card/80 backdrop-blur lg:rounded-lg lg:border"
+        >
       {/* Ambient wash from the current track, so the bar picks up its colour.
           A child rather than a background image on the footer: it has to paint
           over the footer's own surface, and the veil above it is what keeps
@@ -1103,26 +1213,33 @@ export function PlayerBar({
         {/* Transport, at the left edge where the hand goes first. Desktop
             only: the phone puts the title first and the controls after it. */}
         <div className="hidden items-center gap-0.5 md:flex md:gap-1">
-          <button onClick={onPrev} disabled={!song} className={iconButton} title="Previous">
+          <ControlButton label="Previous" onClick={onPrev} disabled={!song} className={iconButton}>
             <SkipBack className="size-4 fill-current" />
-          </button>
-          <button
-            onClick={toggle}
-            disabled={!song || !ready}
-            title={playing ? "Pause" : "Play"}
-            className="grid size-10 place-items-center rounded-full bg-foreground text-background shadow-[0_2px_10px_-2px_rgba(0,0,0,0.5)] ring-1 ring-primary/20 transition-all duration-200 hover:scale-105 hover:shadow-[0_4px_18px_-2px_rgba(214,168,84,0.45)] hover:ring-primary/40 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:hover:scale-100"
-          >
-            {loading ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : playing ? (
-              <Pause className="size-4 fill-current" />
-            ) : (
-              <Play className="size-4 translate-x-px fill-current" />
-            )}
-          </button>
-          <button onClick={onNext} disabled={!song} className={iconButton} title="Next">
+          </ControlButton>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  onClick={toggle}
+                  disabled={!song || !ready}
+                  aria-label={playing ? "Pause" : "Play"}
+                  className="grid size-10 place-items-center rounded-full bg-foreground text-background shadow-[0_2px_10px_-2px_rgba(0,0,0,0.5)] ring-1 ring-primary/20 transition-all duration-200 hover:scale-105 hover:shadow-[0_4px_18px_-2px_rgba(214,168,84,0.45)] hover:ring-primary/40 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:hover:scale-100"
+                />
+              }
+            >
+              {loading ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : playing ? (
+                <Pause className="size-4 fill-current" />
+              ) : (
+                <Play className="size-4 translate-x-px fill-current" />
+              )}
+            </TooltipTrigger>
+            <TooltipContent>{playing ? "Pause" : "Play"}</TooltipContent>
+          </Tooltip>
+          <ControlButton label="Next" onClick={onNext} disabled={!song} className={iconButton}>
             <SkipForward className="size-4 fill-current" />
-          </button>
+          </ControlButton>
           {/* Elapsed and total together, beside the controls rather than under
               the scrubber — the scrubber has no labels now that it is an edge. */}
           {/* Fixed width as well as tabular figures: the digits are even, but
@@ -1182,7 +1299,12 @@ export function PlayerBar({
               covers the box, so a title short enough to stop before the
               gradient is left alone — only the ones that run on get faded. */}
           <span className="fade-r min-w-0 flex-1 overflow-hidden">
-            <span className="block whitespace-nowrap text-sm font-medium">
+            {/* Announced on its own: this text changes exactly when the song
+                does, unlike the line below it, which also flickers through
+                "Loading…" and failure text on every retry — wrapping those in
+                the same live region would turn a track change into a string
+                of unrelated announcements. */}
+            <span aria-live="polite" className="block whitespace-nowrap text-sm font-medium">
               {song.title}
             </span>
             <span className="block whitespace-nowrap text-xs text-muted-foreground">
@@ -1199,64 +1321,59 @@ export function PlayerBar({
 
         {/* The phone's transport, after the title rather than before it. Its
             own cluster instead of reordering the desktop one: the two hold
-            different controls, and shuffle and repeat belong on the bar here
-            because there is no room for them anywhere else. */}
+            different controls. Shuffle and repeat moved into the "More" menu
+            below to make room here for the one control that belongs beside
+            play/next on a phone: the heart. */}
         <div className="flex items-center justify-self-end md:hidden">
-          <button
-            onClick={onToggleShuffle}
-            title="Shuffle"
-            className={`grid size-8 place-items-center rounded-full transition active:scale-90 ${
-              shuffle ? "text-primary" : "text-muted-foreground"
-            }`}
-          >
-            <Shuffle className="size-[18px]" />
-          </button>
-          <button
+          {/* Tooltips never show on touch — there is no hover to trigger them
+              — but the same control is reachable with a mouse on a narrow
+              desktop window, and the aria-label they carry matters on touch
+              regardless, via a screen reader. */}
+          <ControlButton
+            label="Previous"
             onClick={onPrev}
             disabled={!song}
-            title="Previous"
             className="grid size-8 place-items-center rounded-full text-foreground transition active:scale-90 disabled:opacity-40"
           >
             <SkipBack className="size-[18px] fill-current" />
-          </button>
-          <button
-            onClick={toggle}
-            disabled={!song || !ready}
-            title={playing ? "Pause" : "Play"}
-            className="mx-0.5 grid size-11 place-items-center rounded-full bg-foreground text-background shadow-[0_2px_10px_-2px_rgba(0,0,0,0.5)] transition active:scale-95 disabled:opacity-40"
-          >
-            {loading ? (
-              <Loader2 className="size-5 animate-spin" />
-            ) : playing ? (
-              <Pause className="size-5 fill-current" />
-            ) : (
-              <Play className="size-5 translate-x-px fill-current" />
-            )}
-          </button>
-          <button
+          </ControlButton>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  onClick={toggle}
+                  disabled={!song || !ready}
+                  aria-label={playing ? "Pause" : "Play"}
+                  className="mx-0.5 grid size-11 place-items-center rounded-full bg-foreground text-background shadow-[0_2px_10px_-2px_rgba(0,0,0,0.5)] transition active:scale-95 disabled:opacity-40"
+                />
+              }
+            >
+              {loading ? (
+                <Loader2 className="size-5 animate-spin" />
+              ) : playing ? (
+                <Pause className="size-5 fill-current" />
+              ) : (
+                <Play className="size-5 translate-x-px fill-current" />
+              )}
+            </TooltipTrigger>
+            <TooltipContent>{playing ? "Pause" : "Play"}</TooltipContent>
+          </Tooltip>
+          <ControlButton
+            label="Next"
             onClick={onNext}
             disabled={!song}
-            title="Next"
             className="grid size-8 place-items-center rounded-full text-foreground transition active:scale-90 disabled:opacity-40"
           >
             <SkipForward className="size-[18px] fill-current" />
-          </button>
-          <button
-            onClick={onToggleRepeat}
-            title="Repeat one"
-            className={`grid size-8 place-items-center rounded-full transition active:scale-90 ${
-              repeat ? "text-primary" : "text-muted-foreground"
-            }`}
-          >
-            <Repeat className="size-[18px]" />
-          </button>
-          <button
+          </ControlButton>
+          <LikeButton songId={song.id} size={18} className="size-8" />
+          <ControlButton
+            label="More"
             onClick={() => setMenuOpen(true)}
-            title="More"
             className="grid size-8 place-items-center rounded-full text-muted-foreground transition active:scale-90"
           >
             <MoreVertical className="size-[18px]" />
-          </button>
+          </ControlButton>
         </div>
 
         {/* Everything that modifies playback rather than driving it. */}
@@ -1269,37 +1386,34 @@ export function PlayerBar({
               unverified
             </span>
           )}
+          <LikeButton songId={song.id} size={16} className="size-9" />
           {/* Credits and reporting sit next to the track they are about. The
               bar has room for a title and a line of singers, so the composer
               and lyricist are one press away rather than absent. */}
-          <button
-            onClick={() => setDetailsOpen(true)}
-            className={iconButton}
-            title="Credits for this song"
-          >
+          <ControlButton label="Credits for this song" onClick={() => setDetailsOpen(true)} className={iconButton}>
             <Info className="size-4" />
-          </button>
-          <button
-            onClick={() => setReportOpen(true)}
-            className={iconButton}
-            title="Wrong recording? Tell us"
-          >
+          </ControlButton>
+          <ControlButton label="Wrong recording? Tell us" onClick={() => setReportOpen(true)} className={iconButton}>
             <Flag className="size-4" />
-          </button>
-          <button
-            onClick={() => setQueueOpen(true)}
-            className={iconButton}
-            title="Queue"
-          >
+          </ControlButton>
+          <ControlButton label="Queue" onClick={() => setQueueOpen(true)} className={iconButton}>
             <ListVideo className="size-4" />
-          </button>
-          <button onClick={() => setMuted((m) => !m)} className={iconButton} title="Mute">
+          </ControlButton>
+          {/* Label follows the icon rather than staying "Mute" once already
+              muted — the same reasoning as the like button: a control whose
+              own state changes what it would do next should say so. */}
+          <ControlButton
+            label={muted || volume === 0 ? "Unmute" : "Mute"}
+            onClick={() => setMuted((m) => !m)}
+            pressed={muted}
+            className={iconButton}
+          >
             {muted || volume === 0 ? (
               <VolumeX className="size-4" />
             ) : (
               <Volume2 className="size-4" />
             )}
-          </button>
+          </ControlButton>
           <Scrubber
             value={muted ? 0 : volume}
             onCommit={(f) => {
@@ -1308,27 +1422,25 @@ export function PlayerBar({
             }}
             className="w-24"
           />
-          <button
+          <ControlButton
+            label="Repeat one"
             onClick={onToggleRepeat}
-            title="Repeat one"
+            pressed={repeat}
             className={`${iconButton} ${repeat ? "text-primary hover:text-primary" : ""}`}
           >
             <Repeat className="size-4" />
-          </button>
-          <button
+          </ControlButton>
+          <ControlButton
+            label="Shuffle"
             onClick={onToggleShuffle}
-            title="Shuffle"
+            pressed={shuffle}
             className={`${iconButton} ${shuffle ? "text-primary hover:text-primary" : ""}`}
           >
             <Shuffle className="size-4" />
-          </button>
-          <button
-            onClick={() => setExpanded(true)}
-            title="Expand"
-            className={iconButton}
-          >
+          </ControlButton>
+          <ControlButton label="Expand" onClick={() => setExpanded(true)} className={iconButton}>
             <ChevronUp className="size-5" />
-          </button>
+          </ControlButton>
           </div>
         </div>
           <PlayerMenu

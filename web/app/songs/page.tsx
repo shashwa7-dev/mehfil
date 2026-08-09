@@ -16,7 +16,7 @@ export default function SongsPage() {
   const { data: catalogue, isLoading, isError, error } = useCatalogue();
   const { scrollEl, filterSlot, query } = useFrame();
   const [selected, setSelected] = useState<Record<string, Set<number>>>({});
-  const { currentId, playing, play, playFirst, playRandom, setQueue } = usePlayer();
+  const { currentId, playing, playOrToggle, playFirst, playRandom, setQueue } = usePlayer();
   const { data: photos } = usePhotoManifest();
   const { data: posters } = useStationPosters();
 
@@ -107,6 +107,7 @@ export default function SongsPage() {
                 <button
                   onClick={() => playRandom(results)}
                   title="Shuffle"
+                  aria-label="Shuffle results"
                   className="grid size-10 place-items-center rounded-full border border-white/15 transition hover:bg-white/10"
                 >
                   <Shuffle className="size-4" />
@@ -114,6 +115,7 @@ export default function SongsPage() {
                 <button
                   onClick={() => playFirst(results)}
                   title="Play"
+                  aria-label="Play results"
                   className="grid size-12 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg transition hover:scale-105"
                 >
                   <Play className="size-5 translate-x-px fill-current" />
@@ -165,7 +167,7 @@ export default function SongsPage() {
               currentId={currentId}
               playing={playing}
               scrollParent={scrollEl}
-              onPlay={play}
+              onPlay={playOrToggle}
             />
           )}
         </>

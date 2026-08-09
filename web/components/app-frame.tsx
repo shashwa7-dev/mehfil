@@ -4,16 +4,21 @@ import { createContext, useContext, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  Compass,
   Disc3,
+  Heart,
   HeartHandshake,
-  LayoutGrid,
   ListMusic,
   Menu,
+  Palette,
   Search,
   X,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { InstallButton } from "@/components/install-prompt";
+import { LikeBurstHost } from "@/components/like-burst";
+import { NoticeDialog } from "@/components/notice-dialog";
 import { facetCards, portrait } from "@/lib/catalogue";
 import { usePlayer, usePlayerBar } from "@/components/player-provider";
 import { useCatalogue, usePhotoManifest } from "@/lib/queries";
@@ -98,18 +103,23 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
         </Link>
       </div>
 
-      <div className="shrink-0 space-y-0.5 px-2 pb-2">
+      {/* A real nav, not a div: this is the app's primary way to move between
+          routes, and the rail and the mobile drawer both render it. */}
+      <nav aria-label="Primary" className="shrink-0 space-y-0.5 px-2 pb-2">
         <Link href="/" className={navClass(onBrowse)}>
-          <LayoutGrid className="size-4" /> Browse
+          <Compass className="size-4" /> Browse
         </Link>
         <Link href="/songs" className={navClass(pathname === "/songs")}>
           <ListMusic className="size-4" /> All songs
+        </Link>
+        <Link href="/favourites" className={navClass(pathname === "/favourites")}>
+          <Heart className="size-4" /> Your favourites
         </Link>
         <Link href="/contribute" className={navClass(pathname === "/contribute")}>
           <HeartHandshake className="size-4" /> Help us find songs
         </Link>
         <InstallButton />
-      </div>
+      </nav>
     </>
   );
 
@@ -141,6 +151,12 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
       {/* Stacked, not a row. The rail is 18rem wide and these two links do not
           fit on one line at 11px, so side by side they wrapped mid-phrase. */}
       <div className="flex flex-col gap-1 text-[11px]">
+        <Link
+          href="/themes"
+          className="flex items-center gap-1.5 text-muted-foreground transition hover:text-foreground"
+        >
+          <Palette className="size-3" /> Themes
+        </Link>
         <Link
           href="/about"
           className="text-muted-foreground transition hover:text-foreground"
@@ -190,6 +206,11 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
                 hideSearch ? "flex lg:hidden" : "flex"
               }`}
             >
+              {/* Shown at every width below lg: brandAndNav's Browse row
+                  points at `/` too, but the logo is the brand mark and the
+                  one tap-target that reliably reads as "home" on a phone, so
+                  it stays even where every pixel is contested. The room for
+                  it came from Themes below, not from hiding this again. */}
               <Link href="/" className="flex shrink-0 items-center gap-2 lg:hidden">
                 <img src="/logo.png" alt="" width={32} height={32} className="size-8 rounded-lg" />
               </Link>
@@ -211,6 +232,7 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
                 {query && (
                   <button
                     onClick={() => setQuery("")}
+                    aria-label="Clear search"
                     className="absolute right-3 top-1/2 grid size-5 -translate-y-1/2 place-items-center rounded-full text-muted-foreground transition hover:bg-white/10 hover:text-foreground"
                   >
                     <X className="size-3.5" />
@@ -219,47 +241,122 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
               </div>
               )}
 
+              {/* Favourites, one glance away at any width. It already lives
+                  in the rail/drawer nav, but that is only a touchpoint once a
+                  phone user opens the drawer — this is the fix for that. Not
+                  gated on hideSearch: hideSearch only retires the search box
+                  (nothing to search on /about or /contribute), it says
+                  nothing about this, and hiding it there would remove the
+                  one touchpoint mobile still has on those routes. The row
+                  itself already collapses to lg:hidden on those pages, so on
+                  desktop this disappears with the rest of the row rather than
+                  needing its own check. ml-auto moves here from the Surprise
+                  button below: this is now the first element of the group
+                  that gets pushed to the right edge, and Surprise/the menu
+                  trigger ride along after it instead of pushing themselves. */}
+              <div className="ml-auto flex shrink-0 items-center gap-1.5">
+                {/* aria-label carries the accessible name regardless of what a
+                    screen reader does with the tooltip; the tooltip is only
+                    there for the sighted mouse user who has nothing else to
+                    go on before clicking an icon-only link. */}
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Link
+                        href="/favourites"
+                        aria-label="Your favourites"
+                        // The one nav control that carries a colour of its
+                        // own. It is a heart, and a heart in brass is filed
+                        // with the furniture — this is the entry point the
+                        // owner wanted noticed, so it keeps the accent even
+                        // when the route is not active, and deepens rather
+                        // than switches colour when it is.
+                        className={`grid size-9 place-items-center rounded-full border transition ${
+                          pathname === "/favourites"
+                            ? "border-heart/40 bg-heart/15 text-heart"
+                            : "border-white/10 bg-white/[0.06] text-heart/75 hover:border-heart/30 hover:bg-heart/10 hover:text-heart"
+                        }`}
+                      />
+                    }
+                  >
+                    <Heart className="size-4" />
+                  </TooltipTrigger>
+                  <TooltipContent>Your favourites</TooltipContent>
+                </Tooltip>
+                {/* Hidden below sm: this is what paid for the logo's return.
+                    Themes is a preference visited occasionally, not a
+                    destination like Favourites, and it stays reachable from
+                    the drawer (via the credit block) at every width — this
+                    icon is only ever the second-fastest way to it. */}
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Link
+                        href="/themes"
+                        aria-label="Themes"
+                        className={`hidden size-9 place-items-center rounded-full border transition sm:grid ${
+                          pathname === "/themes"
+                            ? "border-primary/30 bg-primary/15 text-primary"
+                            : "border-white/10 bg-white/[0.06] text-muted-foreground hover:text-foreground"
+                        }`}
+                      />
+                    }
+                  >
+                    <Palette className="size-4" />
+                  </TooltipTrigger>
+                  <TooltipContent>Themes</TooltipContent>
+                </Tooltip>
+              </div>
+
               {/* Fills the empty right side with the one action that needs no
                   prior choice: drop into the catalogue at random. */}
               {catalogue && !hideSearch && (
-                <button
-                  onClick={() => playRandom(catalogue.songs)}
-                  title="Play something at random"
-                  className="group/surprise ml-auto hidden shrink-0 items-center gap-2 rounded-full border border-primary/30 bg-primary/15 px-4 py-2 text-xs font-semibold text-primary shadow-[0_0_0_0_rgba(214,168,84,0)] transition-[background-color,border-color,box-shadow] duration-300 hover:border-primary/50 hover:bg-primary/25 hover:shadow-[0_0_20px_-2px_rgba(214,168,84,0.45)] lg:inline-flex"
-                >
-                  {/* A record, not a shuffle glyph: this plays music at
-                      random rather than reordering a list. A full revolution
-                      ends where it began — the old half turn stopped upside
-                      down and read as a glitch. */}
-                  <Disc3 className="size-4 shrink-0 transition-transform duration-[900ms] ease-out motion-safe:group-hover/surprise:rotate-[360deg]" />
-                  Surprise
+                // "Surprise" already labels the button, but not what it does —
+                // the tooltip carries that, which is why this keeps a tooltip
+                // despite the visible text.
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <button
+                        onClick={() => playRandom(catalogue.songs)}
+                        className="group/surprise hidden shrink-0 items-center gap-2 rounded-full border border-primary/30 bg-primary/15 px-4 py-2 text-xs font-semibold text-primary shadow-[0_0_0_0_rgba(214,168,84,0)] transition-[background-color,border-color,box-shadow] duration-300 hover:border-primary/50 hover:bg-primary/25 hover:shadow-[0_0_20px_-2px_rgba(214,168,84,0.45)] lg:inline-flex"
+                      />
+                    }
+                  >
+                    {/* A record, not a shuffle glyph: this plays music at
+                        random rather than reordering a list. A full revolution
+                        ends where it began — the old half turn stopped upside
+                        down and read as a glitch. */}
+                    <Disc3 className="size-4 shrink-0 transition-transform duration-[900ms] ease-out motion-safe:group-hover/surprise:rotate-[360deg]" />
+                    Surprise
 
-                  {/* The faces fan out on hover. Transform only, never margin:
-                      margins are laid out, so animating one reflows the button
-                      every frame — which is both why this was not smooth and
-                      why the control grew as it played. A transform is composited
-                      and moves nothing around it. */}
-                  {faces.length > 0 && (
-                    <span className="flex shrink-0 -space-x-2">
-                      {faces.map((face, index) => (
-                        <img
-                          key={face.name}
-                          src={face.src}
-                          alt=""
-                          title={face.name}
-                          loading="lazy"
-                          style={
-                            {
-                              "--fan": `${index * 5}px`,
-                              transitionDelay: `${index * 45}ms`,
-                            } as React.CSSProperties
-                          }
-                          className="size-5 rounded-full object-cover object-top ring-2 ring-card transition-transform duration-300 ease-out motion-safe:group-hover/surprise:translate-x-[var(--fan)]"
-                        />
-                      ))}
-                    </span>
-                  )}
-                </button>
+                    {/* The faces fan out on hover. Transform only, never margin:
+                        margins are laid out, so animating one reflows the button
+                        every frame — which is both why this was not smooth and
+                        why the control grew as it played. A transform is composited
+                        and moves nothing around it. */}
+                    {faces.length > 0 && (
+                      <span className="flex shrink-0 -space-x-2">
+                        {faces.map((face, index) => (
+                          <img
+                            key={face.name}
+                            src={face.src}
+                            alt=""
+                            loading="lazy"
+                            style={
+                              {
+                                "--fan": `${index * 5}px`,
+                                transitionDelay: `${index * 45}ms`,
+                              } as React.CSSProperties
+                            }
+                            className="size-5 rounded-full object-cover object-top ring-2 ring-card transition-transform duration-300 ease-out motion-safe:group-hover/surprise:translate-x-[var(--fan)]"
+                          />
+                        ))}
+                      </span>
+                    )}
+                  </TooltipTrigger>
+                  <TooltipContent>Play something at random</TooltipContent>
+                </Tooltip>
               )}
 
               {/* Keyed on the route, and otherwise uncontrolled. Navigating
@@ -273,7 +370,8 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
                   render={
                     <button
                       title="Menu"
-                      className="relative ml-auto grid size-9 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-muted-foreground transition hover:text-foreground lg:hidden"
+                      aria-label="Menu"
+                      className="relative grid size-9 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-muted-foreground transition hover:text-foreground lg:hidden"
                     />
                   }
                 >
@@ -310,6 +408,15 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
           {playerBar}
         </div>
       </div>
+
+      {/* Mounted once here, regardless of route, so any heart in the app can
+          fire into it. */}
+      <LikeBurstHost />
+
+      {/* Same reasoning: one instance, always present, so it can open itself
+          on first run or on /about regardless of which route the app landed
+          on. */}
+      <NoticeDialog />
     </FrameContext.Provider>
   );
 }

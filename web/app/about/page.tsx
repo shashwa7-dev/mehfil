@@ -31,16 +31,6 @@ export default function AboutPage() {
 
   return (
     <div className="relative mx-auto max-w-2xl">
-      {/* Watermark. Fixed rather than absolute so it holds its corner while the
-          credits scroll past, and hidden below lg where it would sit on top of
-          the text instead of beside it. */}
-      <img
-        src="/logo.png"
-        alt=""
-        aria-hidden
-        className="pointer-events-none fixed -bottom-16 -right-16 hidden w-[28rem] -rotate-12 select-none opacity-[0.06] lg:block"
-      />
-
       <Link
         href="/"
         className="mb-8 inline-flex items-center gap-1.5 rounded-full bg-white/[0.06] py-1.5 pl-2 pr-3 text-xs text-foreground/80 transition hover:bg-white/[0.12]"
@@ -92,10 +82,12 @@ export default function AboutPage() {
           remain the property of their photographers.
         </p>
         <p>
-          The animated backdrop behind the app is an illustrated loop, warmed
-          to sit with the rest of the palette. If you hold the rights to it and
-          would rather it were not used, it comes down on request like anything
-          else here.
+          The backdrops offered under Themes are illustrated loops, re-encoded
+          and warmed to sit with the rest of the palette. We have not been able
+          to identify who made them. They are used decoratively, at low
+          opacity, and for nothing else. If you made one, or hold the rights to
+          one, tell us and we will credit it or take it down — whichever you
+          would prefer.
         </p>
         <p>
           Decorative artwork elsewhere in the interface may include film poster
@@ -134,6 +126,7 @@ export default function AboutPage() {
                     href={credit.source}
                     target="_blank"
                     rel="noopener noreferrer"
+                    aria-label={`Source for ${station} artwork`}
                     className="ml-1 inline-flex text-primary hover:underline"
                   >
                     <ExternalLink className="size-3" />
@@ -170,6 +163,7 @@ export default function AboutPage() {
                     href={credit.source}
                     target="_blank"
                     rel="noopener noreferrer"
+                    aria-label={`Source for ${credit.name} portrait`}
                     className="ml-1 inline-flex text-primary hover:underline"
                   >
                     <ExternalLink className="size-3" />
@@ -203,6 +197,7 @@ export default function AboutPage() {
                     href={credit.page}
                     target="_blank"
                     rel="noopener noreferrer"
+                    aria-label={`Where the ${credit.name} portrait was found`}
                     className="ml-1 inline-flex text-primary hover:underline"
                   >
                     <ExternalLink className="size-3" />

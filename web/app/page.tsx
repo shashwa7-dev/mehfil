@@ -72,6 +72,7 @@ export default function BrowsePage() {
               <button
                 onClick={() => playRandom(catalogue.songs)}
                 title="Shuffle the whole catalogue"
+                aria-label="Shuffle the whole catalogue"
                 className="group/spin grid size-12 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground shadow-[0_4px_16px_-4px_rgba(214,168,84,0.6)] transition active:scale-95"
               >
                 <Disc3 className="size-5 transition-transform duration-[900ms] ease-out group-active/spin:rotate-[360deg]" />

@@ -2,6 +2,7 @@
 
 import { Pause, Play } from "lucide-react";
 import { artwork, type Song } from "@/lib/catalogue";
+import { LikeButton } from "@/components/like-button";
 
 /** Bars that animate only for the row currently playing. */
 function NowPlayingBars() {
@@ -31,23 +32,33 @@ export function TrackRow({
   playing: boolean;
   onPlay: () => void;
 }) {
+  // ARIA gives the button role presentational children: the heart nested
+  // inside a role="button" row has its accessible name and aria-pressed
+  // swallowed by the ancestor's role, so a screen reader user could never
+  // tell it was there, let alone use it. Two real <button>s — this one for
+  // play, the heart for like — sidestep that entirely, and the row itself
+  // goes back to being a plain <div> whose onClick still catches a mouse
+  // anywhere else in it.
   return (
     <div
       onClick={onPlay}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onPlay();
-        }
-      }}
-      role="button"
-      tabIndex={0}
       className={`group grid cursor-default grid-cols-[1.5rem_2.5rem_1fr_auto] items-center gap-2.5 rounded-md px-1 py-1.5 outline-none transition-colors hover:bg-white/[0.06] focus-visible:bg-white/[0.08] sm:gap-3 sm:px-2 ${
         active ? "bg-white/[0.07]" : ""
       }`}
     >
-      {/* Index swaps to a play control on hover. */}
-      <div className="grid size-6 place-items-center text-xs tabular-nums text-muted-foreground">
+      {/* Index swaps to a play control on hover — same cell, now the row's
+          one real activation control instead of a decorative div riding on
+          the row's own role="button". stopPropagation keeps this from also
+          firing the row's onClick and starting the song twice. */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onPlay();
+        }}
+        aria-label={active && playing ? `Pause ${song.title}` : `Play ${song.title}`}
+        className="grid size-6 place-items-center text-xs tabular-nums text-muted-foreground"
+      >
         {active && playing ? (
           <span className="group-hover:hidden">
             <NowPlayingBars />
@@ -62,7 +73,7 @@ export function TrackRow({
             <Play className="size-3.5 fill-current text-foreground" />
           )}
         </span>
-      </div>
+      </button>
 
       <img
         src={artwork(song.video)}
@@ -98,6 +109,7 @@ export function TrackRow({
             className="hidden size-1.5 rounded-full bg-primary/60 sm:block"
           />
         )}
+        <LikeButton songId={song.id} size={15} className="size-7" />
       </div>
     </div>
   );

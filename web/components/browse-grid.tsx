@@ -59,6 +59,9 @@ export function BrowseGrid({
           <button
             key={t.facet}
             onClick={() => setTab(t)}
+            // The selected tab was previously colour alone (bg-primary vs a
+            // neutral fill) — invisible to anything that cannot see colour.
+            aria-pressed={t.facet === tab.facet}
             className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
               t.facet === tab.facet
                 ? "bg-primary text-primary-foreground"
@@ -146,6 +149,7 @@ export function BrowseGrid({
                   onPlay(tab.facet, card.index);
                 }}
                 title={`Play ${card.label}`}
+                aria-label={`Play ${card.label}`}
                 // Bottom-right, sliding up on hover. Sitting above the label
                 // rather than over the artwork's focal point, which on a
                 // portrait is the face.

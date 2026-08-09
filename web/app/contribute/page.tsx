@@ -147,6 +147,7 @@ export default function ContributePage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 title="Search YouTube for this song"
+                aria-label={`Search YouTube for “${song.t}”`}
                 className="shrink-0 rounded-full p-2 text-muted-foreground transition hover:bg-white/10 hover:text-foreground"
               >
                 <ExternalLink className="size-4" />

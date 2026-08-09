@@ -1,7 +1,23 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import type { Metadata } from "next";
 import { CollectionView } from "@/components/collection-view";
-import { KIND_BY_FACET, slugify } from "@/lib/routes";
+import { FACET_BY_KIND, KIND_BY_FACET, KIND_LABEL, resolveSlug, slugify } from "@/lib/routes";
+
+type RawCatalogue = { facets: Record<string, string[]> };
+
+// Read once and reused by both generateStaticParams and generateMetadata,
+// which would otherwise each parse the same multi-thousand-entry JSON file
+// for every one of the hundreds of collection routes built.
+let cachedCatalogue: RawCatalogue | null = null;
+function loadCatalogue(): RawCatalogue {
+  if (!cachedCatalogue) {
+    cachedCatalogue = JSON.parse(
+      readFileSync(join(process.cwd(), "public", "catalogue.json"), "utf-8")
+    ) as RawCatalogue;
+  }
+  return cachedCatalogue;
+}
 
 /**
  * Server shell for the collection routes.
@@ -17,9 +33,7 @@ import { KIND_BY_FACET, slugify } from "@/lib/routes";
  */
 export function generateStaticParams() {
   // The exported catalogue is the source of truth for what exists.
-  const catalogue = JSON.parse(
-    readFileSync(join(process.cwd(), "public", "catalogue.json"), "utf-8")
-  ) as { facets: Record<string, string[]> };
+  const catalogue = loadCatalogue();
 
   const params: { kind: string; slug: string }[] = [];
   const seen = new Set<string>();
@@ -37,6 +51,38 @@ export function generateStaticParams() {
     }
   }
   return params;
+}
+
+/**
+ * Per-collection title and description.
+ *
+ * The client view resolves the same slug for its own render, but metadata is
+ * read by crawlers that never run the client bundle, so the label has to be
+ * resolved again here rather than borrowed from CollectionView's state. An
+ * unresolvable kind or slug returns nothing rather than throwing: the page
+ * itself calls notFound() for that case, and metadata for a 404 should just
+ * fall back to the root default rather than fail the render.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ kind: string; slug: string }>;
+}): Promise<Metadata> {
+  const { kind, slug } = await params;
+  const facet = FACET_BY_KIND[kind];
+  if (!facet) return {};
+
+  const catalogue = loadCatalogue();
+  const labels = catalogue.facets[facet] ?? [];
+  const index = resolveSlug(labels, slug);
+  if (index < 0) return {};
+
+  const label = labels[index];
+  const kindLabel = KIND_LABEL[kind] ?? "Collection";
+  return {
+    title: label,
+    description: `${kindLabel} · every ${label} song in the Mehfil catalogue, ready to play or shuffle.`,
+  };
 }
 
 export default async function CollectionPage({
