@@ -5,9 +5,11 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Compass,
+  ScrollText,
   Disc3,
   Heart,
   HeartHandshake,
+  Info,
   ListMusic,
   Menu,
   Palette,
@@ -138,40 +140,50 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
     </div>
   );
 
+  // The rail's secondary rows: the same shape as navClass, one step quieter,
+  // so they read as a group beneath the main nav rather than competing with it.
+  const subNavClass = (active: boolean) =>
+    `flex items-center gap-2.5 rounded-md px-2 py-1.5 text-xs transition ${
+      active
+        ? "bg-white/[0.08] text-foreground"
+        : "text-muted-foreground hover:bg-white/[0.05] hover:text-foreground"
+    }`;
+
   const credit = (
     // Opaque backing: the collage is anchored to the bottom of the rail, so it
     // sits directly behind this text. Without it the smallest type in the app
     // is the one competing with a busy image.
-    <div className="shrink-0 space-y-1.5 border-t border-white/[0.06] bg-sidebar/95 px-4 py-3 backdrop-blur-sm">
-      <p className="text-[11px] leading-snug text-muted-foreground/70">
-        Music streams from YouTube.
-        <br />
-        Nothing is hosted here.
-      </p>
-      {/* Stacked, not a row. The rail is 18rem wide and these two links do not
-          fit on one line at 11px, so side by side they wrapped mid-phrase. */}
-      <div className="flex flex-col gap-1 text-[11px]">
-        <Link
-          href="/themes"
-          className="flex items-center gap-1.5 text-muted-foreground transition hover:text-foreground"
-        >
-          <Palette className="size-3" /> Themes
+    <div className="shrink-0 border-t border-white/[0.06] bg-sidebar/95 px-2 py-2 backdrop-blur-sm">
+      {/* Rows, not a stack of footnote-sized text.
+          These were three lines of 11px muted type with nothing to say they
+          could be pressed and nothing to aim at on a touchscreen. They lead to
+          real pages, so they now look and behave like the nav above them: a
+          hit area, an icon, a hover state. Only the attribution stays small
+          and quiet — it is the one line here that is a credit rather than a
+          destination. */}
+      <div className="space-y-0.5">
+        <Link href="/themes" className={subNavClass(pathname === "/themes")}>
+          <Palette className="size-3.5 shrink-0" /> Themes
         </Link>
-        <Link
-          href="/about"
-          className="text-muted-foreground transition hover:text-foreground"
-        >
-          About &amp; credits
+        <Link href="/releases" className={subNavClass(pathname === "/releases")}>
+          <ScrollText className="size-3.5 shrink-0" /> Release notes
         </Link>
-        <a
-          href="https://shashwa7.in"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-muted-foreground transition hover:text-foreground"
-        >
-          Made with <span className="text-primary">♥</span> by shashwa7.in
-        </a>
+        <Link href="/about" className={subNavClass(pathname === "/about")}>
+          <Info className="size-3.5 shrink-0" /> About &amp; credits
+        </Link>
       </div>
+
+      <p className="px-2 pb-1 pt-2.5 text-[10px] leading-snug text-muted-foreground/60">
+        Music streams from YouTube. Nothing is hosted here.
+      </p>
+      <a
+        href="https://shashwa7.in"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block px-2 pb-1 text-[10px] text-muted-foreground/60 underline-offset-2 transition hover:text-muted-foreground hover:underline"
+      >
+        made with <span className="text-heart">&#9829;</span> by shashwa7.in
+      </a>
     </div>
   );
 
