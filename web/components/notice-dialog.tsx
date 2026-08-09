@@ -141,23 +141,39 @@ export function NoticeDialog() {
             same picture dissolving into the card's own background reads as
             part of it. The same trick the player bar uses on its artwork and
             song-details uses on its corner wash. */}
-        <div className="-mx-4 -mt-4 overflow-hidden rounded-t-xl [mask-image:linear-gradient(to_bottom,#000_0%,#000_55%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_bottom,#000_0%,#000_55%,transparent_100%)]">
-          <video
-            autoPlay
-            muted
-            loop
-            playsInline
-            poster="/notice.jpg"
-            aria-hidden
-            className="h-[200px] w-full object-cover motion-reduce:hidden [@media(max-height:500px)]:h-24"
-          >
-            <source src="/notice.mp4" type="video/mp4" />
-          </video>
+        <div className="relative -mx-4 -mt-4">
+          <div className="overflow-hidden rounded-t-xl [mask-image:linear-gradient(to_bottom,#000_0%,#000_55%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_bottom,#000_0%,#000_55%,transparent_100%)]">
+            <video
+              autoPlay
+              muted
+              loop
+              playsInline
+              poster="/notice.jpg"
+              aria-hidden
+              className="h-[200px] w-full object-cover motion-reduce:hidden [@media(max-height:500px)]:h-24"
+            >
+              <source src="/notice.mp4" type="video/mp4" />
+            </video>
+            <img
+              src="/notice.jpg"
+              alt=""
+              aria-hidden
+              className="hidden h-[200px] w-full object-cover motion-reduce:block [@media(max-height:500px)]:h-24"
+            />
+          </div>
+
+          {/* The badge, sitting on the corner of the picture.
+              A sibling of the masked element rather than a child of it: the
+              mask fades everything inside to transparent at the bottom, which
+              is exactly where this sits, so nested it would fade away with the
+              image. Out here it keeps its own opacity while the picture
+              dissolves behind it, which is the whole effect — the mark anchors
+              the seam where the image becomes the card. */}
           <img
-            src="/notice.jpg"
+            src="/logo.png"
             alt=""
             aria-hidden
-            className="hidden h-[200px] w-full object-cover motion-reduce:block [@media(max-height:500px)]:h-24"
+            className="absolute bottom-2 right-4 size-11 rounded-xl shadow-lg ring-1 ring-white/15"
           />
         </div>
         {/* Left at every width. The primitive centres the header below sm and
@@ -165,44 +181,13 @@ export function NoticeDialog() {
             over left-aligned paragraphs on a phone. One alignment for the whole
             card, and left is the one the body text needs. */}
         <AlertDialogHeader className="place-items-start text-left">
-          {/* The primitive's title is text-base font-medium — the same size as the
-              body beneath it, so it reads as a first line rather than a title.
-              text-xl against the description's text-sm gives it somewhere to
-              stand. leading-tight matches the page headings elsewhere.
-
-              The badge is a record, not a rounded logo. Simply clipping a
-              square PNG into a circle and turning it did not read as vinyl —
-              the artwork inside is boxy, so the rotation looked like a glitch
-              rather than a spin. So the disc is drawn here: a repeating radial
-              gradient for the grooves, a dark centre-to-edge wash under it, an
-              inset hairline for the edge, and the logo dropped in at 44% as
-              the label with a two-pixel spindle hole through it. The thing
-              that turns is now genuinely round, and the boxy part is the only
-              part that is supposed to look printed on.
-              motion-safe: only — this spins for as long as the dialog is open,
-              and a perpetual animation is exactly what prefers-reduced-motion
-              exists to stop, so under that setting it just sits still as a
-              badge. 8s linear is a record's own slow, even turn; Tailwind's
-              animate-spin keyframe is reused via an arbitrary duration rather
-              than defining a duplicate, since its default 1s reads as a
-              loading spinner, not a turntable. alt="" and aria-hidden: the
-              image adds nothing a screen reader needs that the title text
-              beside it does not already say. */}
-          <AlertDialogTitle className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xl leading-tight">
-            Welcome to
-            {/* Beside the name rather than ahead of the sentence: it is the
-                mark for the word "Mehfil", not for the greeting. rounded-lg
-                matches how the logo is drawn everywhere else in the app, and
-                it no longer turns — a boxy mark rotating read as a glitch, and
-                dressing it as a record to justify the motion was solving a
-                problem that only existed because of the motion. */}
-            <img
-              src="/logo.png"
-              alt=""
-              aria-hidden
-              className="size-7 shrink-0 rounded-lg"
-            />
-            Mehfil
+          {/* The primitive's title is text-base font-medium — the same size as
+              the body beneath it, so it reads as a first line rather than a
+              title. text-xl against the description's text-sm gives it
+              somewhere to stand, and leading-tight matches the page headings
+              elsewhere. The badge lives on the thumbnail now, not in here. */}
+          <AlertDialogTitle className="text-xl leading-tight">
+            Welcome to Mehfil
           </AlertDialogTitle>
           {/* A div rather than the default <p>, so two paragraphs can sit
               inside without nesting a <p> in a <p>. The description id, and so
