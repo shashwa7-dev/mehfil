@@ -281,14 +281,38 @@ function ControlButton({
     <Tooltip>
       <TooltipTrigger
         render={
-          <button
-            type="button"
-            onClick={onClick}
-            disabled={disabled}
-            aria-label={label}
-            aria-pressed={pressed}
-            className={className}
-          />
+          disabled ? (
+            // A natively `disabled` <button> never gets the pointer/mouse-enter
+            // events the tooltip's hover interaction listens for, so the tooltip
+            // would otherwise never open here — unlike the `title` this replaced,
+            // which still showed on hover of a disabled control. This span is
+            // nothing but a hover surface standing in for the dead button: no
+            // styling, tabindex or role of its own, so it adds neither a tab stop
+            // nor an accessible name of its own — `aria-label` stays on the real
+            // button underneath. Resist deleting this as a stray wrapper; the
+            // enabled branch right below is the plain button on its own.
+            <span>
+              <button
+                type="button"
+                onClick={onClick}
+                disabled={disabled}
+                aria-label={label}
+                aria-pressed={pressed}
+                className={className}
+              >
+                {children}
+              </button>
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={onClick}
+              disabled={disabled}
+              aria-label={label}
+              aria-pressed={pressed}
+              className={className}
+            />
+          )
         }
       >
         {children}
