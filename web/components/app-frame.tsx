@@ -265,10 +265,16 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
                       <Link
                         href="/favourites"
                         aria-label="Your favourites"
+                        // The one nav control that carries a colour of its
+                        // own. It is a heart, and a heart in brass is filed
+                        // with the furniture — this is the entry point the
+                        // owner wanted noticed, so it keeps the accent even
+                        // when the route is not active, and deepens rather
+                        // than switches colour when it is.
                         className={`grid size-9 place-items-center rounded-full border transition ${
                           pathname === "/favourites"
-                            ? "border-primary/30 bg-primary/15 text-primary"
-                            : "border-white/10 bg-white/[0.06] text-muted-foreground hover:text-foreground"
+                            ? "border-heart/40 bg-heart/15 text-heart"
+                            : "border-white/10 bg-white/[0.06] text-heart/75 hover:border-heart/30 hover:bg-heart/10 hover:text-heart"
                         }`}
                       />
                     }
