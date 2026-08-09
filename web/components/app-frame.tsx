@@ -23,6 +23,7 @@ import { InstallButton } from "@/components/install-prompt";
 import { InstallCard } from "@/components/install-card";
 import { LikeBurstHost } from "@/components/like-burst";
 import { NoticeDialog } from "@/components/notice-dialog";
+import { track } from "@/lib/analytics";
 import { facetCards, portrait } from "@/lib/catalogue";
 import { usePlayer, usePlayerBar } from "@/components/player-provider";
 import { useCatalogue, usePhotoManifest } from "@/lib/queries";
@@ -241,10 +242,18 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
                 <input
                   value={query}
                   onChange={(e) => {
+                    // Once per search, on the empty-to-typed edge. Gating this
+                    // on the redirect below meant searching was only ever
+                    // counted when it moved you to /songs — so every search
+                    // made once you were already there, which is most of them,
+                    // went unrecorded. Still no query text, only that it began.
+                    if (!query.trim() && e.target.value.trim()) track("search");
                     setQuery(e.target.value);
                     // Searching from anywhere lands on the list that can show
                     // results, rather than silently doing nothing.
-                    if (pathname !== "/songs" && e.target.value) router.push("/songs");
+                    if (pathname !== "/songs" && e.target.value) {
+                      router.push("/songs");
+                    }
                   }}
                   placeholder="Search songs, films, singers…"
                   className="h-10 w-full rounded-full border border-white/10 bg-white/[0.07] pl-10 pr-9 text-sm outline-none transition placeholder:text-muted-foreground/70 hover:border-white/20 hover:bg-white/[0.09] focus:border-primary/50 focus:bg-white/[0.1] focus:ring-4 focus:ring-primary/10"

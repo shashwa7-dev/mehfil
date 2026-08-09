@@ -28,7 +28,7 @@ export function QueuePanel({
   open: boolean;
   onClose: () => void;
 }) {
-  const { queue, currentId, play } = usePlayer();
+  const { queue, currentId, playQueued } = usePlayer();
 
   const { current, upcoming } = useMemo(() => {
     const at = queue.findIndex((song) => song.id === currentId);
@@ -97,7 +97,7 @@ export function QueuePanel({
               computeItemKey={(_, song) => song.id}
               itemContent={(index, song) => (
                 <button
-                  onClick={() => play(song.id)}
+                  onClick={() => playQueued(song.id)}
                   className="flex w-full items-center gap-3 px-4 py-1.5 text-left transition hover:bg-white/[0.06]"
                 >
                   <span className="w-5 shrink-0 text-right text-[11px] tabular-nums text-muted-foreground">

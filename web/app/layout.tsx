@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Figtree } from "next/font/google";
+import Script from "next/script";
 import { Providers } from "./providers";
 import { PlayerProvider } from "@/components/player-provider";
 import { OfflineNotice } from "@/components/offline-notice";
@@ -150,6 +151,30 @@ export default function RootLayout({
             <OfflineNotice />
           </PlayerProvider>
         </Providers>
+
+        {/* Umami: visit counts, and nothing else.
+            No cookies, no device or browser fingerprint, no identifier that
+            survives the page — so there is no profile of anyone here and
+            nothing that could be joined to a person later. It is the least a
+            thing can collect and still tell you whether anyone came.
+
+            The website id is public by design: it travels in this script tag
+            on every page, so there is nothing to hide in an env var.
+
+            The real production deployment only, and VERCEL_ENV rather than
+            NODE_ENV is the distinction that matters: `next build` sets
+            NODE_ENV=production for preview builds too, so gating on it would
+            report every pull request and branch push into the live numbers —
+            the staging traffic this gate exists to keep out. VERCEL_ENV is
+            undefined off Vercel, so a local build stays quiet by the same
+            rule. */}
+        {process.env.VERCEL_ENV === "production" && (
+          <Script
+            src="https://cloud.umami.is/script.js"
+            data-website-id="ff6b113d-a99d-4815-9c06-aa7fb4f6693b"
+            strategy="afterInteractive"
+          />
+        )}
       </body>
     </html>
   );

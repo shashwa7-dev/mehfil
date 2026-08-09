@@ -7,6 +7,7 @@ import { useFrame } from "@/components/app-frame";
 import { CollectionHeader } from "@/components/collection-header";
 import { usePlayer } from "@/components/player-provider";
 import { SongList } from "@/components/song-list";
+import { track } from "@/lib/analytics";
 import { filterSongs, type Catalogue } from "@/lib/catalogue";
 import { useCatalogue, usePhotoManifest, useStationPosters } from "@/lib/queries";
 import { FACET_BY_KIND, resolveSlug } from "@/lib/routes";
@@ -43,6 +44,12 @@ export function CollectionView({ kind, slug }: { kind: string; slug: string }) {
   useEffect(() => {
     scrollEl?.scrollTo({ top: 0 });
   }, [slug, scrollEl]);
+
+  // The kind, not the slug: that a singer was opened is worth knowing, which
+  // singer is nobody's business but the listener's.
+  useEffect(() => {
+    if (kind) track("collection", { kind });
+  }, [kind, slug]);
 
   // An unknown kind is a bad URL; an unknown slug only after the catalogue has
   // loaded, since before that we simply cannot tell.

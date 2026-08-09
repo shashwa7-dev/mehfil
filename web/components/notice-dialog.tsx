@@ -228,14 +228,14 @@ export function NoticeDialog() {
             </p>
             <p>
               <strong className="font-medium text-primary">
-                Nothing you do here leaves this browser.
+                There is no account and nothing to sign in to.
               </strong>{" "}
-              No account, no server, no tracking. Installing Mehfil to your home
-              screen changes none of that: it asks for{" "}
+              Your favourites and your chosen backdrop stay in this browser. We
+              count a little of what happens here — visits, plays, searches —{" "}
               <strong className="font-medium text-primary">
-                no permissions
-              </strong>{" "}
-              and sends nothing anywhere.
+                without cookies and without anything that identifies you
+              </strong>
+              . The full list is on the For the curious page, and it is short.
             </p>
           </AlertDialogDescription>
         </AlertDialogHeader>

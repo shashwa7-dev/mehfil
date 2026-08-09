@@ -2,6 +2,8 @@
 
 import { useSyncExternalStore } from "react";
 
+import { track } from "@/lib/analytics";
+
 /**
  * Which songs someone has liked, kept on their device.
  *
@@ -118,6 +120,8 @@ export function isFavourite(id: number): boolean {
 }
 
 export function toggleFavourite(id: number) {
+  // The action, never the song. Which songs a person loves is theirs.
+  track("favourite", { action: isFavourite(id) ? "unliked" : "liked" });
   const now = current();
   commit(isFavourite(id) ? now.filter((value) => value !== id) : [...now, id]);
 }

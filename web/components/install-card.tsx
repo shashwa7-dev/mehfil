@@ -18,6 +18,7 @@ import {
   IOSInstallHelp,
   useInstall,
 } from "@/components/install-prompt";
+import { track } from "@/lib/analytics";
 import { hasSeenWelcome, onWelcomeSeen } from "@/lib/welcome";
 
 /**
@@ -88,7 +89,11 @@ export function InstallCard() {
   }, [armed, canInstall, installed]);
 
   async function accept() {
-    await install();
+    // After, not before. The browser's dialog is what decides, and recording
+    // "accepted" on the click recorded a fact we did not have yet — someone
+    // could press this, dismiss the real prompt, and be counted as installed.
+    const outcome = await install();
+    track("install", { action: outcome });
     close();
   }
 
@@ -111,7 +116,10 @@ export function InstallCard() {
       // page, instead of the nudge being lost to where they were standing.
       open={open && pathname !== "/about"}
       onOpenChange={(next) => {
-        if (!next) close();
+        if (!next) {
+          if (open) track("install", { action: "not-now" });
+          close();
+        }
       }}
     >
       {/* Same geometry as the welcome: capped on dvh, wider than the
@@ -152,9 +160,8 @@ export function InstallCard() {
               <strong className="font-medium text-primary">
                 Completely safe.
               </strong>{" "}
-              It is the same page you are on, in a window of its own. No
-              permissions, no access to anything else on your device, and
-              nothing sent anywhere.
+              It is the same page you are on, in a window of its own. It asks
+              for no permissions and reaches nothing else on your device.
             </p>
           </AlertDialogDescription>
         </AlertDialogHeader>
