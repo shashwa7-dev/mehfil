@@ -206,11 +206,12 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
                 hideSearch ? "flex lg:hidden" : "flex"
               }`}
             >
-              {/* Hidden below sm: brandAndNav's Browse row already points at
-                  `/`, so the drawer loses nothing, and the logo was the
-                  easiest 40px to give back on a phone narrow enough that the
-                  search box was losing its placeholder text to it. */}
-              <Link href="/" className="hidden shrink-0 items-center gap-2 sm:flex lg:hidden">
+              {/* Shown at every width below lg: brandAndNav's Browse row
+                  points at `/` too, but the logo is the brand mark and the
+                  one tap-target that reliably reads as "home" on a phone, so
+                  it stays even where every pixel is contested. The room for
+                  it came from Themes below, not from hiding this again. */}
+              <Link href="/" className="flex shrink-0 items-center gap-2 lg:hidden">
                 <img src="/logo.png" alt="" width={32} height={32} className="size-8 rounded-lg" />
               </Link>
 
@@ -240,20 +241,19 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
               </div>
               )}
 
-              {/* Favourites and themes, one glance away at any width. Both
-                  already live in the rail/drawer nav, but that is only a
-                  touchpoint once a phone user opens the drawer — this is the
-                  fix for that. Not gated on hideSearch: hideSearch only
-                  retires the search box (nothing to search on /about or
-                  /contribute), it says nothing about these two, and hiding
-                  them there would remove the one touchpoint mobile still has
-                  on those routes. The row itself already collapses to
-                  lg:hidden on those pages, so on desktop this disappears with
-                  the rest of the row rather than needing its own check.
-                  ml-auto moves here from the Surprise button below: this is
-                  now the first element of the group that gets pushed to the
-                  right edge, and Surprise/the menu trigger ride along after
-                  it instead of pushing themselves. */}
+              {/* Favourites, one glance away at any width. It already lives
+                  in the rail/drawer nav, but that is only a touchpoint once a
+                  phone user opens the drawer — this is the fix for that. Not
+                  gated on hideSearch: hideSearch only retires the search box
+                  (nothing to search on /about or /contribute), it says
+                  nothing about this, and hiding it there would remove the
+                  one touchpoint mobile still has on those routes. The row
+                  itself already collapses to lg:hidden on those pages, so on
+                  desktop this disappears with the rest of the row rather than
+                  needing its own check. ml-auto moves here from the Surprise
+                  button below: this is now the first element of the group
+                  that gets pushed to the right edge, and Surprise/the menu
+                  trigger ride along after it instead of pushing themselves. */}
               <div className="ml-auto flex shrink-0 items-center gap-1.5">
                 {/* aria-label carries the accessible name regardless of what a
                     screen reader does with the tooltip; the tooltip is only
@@ -283,13 +283,18 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
                   </TooltipTrigger>
                   <TooltipContent>Your favourites</TooltipContent>
                 </Tooltip>
+                {/* Hidden below sm: this is what paid for the logo's return.
+                    Themes is a preference visited occasionally, not a
+                    destination like Favourites, and it stays reachable from
+                    the drawer (via the credit block) at every width — this
+                    icon is only ever the second-fastest way to it. */}
                 <Tooltip>
                   <TooltipTrigger
                     render={
                       <Link
                         href="/themes"
                         aria-label="Themes"
-                        className={`grid size-9 place-items-center rounded-full border transition ${
+                        className={`hidden size-9 place-items-center rounded-full border transition sm:grid ${
                           pathname === "/themes"
                             ? "border-primary/30 bg-primary/15 text-primary"
                             : "border-white/10 bg-white/[0.06] text-muted-foreground hover:text-foreground"
