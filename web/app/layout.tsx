@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Figtree } from "next/font/google";
+import Script from "next/script";
 import { Providers } from "./providers";
 import { PlayerProvider } from "@/components/player-provider";
 import { OfflineNotice } from "@/components/offline-notice";
@@ -150,6 +151,26 @@ export default function RootLayout({
             <OfflineNotice />
           </PlayerProvider>
         </Providers>
+
+        {/* Umami: visit counts, and nothing else.
+            No cookies, no device or browser fingerprint, no identifier that
+            survives the page — so there is no profile of anyone here and
+            nothing that could be joined to a person later. It is the least a
+            thing can collect and still tell you whether anyone came.
+
+            The website id is public by design: it travels in this script tag
+            on every page, so there is nothing to hide in an env var.
+
+            Production only. Otherwise every local reload would land in the
+            real numbers, and the first thing you would learn is how often the
+            person building it refreshed the page. */}
+        {process.env.NODE_ENV === "production" && (
+          <Script
+            src="https://cloud.umami.is/script.js"
+            data-website-id="ff6b113d-a99d-4815-9c06-aa7fb4f6693b"
+            strategy="afterInteractive"
+          />
+        )}
       </body>
     </html>
   );

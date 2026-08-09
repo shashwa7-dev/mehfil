@@ -152,9 +152,8 @@ export function InstallCard() {
               <strong className="font-medium text-primary">
                 Completely safe.
               </strong>{" "}
-              It is the same page you are on, in a window of its own. No
-              permissions, no access to anything else on your device, and
-              nothing sent anywhere.
+              It is the same page you are on, in a window of its own. It asks
+              for no permissions and reaches nothing else on your device.
             </p>
           </AlertDialogDescription>
         </AlertDialogHeader>

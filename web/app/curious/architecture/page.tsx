@@ -38,7 +38,7 @@ export default function ArchitecturePage() {
             ["Facets", "415 singers, 1,379 films, 66 stations, 23 composers, 12 lyricists, 12 moods"],
             ["Framework", "Next.js 16 App Router, React 19, Tailwind v4"],
             ["Server code", "One route — /api/feedback — and nothing else"],
-            ["Storage", "Four localStorage keys. No cookies, no analytics, no tracking"],
+            ["Storage", "Four localStorage keys, no cookies. Visits counted anonymously with Umami"],
           ]}
         />
         <p className="mt-4 max-w-prose text-sm leading-relaxed text-muted-foreground">
@@ -184,7 +184,7 @@ if (!acknowledged) return error(502);   // say so, do not pretend`}
             "Host any music. Every track plays through YouTube's own embedded player.",
             "Store anything about you anywhere but your own browser.",
             "Ask you to sign in, or have anywhere to sign in to.",
-            "Know that you exist. There is no analytics of any kind.",
+            "Build any picture of you. Umami counts visits with no cookies and no identifier that outlives the page, so there is nothing here that could be joined to a person later.",
           ].map((line) => (
             <li key={line} className="flex max-w-prose gap-2.5">
               <span aria-hidden className="mt-[0.55rem] size-1 shrink-0 rounded-full bg-muted-foreground/50" />
