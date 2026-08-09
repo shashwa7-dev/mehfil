@@ -354,3 +354,26 @@
     );
   }
 }
+
+/* A liked heart throwing off smaller ones.
+ *
+ * One static rule for every particle: each is handed its own drift, rise,
+ * rotation, end scale and delay as custom properties, so six differ without six
+ * keyframe definitions.
+ *
+ * Transform and opacity only. Both are composited, so the whole burst runs off
+ * the main thread and cannot cause layout while a song is starting. */
+@keyframes like-rise {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4) rotate(0deg);
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy)))
+      scale(var(--end-scale)) rotate(var(--rot));
+  }
+}
