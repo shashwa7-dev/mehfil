@@ -125,10 +125,17 @@ export function InstallCard() {
             render={<div className="space-y-3 text-left" />}
           >
             <p>
-              It opens in its own window with no browser bars, holds your
+              It opens in its own window with no browser bars, keeps your
               favourites and your chosen backdrop, and starts where you left
-              off. It is the same page you are on — it asks for no permissions
-              and sends nothing anywhere.
+              off.
+            </p>
+            <p>
+              <strong className="font-medium text-primary">
+                Completely safe.
+              </strong>{" "}
+              It is the same page you are on, in a window of its own. No
+              permissions, no access to anything else on your device, and
+              nothing sent anywhere.
             </p>
           </AlertDialogDescription>
         </AlertDialogHeader>
