@@ -74,7 +74,13 @@ export function NoticeDialog() {
 
   return (
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
-      <AlertDialogContent>
+      {/* The generated primitive centres the popup with no height cap, and the
+          first paragraph now runs long enough (the artist-credit sentence) to
+          overflow a short viewport — a landscape phone especially. Capping the
+          height and scrolling the overflow keeps the dialog on-screen rather
+          than letting it run past the top and bottom edges with the OK button
+          unreachable. */}
+      <AlertDialogContent className="max-h-[85vh] overflow-y-auto">
         <AlertDialogHeader>
           <AlertDialogTitle>Two things, before you start</AlertDialogTitle>
           {/* Rendered as a div rather than the default <p>, purely so two
@@ -87,9 +93,11 @@ export function NoticeDialog() {
               Nothing here is ours to claim. The catalogue is metadata compiled
               from a public songlist; every track plays through YouTube&apos;s
               own embedded player; cover art is YouTube&apos;s video
-              thumbnails. The backdrops under Themes are illustrations we have
-              not been able to identify the artist of. Nothing is hosted or
-              claimed by this project.
+              thumbnails. The backdrops under Themes are illustrations by artists
+              we have not been able to identify, and one or two depict characters
+              belonging to someone else. If you made one, or hold the rights to
+              one, tell us and we will credit it or take it down. Nothing is
+              hosted or claimed by this project.
             </p>
             <p>
               Mehfil stores nothing either. There is no account, no server, no
