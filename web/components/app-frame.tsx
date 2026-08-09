@@ -4,10 +4,10 @@ import { createContext, useContext, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  Compass,
   Disc3,
   Heart,
   HeartHandshake,
-  LayoutGrid,
   ListMusic,
   Menu,
   Palette,
@@ -107,7 +107,7 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
           routes, and the rail and the mobile drawer both render it. */}
       <nav aria-label="Primary" className="shrink-0 space-y-0.5 px-2 pb-2">
         <Link href="/" className={navClass(onBrowse)}>
-          <LayoutGrid className="size-4" /> Browse
+          <Compass className="size-4" /> Browse
         </Link>
         <Link href="/songs" className={navClass(pathname === "/songs")}>
           <ListMusic className="size-4" /> All songs
