@@ -17,9 +17,15 @@ Design rules that keep that true:
 
 import json
 import re
+import os
 import sqlite3
+import sys
 import unicodedata
 from datetime import datetime, timezone
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+import songids  # noqa: E402
 
 SCHEMA = """
 PRAGMA journal_mode=WAL;
@@ -157,6 +163,13 @@ def ingest_catalogue(conn, songs_path, stations_path):
     """Load parsed songs + the station role taxonomy. Idempotent."""
     songs = json.load(open(songs_path, encoding="utf-8"))
     taxonomy = json.load(open(stations_path, encoding="utf-8"))
+
+    # The first of the two doors an id passes through. Songs are upserted here
+    # ON CONFLICT(id) DO UPDATE SET title, while resolutions keyed by the same
+    # id are left untouched — so loading a file numbered under an older scheme
+    # would leave every row holding the previous song's video under the next
+    # song's name, with nothing to show for it afterwards.
+    songids.require_agreement(songs, os.path.basename(songs_path))
 
     station_kind, station_people = {}, {}
     for kind, entries in taxonomy.items():

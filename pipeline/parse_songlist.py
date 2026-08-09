@@ -16,8 +16,11 @@ import json
 import os
 import re
 import sys
-import unicodedata
 from collections import defaultdict
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from songids import assign_ids, normalise  # noqa: E402
 
 # Column gutters, from the x-position histogram: entry numbers sit at x≈21/211/401
 # and their text at x≈44/233/423, with empty bands at 180-210 and 360-400.
@@ -29,12 +32,6 @@ HEADER_MAX_Y = 45.0
 
 # Words on one visual line share a baseline; allow a little slack for rounding.
 LINE_TOLERANCE = 3.0
-
-# The id ledger. Resolved from this file rather than the working directory, so
-# the script assigns the same ids wherever it is run from.
-LEDGER_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "song_ids.json"
-)
 
 PAGE_RE = re.compile(r'<page width="[^"]*" height="[^"]*">(.*?)</page>', re.S)
 WORD_RE = re.compile(
@@ -94,62 +91,6 @@ def split_artists(raw):
     """Credits are comma-separated; '&' also appears in a handful of entries."""
     parts = re.split(r",|\s+&\s+", raw)
     return [p.strip(" .,") for p in parts if p.strip(" .,")]
-
-
-def normalise(text):
-    """Fold to a comparison key: strip accents, punctuation, case, extra spaces."""
-    text = unicodedata.normalize("NFKD", text)
-    text = "".join(c for c in text if not unicodedata.combining(c))
-    text = re.sub(r"[^\w\s]", " ", text.lower())
-    return re.sub(r"\s+", " ", text).strip()
-
-
-def song_key(title, film):
-    """The identity of a song: the same pair used to collapse duplicate rows."""
-    return f"{normalise(title)}|{normalise(film or '')}"
-
-
-def assign_ids(catalogue, ledger_path):
-    """Give each song the id it has always had, and new songs the next free one.
-
-    Ids used to be positions: the catalogue was sorted by title and numbered
-    from one. That made an id a statement about where a song sat rather than
-    which song it was, so inserting a single new title renumbered everything
-    after it — one song at position 49 moved 3,867 of 3,916 ids by one.
-
-    Nothing downstream survives that. `resolutions` maps song_id to a video and
-    is not rewritten by a re-parse, while `songs` upserts ON CONFLICT(id) DO
-    UPDATE SET title, so every row would keep the previous song's video under
-    the next song's name — silently, with nothing to detect it afterwards.
-
-    So ids come from a committed ledger keyed by song identity. They are
-    append-only: a song that leaves the catalogue keeps its number rather than
-    donating it, because a returning id would resurrect stale references
-    pointing at an unrelated song.
-    """
-    with open(ledger_path, encoding="utf-8") as fh:
-        ledger = json.load(fh)
-
-    next_id = max(ledger.values(), default=0) + 1
-    added = []
-    for song in catalogue:
-        key = song_key(song["title"], song["film"])
-        if key not in ledger:
-            ledger[key] = next_id
-            added.append(song["title"])
-            next_id += 1
-        song["id"] = ledger[key]
-
-    # A duplicate would mean two songs sharing an id, which every table keyed
-    # by song_id would then merge. Cheaper to fail here than to find it later.
-    ids = [song["id"] for song in catalogue]
-    if len(set(ids)) != len(ids):
-        raise SystemExit("song ids are not unique — the ledger is inconsistent")
-
-    with open(ledger_path, "w", encoding="utf-8") as fh:
-        json.dump(ledger, fh, ensure_ascii=False, indent=1, sort_keys=True)
-        fh.write("\n")
-    return added
 
 
 def parse_entries(lines, station, page_no):
@@ -263,7 +204,7 @@ def main(xml_path, out_path):
     # Still sorted by title, for a readable diff — but the order no longer says
     # anything about identity, which is the point of the ledger below.
     catalogue = sorted(songs.values(), key=lambda s: (s["title"].lower(), s["film"] or ""))
-    added = assign_ids(catalogue, LEDGER_PATH)
+    added = assign_ids(catalogue)
 
     with open(out_path, "w", encoding="utf-8") as fh:
         json.dump(catalogue, fh, ensure_ascii=False, indent=1)

@@ -28,10 +28,9 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from parse_songlist import song_key  # noqa: E402
+from songids import LEDGER_PATH as LEDGER, song_key  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-LEDGER = os.path.join(ROOT, "data", "song_ids.json")
 PARSED = os.path.join(ROOT, "data", "songs.json")
 DB = os.path.join(ROOT, "data", "carvaan.db")
 CATALOGUE = os.path.join(ROOT, "web", "public", "catalogue.json")
